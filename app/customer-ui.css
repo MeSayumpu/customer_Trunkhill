@@ -423,11 +423,11 @@
 .customer-ui .tent-plot { position:absolute; inset:0; transform-style:preserve-3d; pointer-events:none; }
 .customer-ui .tent-pad { position:absolute; inset:0; width:100%; height:100%; overflow:visible; transform:translateZ(.5px); pointer-events:none; }
 .customer-ui .tent-pad polygon { fill:transparent; stroke:transparent; stroke-width:2px; pointer-events:visiblePainted; cursor:pointer; transition:fill .2s,stroke .2s; }
-.customer-ui .tent-plot[data-status=available] .tent-pad polygon { stroke:rgba(255,255,255,.6); stroke-dasharray:4 3; }
-.customer-ui .tent-plot[data-status=available]:hover .tent-pad polygon { fill:rgba(255,250,232,.32); stroke:#fff; stroke-dasharray:none; }
-.customer-ui .tent-plot[data-status=selected] .tent-pad polygon { fill:rgba(67,153,106,.5); stroke:#e3f7ea; stroke-width:2.5px; }
-.customer-ui .tent-plot[data-status=booked] .tent-pad polygon { fill:rgba(180,67,63,.32); stroke:rgba(255,214,210,.55); cursor:not-allowed; }
-.customer-ui .tent-plot[data-status=unchecked] .tent-pad polygon { fill:rgba(255,255,255,.14); cursor:progress; }
+.customer-ui .tent-pad polygon[data-status=available] { stroke:rgba(255,255,255,.6); stroke-dasharray:4 3; }
+.customer-ui .tent-pad polygon[data-status=available]:hover { fill:rgba(255,250,232,.32); stroke:#fff; stroke-dasharray:none; }
+.customer-ui .tent-pad polygon[data-status=selected] { fill:rgba(67,153,106,.5); stroke:#e3f7ea; stroke-width:2.5px; }
+.customer-ui .tent-pad polygon[data-status=booked] { fill:rgba(180,67,63,.32); stroke:rgba(255,214,210,.55); cursor:not-allowed; }
+.customer-ui .tent-pad polygon[data-status=unchecked] { fill:rgba(255,255,255,.14); cursor:progress; }
 .customer-ui .tent-shadow {
   position:absolute; aspect-ratio:2.2 / 1; border-radius:50%; pointer-events:none;
   transform:translate(-50%,-62%) translateZ(1px);
@@ -453,7 +453,7 @@
 .customer-ui .tent:not(:disabled):hover,.customer-ui .tent-plot:hover .tent:not(:disabled) { --lift:-12%; transition-duration:.22s; filter:drop-shadow(0 6px 5px rgba(0,0,0,.28)); }
 .customer-ui .tent[aria-pressed=true] { --pop:1.1; filter:drop-shadow(0 0 7px rgba(240,180,60,.85)) drop-shadow(0 2px 2px rgba(0,0,0,.25)); }
 .customer-ui .tent:focus-visible { outline:none; box-shadow:none; filter:drop-shadow(0 0 2px #fff) drop-shadow(0 0 5px var(--c-sun)); }
-.customer-ui .tent-plot[data-dimmed] :is(.tent,.tent-pad) { opacity:.45; }
+.customer-ui :is(.tent-plot[data-dimmed] .tent,.tent-pad polygon[data-dimmed]) { opacity:.45; }
 .customer-ui .tent-code {
   position:absolute; left:50%; bottom:1%; transform:translateX(-50%);
   padding:.12em .5em; border-radius:999px; background:rgba(255,255,255,.95); color:var(--c-ink);

@@ -273,16 +273,18 @@ export function TentMap({rows, counts, ready, busy, onSelect, mapVersion, zone, 
                 if (naturalWidth && naturalHeight) setRatio(naturalWidth / naturalHeight)
               }}/>}
           </div>
-          {plots.map(({row,shape,x,y,size,status,dimmed}) => {
+          {/* One SVG for every plot outline: a full-field layer per plot exhausts memory on phones (iOS Safari crashes). */}
+          <svg className="tent-pad" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            {plots.map(({row,shape,status,dimmed}) => shape && <polygon key={row.code} data-status={status} data-dimmed={dimmed || undefined}
+              points={shapePoints(shape).map(point => point.join(',')).join(' ')} vectorEffect="non-scaling-stroke"
+              onClick={!busy && ready && status !== 'booked' ? () => onSelect(row, status === 'selected' ? 0 : 1) : undefined}/>)}
+          </svg>
+          {plots.map(({row,x,y,size,status,dimmed}) => {
             const selected = status === 'selected'
             const canSelect = !busy && ready && status !== 'booked'
             const activate = () => onSelect(row, selected ? 0 : 1)
             const title = row.code + ' · ' + t(statusLabels[status]) + (row.detail ? ' · ' + row.detail : '')
             return <div className="tent-plot" key={row.code} data-status={status} data-dimmed={dimmed || undefined}>
-              {shape && <svg className="tent-pad" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-                <polygon points={shapePoints(shape).map(point => point.join(',')).join(' ')} vectorEffect="non-scaling-stroke"
-                  onClick={canSelect ? activate : undefined}/>
-              </svg>}
               <span className="tent-shadow" style={{left:x + '%',top:y + '%',width:size * 1.15 + '%'}} aria-hidden="true"/>
               <button type="button" className="tent" style={{left:x + '%',top:y + '%',width:size + '%'}}
                 aria-pressed={selected} aria-label={title} title={title} disabled={!canSelect} onClick={activate}>
