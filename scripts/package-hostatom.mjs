@@ -18,10 +18,12 @@ await cp(standalone, out, { recursive:true })
 await cp(path.join(root, dist, 'static'), path.join(out, dist, 'static'), { recursive:true })
 await cp(path.join(root, 'public'), path.join(out, 'public'), { recursive:true })
 
-// 2. Database migration (run once from Plesk "Run script": db:migrate).
+// 2. Database migration (Plesk's command console gets no app env vars: upload run-migration.flag and Restart App).
 for (const file of ['scripts/init-db.mjs', 'scripts/customer-experience-schema.mjs',
   'lib/rentals.js', 'lib/whole-camp.js', 'lib/booking-reference.js']) await cp(path.join(root, file), path.join(out, file))
 await cp(path.join(root, 'db'), path.join(out, 'db'), { recursive:true })
+// Plesk startup file: runs init-db inside the app's environment when run-migration.flag exists.
+await cp(path.join(root, 'scripts/hostatom-boot.cjs'), path.join(out, 'boot.cjs'))
 const seen = new Set()
 async function copyPackage(name) {
   if (seen.has(name)) return
@@ -38,7 +40,7 @@ await copyPackage('mysql2')
 await writeFile(path.join(out, 'package.json'), JSON.stringify({
   name:'trunkhill-campfield', private:true,
   engines:{ node:'>=20.9' },
-  scripts:{ start:'node server.js', 'db:migrate':'node scripts/init-db.mjs --keep-catalog' },
+  scripts:{ start:'node boot.cjs', 'db:migrate':'node scripts/init-db.mjs --keep-catalog' },
 }, null, 2) + '\n')
 
 // 4. Never ship local secrets or Windows-only image binaries (next/image is not used).
