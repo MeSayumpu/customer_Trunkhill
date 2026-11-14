@@ -9,6 +9,7 @@ import { codePattern, integer } from '../../lib/camp'
 import { adminUrl, inventorySections } from './navigation'
 import { liveAllocation, uploadMime } from '../../lib/payment-rules'
 import { isTent } from '../../lib/rentals'
+import { readPhotoOrder, saveRoomPhotos } from '../../lib/room-photos'
 import { isCalendarDate } from '../../lib/booking-dates'
 import { wholeCampCode, wholeCampGuestLimit, wholeCampRateFields } from '../../lib/whole-camp'
 
@@ -251,6 +252,10 @@ export async function saveInventory(data) {
     if (kind === 'plot') redirect(adminUrl(section, { ...filters, error:'photo' }))
     photo = file
   }
+  // Rooms send all photos at once: the order (existing + new) and the new files as 'photos'.
+  const roomUploads = kind === 'room' ? data.getAll('photos').filter(storageId) : []
+  const photoOrder = kind === 'room' && data.has('photoOrder') ? readPhotoOrder(data.get('photoOrder'),roomUploads.length) : null
+  if (kind === 'room' && data.has('photoOrder') && !photoOrder) redirect(adminUrl(section, { ...filters, error:'roomPhotoLimit' }))
   if (!codePattern.test(code) || code === wholeCampCode || (original && original !== code) ||
       !Object.hasOwn(allowedZones, kind) || !allowedZones[kind].includes(zone) ||
       !name || name.length > 120 || detail.length > 240 || !integer(price, 0, 100000) || !integer(stock, 0, 1000) ||
@@ -295,6 +300,7 @@ export async function saveInventory(data) {
           [code,mime,photo,mime,photo],
         )
       }
+      if (photoOrder && await saveRoomPhotos(connection,code,photoOrder,roomUploads)) photo = true
       if(photo)await ensureStorage(connection)
       return {saved:'inventory',tab:kind === 'gear' ? (tent ? 'tents' : 'equipment') : ''}
     })

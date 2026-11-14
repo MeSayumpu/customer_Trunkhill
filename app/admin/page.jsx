@@ -56,7 +56,7 @@ export default async function Admin({ searchParams }) {
         {query.error && <p className="notice error" role="alert">{query.error === 'storage' ? 'บันทึกไฟล์ไม่ได้ พื้นที่จัดเก็บไม่เพียงพอหรือไฟล์อัปโหลดหมดอายุ กรุณาตรวจพื้นที่จัดเก็บแล้วเลือกไฟล์ใหม่' : query.error === 'zoneMedia'
           ? 'ตรวจสอบประเภทไฟล์ รองรับรูป JPG, PNG, WebP และวิดีโอ MP4, WebM'
           : query.error === 'zoneFeatures' ? 'ตรวจจุดเด่นและสิ่งอำนวยความสะดวก: ทุกรายการต้องมีไอคอนและชื่อ ไม่เกิน 12 รายการต่อกลุ่ม'
-          : query.error === 'roomGalleryLimit' ? 'รูปเพิ่มเติมของห้องเกิน 12 รูป กรุณาเลือกไฟล์ให้น้อยลงหรือลบรูปเดิมออก'
+          : query.error === 'roomPhotoLimit' ? 'รูปห้องได้สูงสุด 12 รูป กรุณาเลือกไฟล์ให้น้อยลงหรือนำรูปเดิมออก'
           : query.error === 'zoneLimit' ? 'จำนวนรูปเกิน 8 รูปต่อโซน กรุณาเลือกไฟล์ให้น้อยลงหรือนำรูปเดิมออก'
           : query.error === 'photo'
           ? 'ใช้รูป JPG, PNG หรือ WebP'

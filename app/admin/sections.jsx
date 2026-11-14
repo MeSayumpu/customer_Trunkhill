@@ -14,7 +14,7 @@ import { TentDiscountForm } from './tent-discount-form'
 import { isTent } from '../../lib/rentals'
 import { adminSections, adminUrl, inventoryKinds } from './navigation'
 import { AdminDialog } from './admin-dialog'
-import { RoomGallery } from './room-gallery'
+import { RoomPhotosField } from './room-photos-field'
 
 const pageSize = 30
 const baseZones = { room:['BOX'], gear:['GEAR'] }
@@ -58,6 +58,12 @@ function Pagination({ section, filters, page, rowCursor }) {
 async function InventoryForm({ row = {}, kind, q, zone, tab, closeUrl }) {
   const zones={...baseZones,plot:(await campZones()).filter(z=>z!=='BOX')}
   const tent = row.code ? isTent({...row,kind}) : kind === 'gear' && tab === 'tents'
+  // Room photos in customer order: main photo first, then the extra photos.
+  const [gallery] = kind === 'room' && row.code ? await database().execute('SELECT id FROM inventory_gallery WHERE code=? ORDER BY sort,id',[row.code]) : [[]]
+  const roomPhotos = [
+    ...(row.has_photo > 0 ? [{token:'cover',src:'/admin/inventory-photo/' + encodeURIComponent(row.code) + '?v=' + Date.now()}] : []),
+    ...gallery.map(({id}) => ({token:'g:' + id,src:'/api/inventory-gallery/' + id})),
+  ]
   return <ActionForm action={saveInventory} className="admin-edit-form inventory-edit-form">
     <input type="hidden" name="original" value={row.code || ''}/>
     <input type="hidden" name="kind" value={kind}/>
@@ -86,7 +92,11 @@ async function InventoryForm({ row = {}, kind, q, zone, tab, closeUrl }) {
       </label>
       <p className="small muted">ใส่ 0 หรือเว้นว่างช่องใดช่องหนึ่งเพื่อปิดส่วนลดของรุ่นนี้</p>
     </fieldset>}
-    {kind !== 'plot' && <fieldset className="inventory-edit-group inventory-edit-photo">
+    {kind === 'room' && <fieldset className="inventory-edit-group inventory-edit-photo">
+      <legend>รูปภาพห้อง</legend>
+      <RoomPhotosField existing={roomPhotos} roomName={row.name || 'ห้องนี้'}/>
+    </fieldset>}
+    {kind === 'gear' && <fieldset className="inventory-edit-group inventory-edit-photo">
       <legend>รูปภาพ</legend>
       <MediaUpload current={row.has_photo > 0 ? '/admin/inventory-photo/' + row.code : undefined}/>
     </fieldset>}
@@ -177,7 +187,6 @@ export async function InventoryList({ section, query }) {
     <Pagination section={section} filters={filters} page={page} rowCursor={row => row.code}/>
     {(adding || editing) && <AdminDialog title={editing ? 'แก้ไข ' + editing.name : 'เพิ่มรายการ' } closeUrl={closeUrl}>
       <InventoryForm row={editing} {...{kind,q,zone,tab,closeUrl}}/>
-      {kind === 'room' && editing && <RoomGallery room={editing}/>}
     </AdminDialog>}
   </section>
 }

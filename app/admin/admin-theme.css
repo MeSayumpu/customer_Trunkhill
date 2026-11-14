@@ -419,16 +419,16 @@
 .admin-ui .welcome-pair input { width:100%; }
 @media (max-width:760px) { .admin-ui .welcome-pair { grid-template-columns:minmax(0,1fr); } }
 
-/* Room gallery (extra Trunkbox photos) inside the room edit dialog */
-.admin-ui .room-gallery-admin { margin-top:16px; padding-top:16px; border-top:1px solid #e3ebe6; }
-.admin-ui .room-gallery-admin h3 { display:flex; align-items:center; gap:8px; margin:0 0 4px; font-size:1rem; }
-.admin-ui .room-gallery-admin h3 small { padding:1px 8px; border-radius:999px; background:#e6f0ea; color:#4d6559; font-size:.75rem; font-weight:600; }
-.admin-ui .room-gallery-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; margin:0; padding:0; list-style:none; }
-.admin-ui .room-gallery-grid li { position:relative; display:grid; gap:6px; padding:6px; border:1px solid #dbe5df; border-radius:12px; background:#fff; }
-.admin-ui .room-gallery-grid img { display:block; width:100%; aspect-ratio:4 / 3; border-radius:8px; object-fit:cover; background:#eef3ef; }
-.admin-ui .room-gallery-order { position:absolute; top:10px; left:10px; padding:1px 8px; border-radius:999px; background:rgba(15,42,31,.75); color:#fff; font-size:.75rem; font-weight:700; }
-.admin-ui .room-gallery-actions { display:flex; gap:4px; }
-.admin-ui .room-gallery-actions form { display:contents; }
-.admin-ui .room-gallery-actions .button { flex:1; min-height:32px; padding:2px 6px; font-size:.82rem; }
-.admin-ui .room-gallery-admin .photo-batch-upload { padding:14px; box-shadow:none; }
-.admin-ui .room-gallery-admin .photo-batch-upload h2 { font-size:.95rem; }
+/* Room photos: one ordered list (photo 1 = main photo), saved with the room form */
+.admin-ui .room-photos-field { display:grid; gap:10px; }
+.admin-ui .room-photos-field > p { margin:0; line-height:1.6; }
+.admin-ui .room-photo-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px; margin:0; padding:0; list-style:none; }
+.admin-ui .room-photo-grid li { position:relative; display:grid; gap:6px; padding:6px; border:1px solid #dbe5df; border-radius:12px; background:#fff; }
+.admin-ui .room-photo-grid li:first-child { border-color:#1f4a37; box-shadow:0 0 0 1px #1f4a37; }
+.admin-ui .room-photo-grid li[data-new] { border-style:dashed; }
+.admin-ui .room-photo-grid img { display:block; width:100%; aspect-ratio:4 / 3; border-radius:8px; object-fit:cover; background:#eef3ef; }
+.admin-ui .room-photo-order { position:absolute; top:10px; left:10px; padding:1px 8px; border-radius:999px; background:rgba(15,42,31,.78); color:#fff; font-size:.72rem; font-weight:700; }
+.admin-ui .room-photo-new { position:absolute; top:10px; right:10px; padding:1px 8px; border-radius:999px; background:#f0b43c; color:#3b2a05; font-size:.72rem; font-weight:700; }
+.admin-ui .room-photo-actions { display:flex; gap:4px; }
+.admin-ui .room-photo-actions .button { flex:1; min-height:30px; padding:2px 6px; font-size:.8rem; }
+.admin-ui .room-photo-picker[data-disabled] { opacity:.55; }

@@ -13,8 +13,9 @@ import { ZoneFeaturesEditor } from './zone-features-editor'
 import { normalizeZoneFeatures } from '../../lib/zone-features'
 
 export async function ZoneMediaSettings({query}) {
-  const zones=await campZones()
-  const zone = (await campZones()).includes(query.zone) ? query.zone : 'A'
+  // Trunkbox photos and details are managed per room (ห้องพัก → แก้ไข); its zone entry is not shown to customers.
+  const zones=(await campZones()).filter(code => code !== 'BOX')
+  const zone = zones.includes(query.zone) ? query.zone : zones[0] ?? 'A'
   const details = await getZoneDetails(zone)
   const [media] = await database().execute('SELECT id,kind FROM zone_media WHERE zone=? ORDER BY id',[zone])
   const video = media.find(item => item.kind === 'video')
@@ -30,6 +31,7 @@ export async function ZoneMediaSettings({query}) {
       {zones.map(code => <Link key={code} href={adminUrl('zoneMedia',{zone:code})}
         aria-current={code === zone ? 'page' : undefined}>{code === 'BOX' ? 'Trunkbox' : 'Zone ' + code}</Link>)}
     </nav>
+    <p className="muted small">รูปและรายละเอียดของ Trunkbox จัดการได้ที่ <Link href={adminUrl('rooms')}>ห้องพัก</Link> → แก้ไขแต่ละห้อง</p>
     <ActionForm action={saveZoneText} className="admin-edit-form" key={zone}>
       <input type="hidden" name="zone" value={zone}/>
       <label>รายละเอียดโซน<textarea name="description" rows="4" maxLength={2000} defaultValue={details?.description}/></label>
