@@ -1,0 +1,27 @@
+node_modules/
+.next/
+.next-feedback/
+tmp/feedback/
+*.zip
+
+.env*
+!.env.example
+
+.next-preview-font/
+.next-zone-status/
+.next-storage/
+.next-storage-release/
+.next-storage-auth/
+.next-payment-layout/
+.next-customer-navigation/
+.next-zone-delete/
+
+.next-v2/
+
+# All local/build output folders (.next, .next-v2, .next-deploy, …)
+.next*/
+# Deploy bundle + Plesk env values (contains admin password/secret)
+deploy/
+# Local backups and scratch files
+tmp/
+README.mdgit

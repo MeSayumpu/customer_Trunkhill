@@ -1,0 +1,5 @@
+-- Per-zone highlights and recommended facilities shown in the "ดูรูปแต่ละโซน" dialog.
+-- JSON: {"highlights":[{"icon","label","labelEn","note","noteEn"}],"facilities":[...]}
+-- Applied by scripts/init-db.mjs and scripts/zone-features-schema.mjs (both check information_schema first,
+-- so this works on MySQL and MariaDB). Manual equivalent:
+-- ALTER TABLE zone_details ADD COLUMN features LONGTEXT NULL;

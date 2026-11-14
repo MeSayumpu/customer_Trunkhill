@@ -1,0 +1,8 @@
+import { CampLoader } from './camp-loader'
+import { translate } from '../lib/i18n'
+import { requestLanguage } from '../lib/request-language'
+
+export default async function Loading() {
+  const lang = await requestLanguage()
+  return <div className="camp-home camp-loading-screen" lang={lang}><CampLoader label={translate(lang,'กำลังโหลด…')}/></div>
+}

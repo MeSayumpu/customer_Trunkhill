@@ -1,0 +1,553 @@
+'use client'
+
+import { CustomerIcon } from './customer-icon'
+
+import { useEffect, useRef, useState, useTransition } from 'react'
+import Link, { PendingScreen } from './pending-ui'
+import { useRouter } from 'next/navigation'
+import {useCampOptions} from './use-camp-options'
+import { money, stayPricing } from '../lib/pricing'
+import { DatePicker, GuestPicker, displayDate, guestTypes } from './booking-pickers'
+import { BookingReview } from './booking-review'
+import { BookingSteps } from './booking-steps'
+import { CampHeader, campZoneLabel, MobileCampMenu, useCampDetails } from './camp-navigation'
+import { draftKey, readBookingDraft } from './booking-draft'
+import { TentGlyph, TentList, TentMap } from './tent-map'
+import { readCamp as read } from './camp-request'
+import { CampLoader } from './camp-loader'
+import { mapPosition } from '../lib/plot-map'
+import { wholeCampCode, wholeCampName, wholeCampTier } from '../lib/whole-camp'
+import { WholeCampOption } from './whole-camp-option'
+import { TrunkboxOption } from './trunkbox-option'
+import { useConfirm } from './confirm-dialog'
+import { useI18n } from './i18n'
+import { ContactList } from './camp-contacts'
+import { locationLinks } from '../lib/camp-contacts'
+
+
+const thaiDate = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Bangkok' })
+const nextDay = value => new Date(Date.parse(value) + 86400000).toISOString().slice(0,10)
+const dayCount = (a,b) => (Date.parse(b) - Date.parse(a)) / 86400000
+const compactDateRange = (arrival,departure) => arrival.slice(0,7) === departure.slice(0,7)
+  ? Number(arrival.slice(-2)) + '–' + displayDate(departure)
+  : displayDate(arrival) + ' – ' + displayDate(departure)
+
+function MapDialog({onClose,children}) {
+  const {t} = useI18n()
+  const dialog = useRef(null)
+  useEffect(() => {
+    const element = dialog.current
+    if (!element.open) element.showModal()
+  },[])
+  return <dialog ref={dialog} className="dialog map-dialog" aria-labelledby="plot-map-title" onClose={onClose}>
+    <header className="dialog-header">
+      <span className="dialog-header-icon" aria-hidden="true"><CustomerIcon name="tents"/></span>
+      <h2 id="plot-map-title">{t('ผังลาน Trunkhill Campfield')}</h2>
+      <form method="dialog"><button className="icon-button" aria-label={t('ปิดผังลาน')}><CustomerIcon name="close"/></button></form>
+    </header>
+    {children}
+  </dialog>
+}
+
+export default function CampPage({ review: initialReview = false, amendment = null }) {
+  const confirm = useConfirm()
+  const {t,msg,money} = useI18n()
+  const [editReview,setEditReview] = useState(false)
+  const review = amendment ? editReview : initialReview
+  const [editGuest,setEditGuest] = useState(amendment?.booking.guest || '')
+  const [editQuote,setEditQuote] = useState(null)
+  const router = useRouter()
+  const [navigating,startNavigation] = useTransition()
+  const [zone,setZone] = useState('A')
+  const [mapOpen,setMapOpen] = useState(false)
+  const options=useCampOptions()
+  const tabs=options.zones.map(zone=>[zone,campZoneLabel(zone)])
+  const [arrival,setArrival] = useState('')
+  const [departure,setDeparture] = useState('')
+  const [today,setToday] = useState('')
+  const [datePickerKey,setDatePickerKey] = useState(0)
+  const [checked,setChecked] = useState(null)
+  const [catalog,setCatalog] = useState(null)
+  const [counts,setCounts] = useState({})
+  const [wholeCamp,setWholeCamp] = useState(false)
+  const [rentalsByLock,setRentalsByLock] = useState({})
+  const [guests,setGuests] = useState({adults:0,children:0,seniors:0})
+  const [guestWarning,setGuestWarning] = useState(false)
+  const [availabilityError,setAvailabilityError] = useState('')
+  const [bookingError,setBookingError] = useState('')
+  const [loading,setLoading] = useState(false)
+  const [bookingBusy,setBookingBusy] = useState(false)
+  const [receipt,setReceipt] = useState(null)
+  const request = useRef(null)
+  const activeCheck = useRef(null)
+  const dateDialog = useRef(null)
+  const guestDialog = useRef(null)
+  const guestWarningDialog = useRef(null)
+  const {dialogs,...menuActions} = useCampDetails({zone,gear:catalog?.inventory.filter(row => row.kind === 'gear')})
+
+  async function checkDates(start = arrival, end = departure, keepSelection = false) {
+    activeCheck.current?.abort()
+    const controller = new AbortController()
+    activeCheck.current = controller
+    setLoading(true)
+    setAvailabilityError('')
+    try {
+      const data = amendment
+        ? await read('/api/camp',{action:'editCatalog',id:amendment.booking.id,phone:amendment.phone,arrival:start,departure:end},controller.signal)
+        : await read('/api/camp?' + new URLSearchParams({arrival:start,departure:end}), null, controller.signal)
+      if (controller.signal.aborted) return
+      setCatalog(data)
+      setChecked({arrival:start,departure:end})
+      setCounts(previous => amendment && keepSelection ? previous : keepSelection ? Object.fromEntries(data.inventory
+        .filter(row => previous[row.code] && Number(row.available) > 0)
+        .map(row => [row.code, Math.min(previous[row.code], Number(row.available))])) : {})
+      setRentalsByLock(previous => keepSelection ? previous : {})
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        setChecked(null)
+        setAvailabilityError(error.message)
+      }
+    } finally {
+      if (!controller.signal.aborted) setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    const currentDate = thaiDate.format(new Date())
+    setToday(currentDate)
+    if (amendment) {
+      const booking=amendment.booking
+      const counts=Object.fromEntries(booking.lines.filter(row=>row.code!==wholeCampCode).map(row=>[row.code,row.quantity]))
+      const rentals={}
+      for(const row of booking.rentalLines) {
+        const host=row.host_code
+        rentals[host] ||= {}
+        rentals[host][row.code]=(rentals[host][row.code]||0)+row.quantity
+        counts[row.code]=(counts[row.code]||0)-row.quantity
+      }
+      setCounts(counts);setRentalsByLock(rentals)
+      setWholeCamp(booking.lines.some(row=>row.code===wholeCampCode))
+      setGuests({adults:booking.adults,children:booking.children,seniors:booking.seniors})
+      const firstZone=booking.lines.find(row=>counts[row.code]>0&&tabs.some(([id])=>id===row.zone))?.zone
+      if(firstZone)setZone(firstZone)
+      setArrival(booking.arrival);setDeparture(booking.departure)
+      void checkDates(booking.arrival,booking.departure,true)
+      return ()=>activeCheck.current?.abort()
+    }
+    const draft = readBookingDraft()
+    const validDraft = draft?.arrival >= currentDate && dayCount(draft.arrival,draft.departure) >= 1 &&
+      dayCount(draft.arrival,draft.departure) <= 30
+    const start = validDraft ? draft.arrival : currentDate
+    const end = validDraft ? draft.departure : nextDay(start)
+    if (validDraft) {
+      setGuests(draft.guests)
+      setCounts(draft.counts)
+      setWholeCamp(draft.wholeCamp === true)
+      setRentalsByLock(draft.rentalsByLock || {})
+      if (tabs.some(([id]) => id === draft.zone)) setZone(draft.zone)
+    }
+    setArrival(start)
+    setDeparture(end)
+    void checkDates(start,end,validDraft)
+    return () => activeCheck.current?.abort()
+  }, [])
+
+  const ready = !!catalog && checked?.arrival === arrival && checked?.departure === departure && !loading
+  const allRows = catalog?.inventory || []
+  const visible = allRows.filter(row => zone === 'BOX' ? row.zone === 'BOX' : row.kind === 'plot')
+  const hasMap = zone !== 'BOX' && (!visible.length || visible.some(mapPosition))
+  const guestCount = Object.values(guests).reduce((sum, count) => sum + count, 0)
+  const tier = wholeCamp ? wholeCampTier(guests.adults,catalog?.wholeCampTiers) : null
+  const wholeCampItem = { code:wholeCampCode, name:wholeCampName, kind:'plot', quantity:1 }
+  const hosts = wholeCamp ? (ready && catalog.wholeCampAvailable ? [wholeCampItem] : [])
+    : allRows.filter(row => row.kind !== 'gear' && counts[row.code])
+    .map(row => ({ ...row, quantity:counts[row.code] }))
+  const rentalLines = hosts.flatMap(host => allRows
+    .filter(row => (row.kind === 'gear' || (!wholeCamp && row.kind === 'room')) && rentalsByLock[host.code]?.[row.code] > 0)
+    .map(row => ({ host:host.code, code:row.code, quantity:rentalsByLock[host.code][row.code] })))
+  const combined = wholeCamp ? {} : { ...counts }
+  for (const { code, quantity } of rentalLines) combined[code] = (combined[code] || 0) + quantity
+  const selected = [
+    ...(wholeCamp ? hosts : []),
+    ...allRows.filter(row => combined[row.code]).map(row => ({ ...row, quantity:combined[row.code] })),
+  ]
+  const nights = ready ? dayCount(arrival,departure) : 0
+  const pricing = ready ? stayPricing(selected,catalog.settings,guests.adults,catalog.rates,
+    wholeCamp ? (tier ? catalog.wholeCampPrices[tier.maxGuests] : 0) : null) : null
+  const total = pricing?.total ?? 0
+  const maxWholeCampGuests = catalog?.wholeCampTiers.at(-1)?.maxGuests
+  const tooManyGuests = wholeCamp && ready && (guests.adults > maxWholeCampGuests || (guestCount > 0 && !guests.adults))
+  const wholeCampUnavailable = ready && wholeCamp && !catalog.wholeCampAvailable
+  const wholeCampError = wholeCampUnavailable ? t('เหมาลานไม่ได้ เพราะมีรายการจองในช่วงวันที่เลือก')
+    : tooManyGuests ? (guests.adults ? t('เหมาลานได้สูงสุดผู้ใหญ่ {n} คน กรุณาปรับจำนวนผู้เข้าพัก',{n:maxWholeCampGuests}) : t('เหมาลานต้องมีผู้ใหญ่อย่างน้อย 1 คน')) : ''
+  const guestSummary = t('{n} คน',{n:guestCount}) + (guestCount > 0 ? ' · ' +
+    guestTypes.filter(([key]) => guests[key]).map(([key,label]) => t(label) + ' ' + guests[key]).join(' / ') : '')
+  const selectedNames = selected.map(row => row.name + (row.quantity > 1 ? ' × ' + row.quantity : ''))
+  const mode = wholeCamp ? 'whole' : zone === 'BOX' ? 'box' : 'plots'
+
+  useEffect(() => {
+    if (ready && !amendment) sessionStorage.setItem(draftKey, JSON.stringify({ arrival, departure, guests, counts, zone, rentalsByLock, wholeCamp }))
+  }, [ready, arrival, departure, guests, counts, zone, rentalsByLock, wholeCamp])
+
+  useEffect(()=>{setEditQuote(previous => previous === null ? previous : null)},[arrival,departure,guests,counts,rentalsByLock,wholeCamp,editGuest,catalog])
+
+  function confirmClear(title) {
+    return confirm({
+      title,
+      message:'รายการที่เลือกไว้ทั้งหมดจะถูกนำออก ต้องการดำเนินการต่อหรือไม่?',
+      items:selectedNames,
+      confirmLabel:'ล้างรายการและดำเนินการต่อ',
+      cancelLabel:'เก็บรายการไว้',
+    })
+  }
+
+  async function changeDates(start, end) {
+    if (start === arrival && end === departure) return
+    if (!amendment && selected.length && !(await confirmClear(t('เปลี่ยนวันเข้าพัก?')))) return
+    activeCheck.current?.abort()
+    setLoading(false)
+    setAvailabilityError('')
+    setChecked(null)
+    if (!amendment) {setCounts({});setRentalsByLock({})}
+    setArrival(start)
+    setDeparture(end)
+    void checkDates(start,end,!!amendment)
+  }
+
+  function changeBookingType(exclusive) {
+    setWholeCamp(exclusive)
+    setCounts({})
+    setRentalsByLock({})
+    setBookingError('')
+  }
+
+  async function switchMode(next) {
+    const exclusive = next === 'whole'
+    if (exclusive !== wholeCamp) {
+      if (selected.length && !(await confirmClear(t('เปลี่ยนประเภทการจอง?')))) return
+      changeBookingType(exclusive)
+    }
+    if (!exclusive) setZone(next === 'box' ? 'BOX' : 'A')
+  }
+
+  function select(code, quantity) {
+    if (code === wholeCampCode) {
+      changeBookingType(false)
+      return
+    }
+    setCounts(previous => ({ ...previous, [code]: quantity }))
+    if (!quantity) setRentalsByLock(previous => ({ ...previous, [code]: {} }))
+    setBookingError('')
+  }
+
+  async function requestRemove(code) {
+    const row = code === wholeCampCode ? wholeCampItem : allRows.find(item => item.code === code)
+    const attached = rentalLines.filter(line => line.host === code)
+      .map(line => (allRows.find(item => item.code === line.code)?.name || line.code) + ' × ' + line.quantity)
+    const name = row?.name || code
+    const accepted = await confirm({
+      title:code === wholeCampCode ? t('ยกเลิกการเหมาลาน?') : t('นำ {name} ออกจากรายการ?',{name}),
+      message:attached.length ? 'อุปกรณ์ที่เช่าไว้กับรายการนี้จะถูกนำออกด้วย' : 'คุณสามารถเลือกกลับมาใหม่ได้ภายหลัง หากยังว่างอยู่',
+      items:attached,
+      confirmLabel:'นำออก',
+      cancelLabel:'เก็บไว้',
+    })
+    if (accepted) select(code, 0)
+  }
+
+  function selectPlot(row, quantity) {
+    if (!quantity) return requestRemove(row.code)
+    if (tabs.some(([id]) => id === row.zone)) setZone(row.zone)
+    select(row.code, quantity)
+  }
+
+  function confirmRentals(host, quantities) {
+    setRentalsByLock(previous => ({ ...previous, [host]: quantities }))
+    setBookingError('')
+  }
+
+  function goReview() {
+    if (!guestCount) {
+      setGuestWarning(true)
+      guestWarningDialog.current.showModal()
+      return
+    }
+    if(amendment){setEditReview(true);window.scrollTo({top:0,behavior:'smooth'});return}
+    sessionStorage.setItem(draftKey, JSON.stringify({ arrival, departure, guests, counts, zone, rentalsByLock, wholeCamp }))
+    startNavigation(() => router.push('/review'))
+  }
+
+  async function book(event) {
+    event.preventDefault()
+    if (!ready || !selected.length || bookingBusy || tooManyGuests) return
+    if (!guestCount) {
+      setBookingError(t('กรุณาเลือกจำนวนผู้เข้าพักก่อนยืนยันการจอง'))
+      return
+    }
+    const fields = new FormData(event.currentTarget)
+    if (amendment) {
+      setBookingBusy(true);setBookingError('');setEditQuote(null)
+      const payload={...guests,arrival,departure,guest:editGuest,id:amendment.booking.id,phone:amendment.phone,
+        revision:amendment.booking.reschedule_count,items:selected.map(({code,quantity})=>({code,quantity})),rentalLines}
+      try {setEditQuote({payload,...await read('/api/camp',{...payload,action:'quoteAmendment'})})}
+      catch(error){setBookingError(error.message)}finally{setBookingBusy(false)}
+      return
+    }
+    const payload = {
+      ...guests, arrival, departure, guest:fields.get('guest'), phone:fields.get('phone'),
+      items:selected.map(({code,quantity}) => ({code,quantity})), expectedTotal:total,
+      ...(tier ? { expectedWholeCampFreeUnits:tier.freeUnits } : {}),
+      ...(rentalLines.length ? { rentalLines } : {}),
+    }
+    const fingerprint = JSON.stringify(payload)
+    if (request.current?.fingerprint !== fingerprint) request.current = {
+      fingerprint,key:crypto.randomUUID(),
+      token:(crypto.randomUUID() + crypto.randomUUID()).replaceAll('-',''),
+    }
+    setBookingBusy(true)
+    setBookingError('')
+    try {
+      const {key,token} = request.current
+      const booking = await read('/api/camp',{...payload,requestKey:key,paymentToken:token})
+      sessionStorage.setItem('trunkhill-payment-' + booking.id,token)
+      sessionStorage.removeItem(draftKey)
+      request.current = null
+      startNavigation(() => router.push('/payment?id=' + booking.id))
+    } catch (error) {
+      setBookingError(error.message)
+      if (error.status === 409) await checkDates(arrival,departure,true)
+    } finally {
+      setBookingBusy(false)
+    }
+  }
+
+  async function saveAmendment() {
+    if(!editQuote||bookingBusy)return
+    setBookingBusy(true);setBookingError('')
+    try {amendment.onSaved(await read('/api/camp',{...editQuote.payload,action:'amendBooking',expectedTotal:editQuote.total,expectedFreeUnits:editQuote.freeUnits}))}
+    catch(error){setBookingError(error.message);setEditQuote(null)}finally{setBookingBusy(false)}
+  }
+
+  async function discardAmendment() {
+    const accepted = await confirm({
+      title:'ออกโดยไม่บันทึก?',
+      message:'การแก้ไขวัน ผู้เข้าพัก ล็อก และอุปกรณ์ที่ยังไม่บันทึกจะถูกยกเลิกทั้งหมด',
+      confirmLabel:'ทิ้งการแก้ไข',
+      cancelLabel:'แก้ไขต่อ',
+    })
+    if (accepted) amendment.onClose()
+  }
+
+  const reviewDisabled = !ready || !selected.length || tooManyGuests
+  const dateLabel = arrival && departure ? compactDateRange(arrival,departure) : t('เลือกวันที่')
+
+  const summaryItems = hosts.length > 0 && <ul className="summary-items" role="list" aria-label={t('ล็อกและห้องพักที่เลือก')}>
+    {hosts.map(row => {
+      const attached = rentalLines.filter(line => line.host === row.code)
+      return <li key={row.code}>
+        <span className="summary-item-icon" aria-hidden="true">
+          {row.kind === 'room' ? <CustomerIcon name="cabin"/> : <TentGlyph status="selected"/>}
+        </span>
+        <span className="summary-item-text">
+          <strong>{t(row.name)}</strong>
+          <small>{row.code === wholeCampCode ? t('ทั้งลานตลอดช่วงที่เลือก') : row.detail || campZoneLabel(row.zone)}</small>
+          {attached.length > 0 && <small className="summary-item-extra">+ {attached.map(line => (allRows.find(item => item.code === line.code)?.name || line.code) + ' × ' + line.quantity).join(', ')}</small>}
+        </span>
+        <button type="button" className="icon-button remove-button" aria-label={t('นำ {name} ออก',{name:t(row.name)})}
+          disabled={!ready || bookingBusy} onClick={() => requestRemove(row.code)}>
+          <CustomerIcon name="remove"/>
+        </button>
+      </li>
+    })}
+  </ul>
+
+  const asideSummary = <aside className="booking-aside" aria-label={t('สรุปรายการที่เลือก')}>
+    <div className="summary-card">
+      <header className="summary-head">
+        <span className="eyebrow">{t('การจองของคุณ')}</span>
+        <h2>{hosts.length ? (wholeCamp ? t('เหมาลาน') : t('{n} รายการ',{n:hosts.length})) : t('ยังไม่ได้เลือกล็อก')}</h2>
+      </header>
+      <dl className="summary-facts">
+        <div><dt><CustomerIcon name="calendar"/>{t('เข้าพัก')}</dt><dd>{dateLabel}{nights ? ' · ' + t('{n} คืน',{n:nights}) : ''}</dd></div>
+        <div><dt><CustomerIcon name="guests"/>{t('ผู้เข้าพัก')}</dt><dd>{t('{n} คน',{n:guestCount})}</dd></div>
+      </dl>
+      {summaryItems || <div className="summary-empty">
+        <TentGlyph status="available"/>
+        <p>{t(mode === 'box' ? 'เลือกห้อง Trunkbox ที่ต้องการ' : mode === 'whole' ? 'ตรวจสอบว่าลานว่างครบทุกคืนที่เลือก' : 'แตะเต็นท์บนผังเพื่อเลือกล็อก')}</p>
+      </div>}
+      <div className="summary-total">
+        <span>{t('ยอดรวมโดยประมาณ')}</span>
+        <strong>{money(total)}</strong>
+      </div>
+      <button className="button button-lg review-button" disabled={reviewDisabled} onClick={goReview}>
+        {t('สรุปการจอง')}<CustomerIcon name="arrow"/>
+      </button>
+      <p className="summary-note">{t('ยังไม่มีการชำระเงินในขั้นตอนนี้')}</p>
+    </div>
+  </aside>
+
+  const dockSummary = <div className="dock-summary">
+    {hosts.length > 0 && <ul className="dock-chips" role="list" aria-label={t('รายการที่เลือก')}>
+      {hosts.map(row => <li key={row.code}>
+        <span>{t(row.name)}</span>
+        <button type="button" aria-label={t('นำ {name} ออก',{name:t(row.name)})} disabled={!ready || bookingBusy} onClick={() => requestRemove(row.code)}>
+          <CustomerIcon name="close"/>
+        </button>
+      </li>)}
+    </ul>}
+    <div className="dock-summary-row">
+      <div className="dock-total"><strong>{money(total)}</strong><small>{t('{n} รายการ',{n:selected.length})} · {nights ? t('{n} คืน',{n:nights}) : t('– คืน')}</small></div>
+      <button className="button review-button" disabled={reviewDisabled} onClick={goReview}>{t('สรุปการจอง')}<CustomerIcon name="arrow"/></button>
+    </div>
+  </div>
+
+  const welcomeTitle = catalog?.settings.welcome_title_enabled !== 0 && t(catalog?.settings.welcome_title ?? 'เลือกวันพัก แล้วเลือกมุมโปรดของคุณ')
+  const welcomeSubtitle = catalog?.settings.welcome_subtitle_enabled !== 0 && t(catalog?.settings.welcome_subtitle ?? 'วันเข้าพัก · จำนวนคน · ล็อกหรือห้องพัก')
+  const mapProps = { rows:visible, counts, ready, busy:bookingBusy, onSelect:selectPlot, mapVersion:catalog?.settings.map_version }
+
+  return <div className={'camp-home' + (review ? ' flow-page' : ' camp-front')}>
+    {(bookingBusy || navigating) && <PendingScreen label={bookingBusy ? t('กำลังบันทึกการจอง…') : undefined}/>}
+    <CampHeader page={review ? 'flow' : 'home'} onCampInfo={menuActions.onCampInfo} onZoneDetails={menuActions.onZoneDetails}/>
+
+    {amendment && <div className="camp-shell amendment-banner">
+      <section className="panel stack">
+        <div className="amendment-banner-head">
+          <span className="dialog-header-icon" aria-hidden="true"><CustomerIcon name="edit"/></span>
+          <div><h1>{t('แก้ไขการจอง')}</h1>
+            <p>{t('เลือกวัน ผู้เข้าพัก ล็อก / ห้อง และอุปกรณ์ แล้วตรวจส่วนต่างก่อนบันทึก ใช้สิทธิ์ 1 ครั้งเมื่อบันทึกสำเร็จ')}</p></div>
+        </div>
+        <p className="small muted">{t('ยอดระหว่างเลือกคำนวณตามราคาปัจจุบัน กรุณาตรวจยอดใหม่และส่วนต่างก่อนยืนยัน การแก้เฉพาะชื่อคงยอดเดิม')}</p>
+        <div className="actions">
+          {review&&<button className="button secondary" disabled={bookingBusy} onClick={()=>setEditReview(false)}><CustomerIcon name="back"/>{t('กลับไปเลือกวันและล็อก')}</button>}
+          <button className="button secondary danger-text" disabled={bookingBusy} onClick={discardAmendment}>{t('กลับโดยไม่บันทึก')}</button>
+        </div>
+      </section>
+    </div>}
+
+    {review ? <main className="camp-shell flow-shell">
+      <BookingReview {...{ ready, loading, availabilityError, selected, nights, pricing, arrival, departure, guestSummary,
+        bookingBusy, bookingError, receipt, book, select, confirmRentals, hosts, rentalLines, combined, wholeCamp, wholeCampError }}
+        freeUnits={tier?.freeUnits}
+        gear={allRows.filter(row => row.kind === 'gear' || (!wholeCamp && row.kind === 'room'))} rentalsByLock={rentalsByLock}
+        onRetry={() => checkDates(arrival, departure, true)}
+        settings={catalog?.settings}
+        amendment={amendment ? {guest:editGuest,setGuest:setEditGuest,phone:amendment.phone,quote:editQuote,save:saveAmendment,onBack:()=>setEditReview(false),noticeDays:amendment.booking.reschedule_notice_days,usedCount:amendment.booking.reschedule_count} : null}/>
+    </main> : <>
+      {!amendment && <section className="booking-hero" aria-labelledby={welcomeTitle ? 'booking-title' : undefined}>
+        <div className="camp-shell booking-hero-inner">
+          <div className="booking-hero-copy">
+            <span className="eyebrow"><CustomerIcon name="mountain"/>Relax · Connect · Enjoy</span>
+            {welcomeTitle && <h1 id="booking-title">{welcomeTitle}</h1>}
+            {welcomeSubtitle && <p>{welcomeSubtitle}</p>}
+          </div>
+          <BookingSteps current={1}/>
+        </div>
+      </section>}
+
+      <main className="camp-shell booking-layout">
+        <section className="booking-main" id="booking" aria-label={t('จองลานและอุปกรณ์')}>
+          <div className="search-card">
+            <button className="search-field" disabled={!today || bookingBusy} onClick={() => {
+              setDatePickerKey(key => key + 1)
+              dateDialog.current.showModal()
+              dateDialog.current.scrollTop = 0
+            }}>
+              <span className="search-field-icon" aria-hidden="true"><CustomerIcon name="calendar"/></span>
+              <span className="search-field-text"><span>{t('เข้าพัก – วันออก')}</span><strong>{dateLabel}</strong></span>
+              {nights > 0 && <span className="search-field-badge">{t('{n} คืน',{n:nights})}</span>}
+            </button>
+            <button className="search-field" disabled={bookingBusy} aria-invalid={guestWarning && !guestCount ? true : undefined}
+              aria-describedby={guestWarning && !guestCount ? 'camp-guest-warning' : undefined} onClick={() => {
+                guestDialog.current.showModal()
+                guestDialog.current.scrollTop = 0
+              }}>
+              <span className="search-field-icon" aria-hidden="true"><CustomerIcon name="guests"/></span>
+              <span className="search-field-text"><span>{t('ผู้เข้าพัก')}</span><strong>{guestCount ? t('{n} คน',{n:guestCount}) : t('เพิ่มผู้เข้าพัก')}</strong></span>
+            </button>
+          </div>
+
+          {availabilityError && <div className="notice error actions" role="alert"><span>{msg(availabilityError)}</span>
+            <button className="button secondary" onClick={() => checkDates(arrival,departure,true)}>{t('ลองอีกครั้ง')}</button></div>}
+
+          <div className="mode-switch" role="group" aria-label={t('ประเภทการจอง')}>
+            <button type="button" aria-pressed={mode === 'plots'} onClick={() => switchMode('plots')}>
+              <CustomerIcon name="tent"/><span><strong>{t('เลือกล็อก')}</strong><small>{t('กางเต็นท์รายล็อก')}</small></span>
+            </button>
+            <button type="button" aria-pressed={mode === 'box'} onClick={() => switchMode('box')}>
+              <CustomerIcon name="cabin"/><span><strong>Trunkbox</strong><small>{t('ห้องพักพร้อมนอน')}</small></span>
+            </button>
+            <button type="button" aria-pressed={mode === 'whole'} onClick={() => switchMode('whole')}>
+              <CustomerIcon name="tents"/><span><strong>{t('เหมาลาน')}</strong><small>{t('ทั้งแคมป์สำหรับกลุ่ม')}</small></span>
+            </button>
+          </div>
+
+          {mode === 'whole' ? <WholeCampOption available={ready && catalog.wholeCampAvailable && !tooManyGuests}
+            tiers={catalog?.wholeCampTiers ?? []}
+            onRetry={wholeCampUnavailable ? () => checkDates(arrival,departure,true) : undefined}
+            status={wholeCampError || (loading ? t('กำลังตรวจสอบลานว่าง…') : ready ? t('ว่างสำหรับเหมาลานตลอดช่วงที่เลือก') : '')}/> : mode === 'box' ?
+            <TrunkboxOption rooms={visible.filter(row=>row.kind==='room')} counts={counts} ready={ready} busy={bookingBusy}
+              onSelect={select} onRemove={requestRemove}/> :
+            <section className="panel map-panel" aria-labelledby="map-panel-title">
+              <header className="map-panel-head">
+                <div>
+                  <h2 id="map-panel-title">{t('ผังลาน')}</h2>
+                  <p><CustomerIcon name="info"/>{t('จัดพื้นที่ในล็อกได้อิสระ ไม่มีค่าใช้จ่ายเพิ่ม')}</p>
+                </div>
+                <button className="button secondary button-sm" type="button" aria-haspopup="dialog" onClick={menuActions.onZoneDetails}>
+                  <CustomerIcon name="gallery"/>{t('ดูรูปแต่ละโซน')}
+                </button>
+              </header>
+              {ready && catalog.wholeCampBooked && <p className="notice error" role="status">{t('ช่วงวันที่เลือกมีผู้เหมาลานแล้ว กรุณาเลือกวันใหม่')}</p>}
+              <div className="map-panel-body" aria-busy={loading || undefined}>
+                {hasMap ? <TentMap {...mapProps} onExpand={() => setMapOpen(true)}/>
+                  : !ready ? <p className="empty">{t('เลือกวันเข้าพักเพื่อดูรายการว่าง')}</p>
+                  : visible.length ? <TentList {...mapProps}/>
+                  : <p className="empty">{t('โซนนี้ยังไม่มีรายการเปิดให้จอง')}</p>}
+                {loading && <div className="map-loading"><CampLoader label={t('กำลังตรวจสอบลานว่าง…')}/></div>}
+              </div>
+            </section>}
+        </section>
+        {asideSummary}
+      </main>
+    </>}
+
+    <footer className="site-footer"><div className="camp-shell site-footer-inner">
+      <span className="site-footer-brand"><img src="/camp-logo-transparent.webp" alt="" width="58" height="37"/>Trunkhill Campfield</span>
+      <div className="actions"><ContactList contacts={options.contacts} compact/>
+        {locationLinks(options.location) && <a className="site-footer-map" href={locationLinks(options.location).directions} target="_blank" rel="noopener noreferrer"><CustomerIcon name="pin"/>{t('นำทางไปแคมป์')}</a>}<Link href="/admin">{t('ผู้ดูแล')}</Link></div>
+    </div></footer>
+
+    <MobileCampMenu page={review ? 'flow' : 'home'} summary={!review && dockSummary} {...menuActions}/>
+
+    <dialog ref={dateDialog} className="dialog booking-picker" aria-labelledby="date-title">
+      <form method="dialog" className="dialog-close"><button className="icon-button" aria-label={t('ปิดตัวเลือกวันที่')}><CustomerIcon name="close"/></button></form>
+      {today && <DatePicker key={datePickerKey} dialog={dateDialog} arrival={arrival} departure={departure} today={today} bookingWindow={catalog?.settings.booking_window} onConfirm={changeDates}/>}
+    </dialog>
+    <dialog ref={guestDialog} className="dialog booking-picker" aria-labelledby="guest-title">
+      <form method="dialog" className="dialog-close"><button className="icon-button" aria-label={t('ปิดตัวเลือกผู้เข้าพัก')}><CustomerIcon name="close"/></button></form>
+      <GuestPicker guests={guests} setGuests={setGuests} settings={catalog?.settings} rates={ready ? catalog.rates : []}
+        dialog={guestDialog} wholeCamp={wholeCamp}/>
+    </dialog>
+    <dialog ref={guestWarningDialog} className="dialog confirm-dialog tone-warning camp-guest-warning" aria-labelledby="camp-guest-warning"
+      onClose={() => setGuestWarning(false)}>
+      <div className="confirm-dialog-body">
+        <span className="confirm-dialog-icon" aria-hidden="true"><CustomerIcon name="guests"/></span>
+        <h2 id="camp-guest-warning" role="alert">{t('กรุณาเลือกจำนวนผู้เข้าพักก่อน')}</h2>
+        <p className="confirm-dialog-message">{t('ระบบใช้จำนวนผู้เข้าพักในการคำนวณราคา')}</p>
+        <div className="confirm-dialog-actions">
+          <form method="dialog"><button className="button secondary">{t('กลับ')}</button></form>
+          <button className="button" type="button" onClick={() => {
+            guestWarningDialog.current.close()
+            guestDialog.current.showModal()
+            guestDialog.current.scrollTop = 0
+          }}>{t('เลือกจำนวนคน')}</button>
+        </div>
+      </div>
+    </dialog>
+
+    {mapOpen && <MapDialog onClose={() => setMapOpen(false)}>
+      <TentMap {...mapProps} large rows={allRows.filter(row => row.kind === 'plot')}/>
+    </MapDialog>}
+    {dialogs}
+  </div>
+}

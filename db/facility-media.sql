@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS facility_media (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  category VARCHAR(24) NOT NULL,
+  mime VARCHAR(32) NOT NULL,
+  content MEDIUMBLOB NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX facility_media_category (category,id)
+) ENGINE=InnoDB;

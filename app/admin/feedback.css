@@ -1,0 +1,32 @@
+.admin-ui input[type=checkbox],.admin-ui input[type=radio]{width:18px;height:18px;min-height:18px;flex:0 0 18px;vertical-align:middle;margin:0 8px 0 0}
+.admin-ui label:has(>input[type=checkbox]){display:flex;align-items:center;gap:6px;justify-content:flex-start}
+.admin-ui .price-explanation>summary{cursor:pointer;list-style:disclosure-closed;padding:4px}
+.admin-ui .price-explanation[open]>summary{list-style:disclosure-open;margin-bottom:16px}
+.admin-ui .price-explanation>summary h2{display:inline;font-size:1.1rem}
+.admin-ui .button.secondary.delete-tier{grid-column:1/-1;justify-self:end;width:auto;background:#fff1f2;color:#be123c;border:1px solid #fecdd3}
+.admin-ui .price-explanation[open]>:not(summary){margin-top:14px}
+.admin-ui .booking-table td[data-label="รหัสจอง"]{background:#edf5f0;border-inline-start:4px solid #6b9f82}
+.admin-ui .booking-table tr:nth-of-type(4n+3) td[data-label="รหัสจอง"]{background:#edf3fb;border-inline-start-color:#7095bf}
+.admin-ui .booking-table td[data-label="จัดการ"]>.admin-row-actions{display:flex;width:100%;align-items:center;justify-content:space-between}
+.admin-ui .booking-table .admin-row-actions>.admin-row-actions{margin-inline-start:auto;justify-content:flex-end}
+.admin-ui .admin-items-table th,.admin-ui .admin-items-table td{padding:14px 16px}
+.admin-ui .checkout-discount-panel{padding:18px;border:1px solid #cddfd4;border-radius:14px;background:#f3faf6;margin-block:14px}
+.admin-ui .admin-filter-tabs[aria-label="ประเภทอุปกรณ์ให้เช่า"]{padding:6px;background:#e4eee7;border-radius:14px;gap:8px}
+.admin-ui .admin-filter-tabs[aria-label="ประเภทอุปกรณ์ให้เช่า"] a{padding:12px 24px;font-size:1rem;min-height:44px;font-weight:700;flex:1;text-align:center;border-radius:10px;color:#234b3a;background:white}
+.admin-ui .admin-filter-tabs[aria-label="ประเภทอุปกรณ์ให้เช่า"] a[aria-current=page]{color:white;background:#234b3a}
+.admin-ui .media-upload{display:grid;gap:12px;min-width:0}
+.admin-ui .media-upload-picker,.admin-ui .zone-admin-uploads label:has(input[type=file]){display:grid;gap:10px;padding:20px;border:2px dashed #a5c7b4;background:#f2f9f5;border-radius:16px;cursor:pointer}
+.admin-ui input[type=file]::file-selector-button{border:0;border-radius:8px;padding:10px 14px;background:#245741;color:white;margin-right:12px;cursor:pointer}
+.admin-ui .media-upload-preview{margin:0;display:grid;gap:8px}.admin-ui .media-upload-preview :is(img,video){width:100%;max-height:280px;object-fit:contain;background:#edf2ee;border-radius:12px}
+.admin-ui .media-upload-preview figcaption{overflow-wrap:anywhere;font-size:.85rem}
+.admin-ui .admin-slip-dialog{width:min(720px,calc(100% - 24px));max-height:92dvh;padding:20px;border-radius:18px}
+.admin-ui .admin-slip-dialog header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+.admin-ui .admin-slip-dialog img{display:block;width:100%;height:auto;max-height:75dvh;object-fit:contain}.admin-ui .admin-slip-dialog iframe{width:100%;height:70dvh;border:0}
+.admin-ui .admin-slip-dialog::backdrop{background:#12372bcc;backdrop-filter:blur(4px)}
+.admin-ui .zone-create summary{cursor:pointer;font-weight:700;min-height:30px}.admin-ui .zone-create .actions{align-items:end}
+.admin-ui .zone-status-list{margin-top:20px;display:grid;gap:10px}
+.admin-ui .zone-manage-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px;border:1px solid #dce7e1;border-radius:12px;background:#f8fbf9}
+.admin-ui .zone-manage-row small{display:block;color:#61776d;margin-top:4px}
+.admin-ui .zone-disable-button{background:#fff1f2;border-color:#fecdd3;color:#b42342;flex-shrink:0}
+.admin-ui .storage-total{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}.admin-ui .storage-total strong{font-size:2rem}.admin-ui .storage-total small{font-size:1rem;color:#61776d}.admin-ui .storage-panel progress{width:100%;height:20px;accent-color:#245741}.admin-ui .storage-categories{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}.admin-ui .storage-categories article{padding:18px;border:1px solid #dce7e1;border-radius:14px;background:#f5faf7}.admin-ui .storage-categories article>strong{font-size:1.4rem}
+@media(max-width:640px){.admin-ui .admin-items-table th,.admin-ui .admin-items-table td{padding:12px 10px}.admin-ui .checkout-filters{grid-template-columns:1fr}.admin-ui .admin-items-table th:first-child{width:44%}}

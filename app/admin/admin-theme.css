@@ -1,0 +1,397 @@
+@reference "./admin.css";
+
+/* Shared Tailwind components for every admin section, including dialogs/login. */
+.admin-ui {
+  --green:#214d3b; --ink:#17304b; --muted:#6a7d91; --border:#dce5ed; --white:#fff; --light:#edf4ee;
+  @apply ad:text-sm ad:text-slate-800 ad:antialiased;
+  font-family:"IBM Plex Sans Thai",system-ui,"Leelawadee UI",Tahoma,sans-serif;
+}
+.admin-ui .admin-workspace { @apply ad:min-h-screen ad:bg-slate-50; }
+.admin-ui .admin-main-content { @apply ad:p-4 ad:lg:p-6; }
+.admin-ui .admin-content { @apply ad:min-w-0; }
+.admin-ui .admin-top { @apply ad:flex ad:min-h-16 ad:flex-wrap ad:items-center ad:justify-between ad:gap-3 ad:border-b ad:border-slate-200 ad:bg-white ad:px-4 ad:py-3 ad:lg:px-6; }
+.admin-ui .admin-top h1 { @apply ad:text-xl ad:font-bold; color:var(--green); }
+.admin-ui .admin-sidebar { @apply ad:overflow-y-auto; }
+.admin-ui .admin-sidebar .admin-menu a { @apply ad:flex ad:items-center ad:gap-3 ad:rounded-lg ad:px-3 ad:py-2.5 ad:text-sm ad:font-medium ad:transition-colors; }
+.admin-ui .admin-sidebar .admin-menu a[aria-current=page] { @apply ad:bg-emerald-50 ad:font-semibold ad:text-emerald-950; }
+.admin-ui .admin-sidebar .admin-menu a:hover { @apply ad:bg-emerald-800 ad:text-white; }
+.admin-ui .admin-menu-group h2 { @apply ad:text-xs ad:font-semibold ad:tracking-wide; }
+.admin-ui .admin-icon { @apply ad:inline-block ad:shrink-0; width:1em; height:1em; vertical-align:-.125em; }
+.admin-ui .admin-menu .admin-icon { @apply ad:w-4 ad:opacity-80; }
+.admin-ui .admin-top-actions { @apply ad:flex ad:flex-wrap ad:items-center ad:gap-3; }
+.admin-ui .panel { @apply ad:rounded-xl ad:border ad:border-solid ad:border-slate-200 ad:bg-white ad:p-5; box-shadow:0 1px 2px #0f172a06; }
+.admin-ui .stack { @apply ad:gap-4; }
+.admin-ui h2 { @apply ad:text-lg ad:font-bold; color:var(--green); }
+.admin-ui h3 { @apply ad:text-sm ad:font-semibold; color:var(--green); }
+.admin-ui .muted { @apply ad:text-slate-500; }
+.admin-ui .small { @apply ad:text-xs ad:leading-relaxed; }
+.admin-ui label { @apply ad:gap-1.5 ad:text-sm ad:font-medium; }
+.admin-ui input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]),.admin-ui select,.admin-ui textarea {
+  @apply ad:rounded-lg ad:border ad:border-solid ad:border-slate-200 ad:bg-white ad:px-3 ad:py-2 ad:text-sm ad:text-slate-800 ad:outline-none ad:transition-shadow ad:focus:border-emerald-600 ad:focus:ring-2 ad:focus:ring-emerald-100 ad:disabled:bg-slate-100;
+}
+.admin-ui input[type=checkbox],.admin-ui input[type=radio] { @apply ad:accent-emerald-700; }
+.admin-ui input::placeholder,.admin-ui textarea::placeholder { @apply ad:text-slate-400; }
+.admin-ui .button { @apply ad:inline-flex ad:min-h-10 ad:items-center ad:justify-center ad:gap-2 ad:rounded-lg ad:border ad:border-solid ad:border-transparent ad:px-3 ad:py-2 ad:text-sm ad:font-semibold ad:text-white ad:no-underline ad:transition-colors ad:disabled:cursor-not-allowed ad:disabled:opacity-50; background:var(--green); }
+.admin-ui .button.secondary { @apply ad:border-slate-200 ad:bg-white ad:text-slate-700 ad:hover:bg-slate-50; }
+.admin-ui .button.admin-cancel { @apply ad:border-rose-200 ad:bg-rose-50 ad:text-rose-700 ad:hover:bg-rose-100; }
+.admin-ui .button.booking-approve { @apply ad:border-emerald-600 ad:bg-emerald-600 ad:text-white ad:hover:bg-emerald-700; }
+.admin-ui :is(a,button,summary):focus-visible { @apply ad:outline-2 ad:outline-offset-2 ad:outline-emerald-600; }
+.admin-ui .notice { @apply ad:rounded-lg ad:border ad:border-solid ad:border-emerald-100 ad:bg-emerald-50 ad:p-3 ad:text-sm ad:text-emerald-950; }
+.admin-ui .notice.error { @apply ad:border-rose-200 ad:bg-rose-50 ad:text-rose-800; }
+.admin-ui .admin-filters { @apply ad:gap-3 ad:rounded-xl ad:border ad:border-solid ad:border-emerald-100 ad:bg-emerald-50/60 ad:p-4; }
+.admin-ui .admin-table-scroll { @apply ad:rounded-xl ad:border ad:border-solid ad:border-slate-200 ad:bg-white; }
+.admin-ui .admin-table { @apply ad:text-sm; }
+.admin-ui .admin-table thead th { @apply ad:px-4 ad:py-3 ad:text-xs ad:font-semibold ad:text-white; background:var(--green); }
+.admin-ui .admin-table tbody td { @apply ad:border-b ad:border-slate-100 ad:px-4 ad:py-3; }
+.admin-ui .admin-table tbody tr:nth-child(even) { @apply ad:bg-white; }
+.admin-ui .admin-table tbody tr:hover { @apply ad:bg-emerald-50/50; }
+.admin-ui .admin-table .button { @apply ad:min-h-8 ad:px-2.5 ad:py-1 ad:text-xs; }
+.admin-ui .admin-table .admin-row-actions { @apply ad:flex-wrap ad:gap-1.5; }
+.admin-ui .admin-status { @apply ad:inline-flex ad:items-center ad:gap-1 ad:rounded-full ad:bg-slate-100 ad:px-2.5 ad:py-1 ad:text-xs; }
+.admin-ui .admin-status.confirmed { @apply ad:bg-emerald-100 ad:text-emerald-800; }
+.admin-ui .admin-status.cancelled { @apply ad:bg-rose-100 ad:text-rose-700; }
+.admin-ui .admin-status.pending { @apply ad:bg-amber-100 ad:text-amber-800; }
+.admin-ui .admin-dialog { @apply ad:rounded-2xl ad:border ad:border-solid ad:border-slate-200 ad:bg-white ad:shadow-xl; }
+.admin-ui .admin-dialog-header { @apply ad:border-b ad:border-slate-200 ad:bg-white ad:p-4; }
+.admin-ui .admin-dialog-header .button { @apply ad:min-h-9 ad:w-9 ad:p-0; }
+.admin-ui .admin-booking-detail>div { @apply ad:rounded-lg ad:bg-slate-50 ad:p-3; }
+.admin-ui .admin-detail-total { @apply ad:rounded-lg ad:bg-emerald-50 ad:p-3; }
+.admin-ui .admin-edit-form { @apply ad:gap-4; }
+.admin-ui .inventory-edit-group { @apply ad:rounded-lg ad:border ad:border-solid ad:border-slate-200 ad:p-4; }
+.admin-ui .inventory-edit-group legend { @apply ad:px-2 ad:text-sm ad:font-semibold; }
+.admin-ui .checkout-item,.admin-ui .checkout-settlement { @apply ad:rounded-xl ad:border ad:border-solid ad:border-slate-200 ad:bg-white ad:p-4; }
+.admin-ui .checkout-totals { @apply ad:rounded-lg ad:bg-slate-50 ad:p-4; }
+.admin-ui .booking-table-scroll { @apply ad:rounded-none ad:border-0; }
+.admin-ui .booking-stat { @apply ad:rounded-xl ad:border ad:border-solid ad:border-slate-200 ad:bg-white; }
+.admin-ui .booking-search { @apply ad:rounded-xl ad:border ad:border-solid ad:border-emerald-100 ad:bg-emerald-50/60; }
+.admin-ui .booking-table tbody tr[data-expanded],.admin-ui .booking-table tbody tr.admin-expanded-row { @apply ad:bg-emerald-50/50; }
+.admin-ui .booking-pagination { @apply ad:bg-slate-50; }
+.admin-ui .booking-pagination .button { @apply ad:min-h-8 ad:px-2.5 ad:py-1 ad:text-xs; }
+.admin-ui .booking-stat strong { @apply ad:text-xl; }
+.admin-ui .booking-export { @apply ad:min-h-8 ad:py-1 ad:text-xs; }
+.admin-ui .settings-categories a { @apply ad:transition-colors; }
+.admin-ui .admin-calendar-day { @apply ad:transition-shadow; }
+.admin-ui .admin-login { @apply ad:mx-auto ad:min-h-screen ad:content-center ad:px-4; }
+.admin-ui .admin-mobile-menu-close { display:none; }
+.admin-ui .admin-slip-preview { display:block; width:min(100%,420px); height:auto; margin:16px auto; }
+.admin-ui .admin-detail-actions { padding:16px; }
+@media(max-width:760px) {
+  .admin-ui .admin-workspace { display:block; }
+  .admin-ui .admin-sidebar { position:fixed; inset:0 auto 0 0; width:min(320px,100%); height:100dvh; z-index:50; overflow-y:auto; box-shadow:0 0 0 100vmax #102b2466; }
+  .admin-ui .admin-mobile-menu-close { display:flex; margin:8px; flex-shrink:0; }
+  .admin-ui .admin-top { position:sticky; top:0; z-index:10; padding:10px 12px; }
+  .admin-ui .admin-top-actions { gap:8px; }
+  .admin-ui .button,.admin-ui .admin-table .button,.admin-ui .booking-pagination .button { min-height:44px; white-space:normal; }
+  .admin-ui input:not([type=checkbox]):not([type=radio]):not([type=hidden]),.admin-ui select,.admin-ui textarea { min-width:0; max-width:100%; min-height:44px; font-size:16px; }
+  .admin-ui .booking-list-page .booking-table-scroll { max-height:none; min-height:0; overflow:visible; }
+  .admin-ui .booking-table,.admin-ui .checkout-table { display:block; min-width:0; width:100%; }
+  .admin-ui :is(.booking-table,.checkout-table) thead { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+  .admin-ui :is(.booking-table,.checkout-table) tbody { display:grid; gap:12px; padding:8px; }
+  .admin-ui :is(.booking-table,.checkout-table) tbody tr { display:block; border:1px solid #dce5ed; border-radius:12px; overflow:hidden; background:white; }
+  .admin-ui .booking-table tbody tr:not(.admin-expanded-row) { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .admin-ui .booking-table tbody tr:not(.admin-expanded-row)>td:is(:nth-child(1),:nth-child(2),:nth-child(5),:nth-child(8)) { grid-column:1/-1; }
+  .admin-ui .booking-table tbody td[colspan] { grid-column:1/-1; }
+  .admin-ui :is(.booking-table,.checkout-table) tbody td { display:block; height:auto; min-width:0; padding:10px 12px; text-align:left; overflow-wrap:anywhere; white-space:normal; }
+  .admin-ui :is(.booking-table,.checkout-table) tbody td[data-label]::before { content:attr(data-label); display:block; font-size:12px; color:#62788b; margin-bottom:4px; }
+  .admin-ui :is(.booking-table,.checkout-table) .admin-row-actions { flex-wrap:wrap; }
+  .admin-ui .booking-table .admin-expand-booking { width:44px; min-width:44px; min-height:44px; }
+  .admin-ui .booking-table .admin-booking-id { min-width:0; }
+  .admin-ui .booking-expanded-grid { grid-template-columns:minmax(0,1fr); }
+  .admin-ui .booking-pagination,.admin-ui .booking-pagination form,.admin-ui .booking-pagination nav { flex-wrap:wrap; min-width:0; gap:8px; }
+  .admin-ui .admin-dialog { width:calc(100% - 16px); max-width:calc(100% - 16px); max-height:calc(100dvh - 16px); margin:auto; overflow:auto; }
+  .admin-ui .admin-dialog>* { min-width:0; max-width:100%; }
+  .admin-ui .admin-dialog-header { gap:8px; padding:12px; }
+  .admin-ui .admin-dialog-header h2 { min-width:0; overflow-wrap:anywhere; }
+  .admin-ui .admin-dialog-header .button { width:44px; min-width:44px; min-height:44px; }
+  .admin-ui .admin-booking-detail { grid-template-columns:minmax(0,1fr); }
+  .admin-ui .admin-booking-detail dd,.admin-ui .admin-dialog code { overflow-wrap:anywhere; }
+  .admin-ui .admin-items-table { width:100%; table-layout:fixed; }
+  .admin-ui .admin-items-table th,.admin-ui .admin-items-table td { overflow-wrap:anywhere; padding:8px 4px; white-space:normal; }
+  .admin-ui .admin-items-table th:first-child { width:50%; }
+  .admin-ui .admin-items-table td:last-child,.admin-ui .admin-items-table th:last-child { white-space:normal; overflow-wrap:anywhere; }
+  .admin-ui .checkout-body,.admin-ui .checkout-item,.admin-ui .checkout-charge-group { min-width:0; }
+  .admin-ui .checkout-charge-group legend { max-width:100%; overflow-wrap:anywhere; }
+  .admin-ui .checkout-line,.admin-ui .checkout-totals>div { gap:12px; flex-wrap:wrap; }
+  .admin-ui .checkout-line>span,.admin-ui .checkout-item h3 { min-width:0; overflow-wrap:anywhere; }
+  .admin-ui .checkout-qr img { max-width:100%; height:auto; }
+}
+@media(max-width:600px) {
+  .admin-ui .admin-dialog { @apply ad:max-w-[calc(100vw-24px)]; }
+  .admin-ui .admin-main-content { @apply ad:p-3; }
+  .admin-ui .panel { @apply ad:p-4; }
+}
+
+/* Dashboard: booking calendar, occupancy and revenue reports. */
+.admin-ui .admin-workspace[data-section=dashboard] { background:#f5f3ed; }
+.admin-ui .dashboard-welcome { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:20px; padding:26px; border-radius:14px; background:linear-gradient(90deg,#edf0e4f5,#edf0e4d9),url('/camp-field.webp') center 48%/cover; border:1px solid #e0e4d7; }
+.admin-ui .dashboard-welcome h2 { font-size:1.8rem; color:#30472f; margin:5px 0; }
+.admin-ui .dashboard-welcome p { font-size:.85rem; color:#53634e; }
+.admin-ui .dashboard-range { display:flex; align-items:end; flex-wrap:wrap; gap:10px; }
+.admin-ui .dashboard-range label { display:grid; min-width:145px; }
+.admin-ui .dashboard-period { margin:0; }
+.admin-ui .dashboard-metric { border-inline-start:0; background:#fffefa; }
+.admin-ui .dashboard-metric dt { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
+.admin-ui .dashboard-metric dt .admin-icon { color:#517647; width:24px; height:24px; }
+.admin-ui .dashboard-metric dd strong { color:#314b32; }
+.admin-ui .dashboard-layout { display:grid; grid-template-columns:minmax(0,1.9fr) minmax(280px,1fr); gap:18px; align-items:start; }
+.admin-ui .dashboard-primary,.admin-ui .dashboard-secondary { min-width:0; }
+.admin-ui .admin-dashboard .panel { background:#fffefa; border-color:#e1e4d9; }
+.admin-ui .dashboard-calendar-date { display:flex; align-items:center; gap:5px; }
+.admin-ui .dashboard-calendar-date input { max-width:150px; }
+.admin-ui .dashboard-calendar-legend { display:flex; flex-wrap:wrap; gap:12px; font-size:11px; }
+.admin-ui .dashboard-calendar-legend span { display:flex; align-items:center; gap:5px; }
+.admin-ui .dashboard-calendar-legend span::before { content:''; width:8px; height:8px; border-radius:50%; background:#83a773; }
+.admin-ui .dashboard-calendar-legend [data-state=pending]::before { background:#dcaa63; }
+.admin-ui .dashboard-calendar-legend [data-state=staying]::before { background:#80a6cb; }
+.admin-ui .dashboard-calendar-legend [data-state=closed]::before { background:#a0a49b; }
+.admin-ui .dashboard-calendar-scroll { overflow:auto; max-height:680px; border:1px solid #e1e4d9; border-radius:10px; }
+.admin-ui .dashboard-calendar-table { width:100%; border-collapse:separate; border-spacing:0; font-size:12px; }
+.admin-ui .dashboard-calendar-table th,.admin-ui .dashboard-calendar-table td { min-width:90px; padding:9px 6px; border-bottom:1px solid #e1e4d9; border-right:1px solid #e1e4d9; text-align:center; vertical-align:middle; }
+.admin-ui .dashboard-calendar-table thead th { position:sticky; top:0; z-index:2; background:#edf0e4; color:#314b32; white-space:nowrap; }
+.admin-ui .dashboard-calendar-table tr>th:first-child { position:sticky; left:0; z-index:1; min-width:130px; max-width:170px; background:#fffefa; text-align:left; }
+.admin-ui .dashboard-calendar-table thead th:first-child { z-index:3; background:#edf0e4; }
+.admin-ui .dashboard-calendar-table [data-today=true] { box-shadow:inset 0 3px #477442; }
+.admin-ui .dashboard-zone-toggle,.admin-ui .dashboard-zone-count { appearance:none; border:0; background:transparent; color:inherit; cursor:pointer; width:100%; padding:2px; font:inherit; }
+.admin-ui .dashboard-zone-toggle { text-align:left; font-weight:700; }
+.admin-ui .dashboard-zone-toggle .admin-icon { margin-right:6px; }
+.admin-ui .dashboard-zone-toggle small,.admin-ui .dashboard-zone-count small { display:block; font-size:10px; font-weight:400; margin-top:4px; }
+.admin-ui .dashboard-calendar-table [data-state=confirmed] { background:#e8f0df; }
+.admin-ui .dashboard-calendar-table [data-state=full] { background:#d6e4cb; }
+.admin-ui .dashboard-calendar-table [data-state=closed] { background:repeating-linear-gradient(135deg,#efefeb,#efefeb 5px,#e7e8e2 5px,#e7e8e2 6px); color:#62675d; }
+.admin-ui .dashboard-calendar-booking { display:block; padding:6px; border-radius:6px; text-decoration:none; overflow-wrap:anywhere; background:#d6e4cb; color:#28412c; margin:3px 0; max-width:180px; }
+.admin-ui .dashboard-calendar-booking small { display:block; font-size:10px; }
+.admin-ui .dashboard-calendar-booking[data-state=pending] { background:#f5dfbf; color:#6a4819; }
+.admin-ui .dashboard-calendar-booking[data-state=staying] { background:#d7e5f3; color:#294d6d; }
+.admin-ui .dashboard-calendar-booking[data-state=done] { background:#e7e7e2; color:#585e54; }
+.admin-ui .dashboard-quick-actions { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; }
+.admin-ui .dashboard-quick-actions a { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; min-height:90px; padding:8px 4px; text-align:center; font-size:11px; border:1px solid #e1e4d9; border-radius:10px; text-decoration:none; color:#354e32; }
+.admin-ui .dashboard-quick-actions a:hover { background:#edf2e6; }
+.admin-ui .dashboard-quick-actions .admin-icon { width:24px; height:24px; }
+.admin-ui .dashboard-trend { width:100%; height:auto; overflow:visible; }
+.admin-ui .dashboard-trend text { fill:#697561; font-size:11px; }
+.admin-ui .dashboard-site { display:grid; grid-template-columns:repeat(auto-fit,minmax(70px,1fr)); gap:8px; }
+.admin-ui .dashboard-site>div { display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px 5px; border:1px solid #e1e4d9; border-radius:10px; font-size:11px; }
+.admin-ui .dashboard-site .admin-icon { width:23px; height:23px; color:#547548; }
+.admin-ui .dashboard-site meter { width:100%; height:12px; accent-color:#6e9358; }
+.admin-ui .dashboard-pies { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:20px; }
+.admin-ui .dashboard-pie { min-width:0; }
+.admin-ui .dashboard-pie h3 { margin-bottom:16px; }
+.admin-ui .dashboard-pie-content { display:flex; align-items:center; flex-direction:column; gap:16px; }
+.admin-ui .dashboard-donut { width:136px; height:136px; border-radius:50%; display:grid; place-items:center; flex-shrink:0; }
+.admin-ui .dashboard-donut>div { width:100px; height:100px; border-radius:50%; background:#fffefa; display:flex; flex-direction:column; justify-content:center; align-items:center; }
+.admin-ui .dashboard-donut strong { font-size:1.5rem; color:#314b32; }
+.admin-ui .dashboard-donut small { font-size:11px; color:#74806d; }
+.admin-ui .dashboard-pie ul { list-style:none; margin:0; padding:0; width:100%; max-height:220px; overflow:auto; }
+.admin-ui .dashboard-pie li { display:flex; align-items:baseline; gap:6px; padding:5px 0; font-size:11px; }
+.admin-ui .dashboard-pie li i { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.admin-ui .dashboard-pie li span { flex:1; overflow-wrap:anywhere; }
+.admin-ui .dashboard-pie li small { color:#74806d; }
+.admin-ui .dashboard-bottom { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.3fr); align-items:start; gap:18px; }
+.admin-ui .dashboard-revenue { margin:0; }
+.admin-ui .dashboard-revenue>div { display:flex; justify-content:space-between; gap:15px; padding:10px 0; border-bottom:1px solid #edf0e7; }
+.admin-ui .dashboard-revenue dd { margin:0; font-weight:600; white-space:nowrap; }
+.admin-ui .dashboard-revenue-total { color:#315c42; font-size:1.15rem; }
+@media(max-width:1200px) {
+  .admin-ui .dashboard-layout { grid-template-columns:minmax(0,1fr); }
+  .admin-ui .dashboard-secondary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; }
+  .admin-ui .dashboard-secondary>section:last-child { grid-column:1/-1; }
+}
+@media(max-width:760px) {
+  .admin-ui .dashboard-welcome { padding:18px; }
+  .admin-ui .dashboard-range { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; }
+  .admin-ui .dashboard-range label { min-width:0; }
+  .admin-ui .dashboard-range input { min-width:0; width:100%; }
+  .admin-ui .dashboard-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .admin-ui .dashboard-metric { padding:14px; }
+  .admin-ui .dashboard-metric dt { font-size:12px; }
+  .admin-ui .dashboard-metric dt .admin-icon { width:18px; height:18px; }
+  .admin-ui .dashboard-metric dd strong { font-size:1.7rem; }
+  .admin-ui .dashboard-secondary,.admin-ui .dashboard-bottom { display:flex; flex-direction:column; }
+  .admin-ui .dashboard-secondary>section,.admin-ui .dashboard-bottom>section { width:100%; min-width:0; }
+  .admin-ui .dashboard-pies { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media(max-width:400px) {
+  .admin-ui .dashboard-pies { grid-template-columns:minmax(0,1fr); }
+}
+
+.admin-ui .admin-booking-confirm { width:min(460px,calc(100% - 28px)); max-height:90dvh; padding:26px; border:1px solid #e2e8e5; border-radius:22px; color:#19382c; background:white; box-shadow:0 24px 80px #102d2440; text-align:left; white-space:normal; }
+.admin-ui .admin-booking-confirm::backdrop { background:#102c266b; backdrop-filter:blur(4px); }
+.admin-ui .booking-confirm-heading { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+.admin-ui .booking-confirm-icon { display:grid; place-items:center; width:54px; height:54px; border-radius:18px; background:#e6f5ed; color:#178453; font-size:25px; }
+.admin-ui .admin-booking-confirm[data-tone=cancel] .booking-confirm-icon { color:#be3e4e; background:#fff0f1; }
+.admin-ui .admin-booking-confirm h2 { font-size:1.35rem; margin:0 0 8px; }
+.admin-ui .admin-booking-confirm p { line-height:1.7; color:#64756c; margin:0 0 18px; }
+.admin-ui .booking-confirm-summary { display:grid; gap:12px; padding:18px; margin:18px 0; border:1px solid #e5ece7; border-radius:14px; background:#f7faf8; }
+.admin-ui .booking-confirm-summary>div { display:flex; justify-content:space-between; gap:16px; }
+.admin-ui .booking-confirm-summary dt { color:#66776e; font-size:12px; flex-shrink:0; }
+.admin-ui .booking-confirm-summary dd { margin:0; font-weight:600; text-align:right; overflow-wrap:anywhere; }
+.admin-ui .admin-booking-confirm .booking-confirm-warning { color:#a34450; background:#fff4f4; border-radius:10px; padding:12px; font-size:12px; }
+.admin-ui .booking-confirm-actions { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:10px; margin-top:22px; }
+.admin-ui .admin-booking-confirm .button { min-height:42px; padding:10px 14px; font-size:14px; }
+.admin-ui .admin-booking-confirm .booking-confirm-cancel { color:white; background:#c14353; border-color:#c14353; }
+.admin-ui .admin-booking-confirm .booking-confirm-cancel:hover { background:#a83140; }
+@media(max-width:480px) {
+  .admin-ui .admin-booking-confirm { padding:20px; }
+  .admin-ui .booking-confirm-actions { display:grid; grid-template-columns:1fr; }
+  .admin-ui .booking-confirm-summary>div { flex-direction:column; gap:3px; }
+  .admin-ui .booking-confirm-summary dd { text-align:left; }
+}
+
+/* Map studio keeps tools outside the independently scrollable canvas. */
+.admin-ui .map-studio { min-width:0; }
+.admin-ui .map-studio-header { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+.admin-ui .map-studio-toolbar { display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; background:#fff; border:1px solid #dbe5dd; border-radius:14px; padding:12px; position:sticky; top:0; z-index:10; box-shadow:0 3px 12px #1237270a; }
+.admin-ui .map-zoom-controls { display:inline-flex; align-items:center; border:1px solid #dbe5dd; border-radius:8px; overflow:hidden; }
+.admin-ui .map-zoom-controls button { width:36px; height:38px; border:0; background:#f4f7f5; cursor:pointer; font-size:20px; }
+.admin-ui .map-zoom-controls output { min-width:54px; text-align:center; font-variant-numeric:tabular-nums; }
+.admin-ui .map-studio-workspace { display:grid; grid-template-columns:230px minmax(0,1fr); gap:16px; min-width:0; align-items:start; }
+.admin-ui .map-studio-sidebar { max-height:76dvh; overflow:auto; padding:14px; }
+.admin-ui .map-image-upload { display:flex; flex-direction:column; align-items:center; gap:8px; border:1px dashed #9ebbaa; background:#f1f7f3; border-radius:12px; padding:16px 10px; text-align:center; }
+.admin-ui .map-image-upload .admin-icon { width:25px; height:25px; color:#37785a; }
+.admin-ui .map-image-upload small { font-size:11px; color:#6a8072; }
+.admin-ui .map-image-upload input { width:100%; min-width:0; font-size:11px!important; padding:5px!important; }
+.admin-ui .map-element-heading { display:flex; align-items:center; justify-content:space-between; gap:5px; }
+.admin-ui .map-element-list { display:flex; flex-direction:column; gap:6px; }
+.admin-ui .map-element-list button { display:flex; justify-content:space-between; align-items:center; gap:6px; padding:10px; border:1px solid #e0e8e2; background:#fff; color:#264737; border-radius:9px; text-align:left; cursor:pointer; }
+.admin-ui .map-element-list button[data-selected=true] { background:#e6f2eb; border-color:#54866a; box-shadow:inset 3px 0 #387452; }
+.admin-ui .map-element-list button small { display:block; font-size:11px; }
+.admin-ui .map-studio-main { min-width:0; border:1px solid #dbe5dd; border-radius:14px; overflow:hidden; background:white; }
+.admin-ui .map-element-tools { padding:12px; display:flex; align-items:center; flex-wrap:wrap; gap:8px; border-bottom:1px solid #e1e8e3; }
+.admin-ui .map-element-tools>strong { margin-right:8px; }
+.admin-ui .map-element-tools .button { min-height:34px; padding:6px 10px; font-size:12px; }
+.admin-ui .map-instructions { padding:10px 12px; margin:0; font-size:12px; color:#5a7063; background:#f5f8f5; }
+.admin-ui .map-studio-viewport { height:65dvh; min-height:320px; max-height:850px; overflow:auto; overscroll-behavior:contain; background-color:#e9eeea; background-image:linear-gradient(45deg,#dfe6e1 25%,transparent 25%),linear-gradient(-45deg,#dfe6e1 25%,transparent 25%); background-size:20px 20px; }
+.admin-ui .map-edit-canvas { min-width:0; overflow:visible; margin:0; }
+.admin-ui .map-edit-overlay { position:absolute; inset:0; width:100%; height:100%; touch-action:none; user-select:none; }
+.admin-ui .map-edit-overlay>rect { cursor:grab; }
+.admin-ui .map-edit-overlay polygon { fill:#36754a; fill-opacity:.22; stroke:#2f664b; stroke-width:2; cursor:move; touch-action:none; }
+.admin-ui .map-edit-overlay polygon.selected { fill:#258eae; fill-opacity:.28; stroke:#006c91; stroke-width:3; }
+.admin-ui .map-edit-overlay polygon:focus-visible { stroke:#f7b528; outline:none; }
+.admin-ui .map-edit-label { position:absolute; transform:translate(-50%,-50%); pointer-events:none; color:#fff; background:#315942e6; padding:3px 8px; border-radius:5px; font-size:12px; line-height:1.2; font-weight:700; }
+.admin-ui .map-edit-label[data-selected=true] { background:#086f91; }
+.admin-ui .map-edit-vertex { position:absolute; transform:translate(-50%,-50%); width:24px; height:24px; padding:0; border:2px solid white; box-shadow:0 0 0 1px #096f92; border-radius:50%; background:#087aa2; color:white; cursor:move; font-size:10px; touch-action:none; }
+.admin-ui .map-edit-vertex[data-selected=true] { background:#b66800; box-shadow:0 0 0 2px #f5c667; }
+.admin-ui .map-publish-dialog { width:min(480px,calc(100% - 28px)); padding:24px; }
+.admin-ui .map-publish-dialog p { margin:12px 0; }
+.admin-ui .map-preview-dialog { width:min(1240px,calc(100% - 24px)); max-height:96dvh; padding:20px; overflow:auto; }
+.admin-ui .map-preview-header { display:flex; align-items:start; justify-content:space-between; gap:12px; margin-bottom:16px; }
+.admin-ui .map-preview-host { margin-top:16px; padding:10px 0; background:#eaf0eb; border-radius:16px; width:100%; overflow:hidden; }
+@media(max-width:900px) {
+  .admin-ui .map-studio-workspace { grid-template-columns:minmax(0,1fr); }
+  .admin-ui .map-studio-sidebar { max-height:280px; }
+  .admin-ui .map-element-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); }
+  .admin-ui .map-studio-toolbar { top:0; }
+  .admin-ui .map-studio-toolbar .button { font-size:12px; padding:7px 9px; }
+  .admin-ui .map-studio-viewport { height:55dvh; }
+  .admin-ui .map-preview-dialog { padding:12px; }
+}
+
+/* Removal confirmation (shared ConfirmProvider, admin variant) */
+.admin-ui .admin-remove-confirm .confirm-dialog-message p { margin:0 0 4px; }
+.admin-ui .admin-remove-confirm ul.booking-confirm-summary { list-style:none; margin:12px 0 0; padding:14px 16px; gap:6px; color:#19382c; font-weight:600; overflow-wrap:anywhere; }
+.admin-ui .admin-remove-confirm ul.booking-confirm-summary li::before { content:'• '; color:#c14353; }
+.admin-ui .admin-remove-confirm[data-tone=approve] ul.booking-confirm-summary li::before { color:#178453; }
+.admin-ui .admin-remove-confirm .booking-confirm-icon svg { width:1em; height:1em; }
+
+/* Facilities rich-text editor with live preview */
+.admin-ui .rich-editor-help code { padding:1px 5px; border-radius:5px; background:#fff; font-size:.85em; }
+.admin-ui .rich-editor-help p { margin:6px 0 0; line-height:1.8; }
+.admin-ui .rich-editor-tabs { display:flex; flex-wrap:wrap; gap:6px; }
+.admin-ui .rich-editor-tabs button { position:relative; min-height:38px; padding:6px 14px; border:1px solid #dbe5df; border-radius:999px; background:#fff; color:#33483d; font:inherit; font-size:.88rem; font-weight:600; cursor:pointer; }
+.admin-ui .rich-editor-tabs button[data-filled]::after { content:''; position:absolute; top:6px; right:6px; width:6px; height:6px; border-radius:50%; background:#2f8f5b; }
+.admin-ui .rich-editor-tabs button[aria-selected=true] { border-color:#1f4a37; background:#1f4a37; color:#fff; }
+.admin-ui .rich-editor { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:18px; align-items:start; }
+@media (max-width:980px) { .admin-ui .rich-editor { grid-template-columns:minmax(0,1fr); } }
+.admin-ui .rich-editor-write, .admin-ui .rich-editor-preview { display:grid; gap:8px; min-width:0; }
+.admin-ui .rich-editor-label { font-size:.85rem; font-weight:700; color:#33483d; }
+.admin-ui .rich-editor-toolbar { display:flex; flex-wrap:wrap; gap:4px; padding:6px; border:1px solid #dbe5df; border-radius:12px; background:#f7faf8; }
+.admin-ui .rich-tool { display:inline-flex; align-items:center; gap:6px; min-width:34px; min-height:32px; padding:4px 10px; border:1px solid transparent; border-radius:8px; background:#fff; color:#19382c; font:inherit; font-size:.82rem; font-weight:600; cursor:pointer; box-shadow:0 1px 1px rgba(16,45,36,.06); }
+.admin-ui .rich-tool:hover:not(:disabled) { border-color:#1f4a37; }
+.admin-ui .rich-tool:disabled { opacity:.5; cursor:progress; }
+.admin-ui .rich-tool-b { font-weight:800; }
+.admin-ui .rich-tool-i { font-style:italic; }
+.admin-ui .rich-tool-u { text-decoration:underline; }
+.admin-ui .rich-tool-s { text-decoration:line-through; }
+.admin-ui .rich-tool-ไฮไลต์ { background:#fff0b3; }
+.admin-ui .rich-tool-image { margin-inline-start:auto; background:#1f4a37; color:#fff; }
+.admin-ui .rich-editor textarea { width:100%; min-height:300px; padding:12px 14px; border:1px solid #cdd9d2; border-radius:12px; font:inherit; font-size:.95rem; line-height:1.7; resize:vertical; }
+.admin-ui .rich-editor-count { justify-self:end; color:#6b7c72; font-size:.78rem; }
+.admin-ui .rich-editor-preview { position:sticky; top:16px; }
+.admin-ui .rich-editor-preview-body { min-height:300px; max-height:70vh; overflow:auto; padding:18px; border:1px solid #e3ddd0; border-radius:16px; background:#faf7f0; color:#17301f; }
+.admin-ui .rich-editor-images { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:8px; }
+.admin-ui .rich-editor-images figure { margin:0; overflow:hidden; border:1px solid #dbe5df; border-radius:10px; background:#fff; }
+.admin-ui .rich-editor-images img { display:block; width:100%; height:80px; object-fit:cover; }
+.admin-ui .rich-editor-images figcaption { display:flex; justify-content:space-between; padding:4px 8px; font-size:.8rem; }
+.admin-ui .rich-editor-images .rich-remove { color:#c14353; }
+
+/* Contact channels */
+.admin-ui .contact-fields { display:grid; gap:10px; }
+.admin-ui .contact-field { display:grid; grid-template-columns:40px 170px minmax(0,1fr); align-items:center; gap:14px; padding:10px 14px; border:1px solid #dbe5df; border-radius:14px; background:#fff; }
+.admin-ui .contact-field[data-invalid] { border-color:#d55b6c; background:#fff8f9; }
+.admin-ui .contact-field-name { display:grid; gap:2px; }
+.admin-ui .contact-field-name small { color:#6b7c72; font-weight:400; }
+.admin-ui .contact-field input { width:100%; min-width:0; }
+@media (max-width:640px) { .admin-ui .contact-field { grid-template-columns:40px minmax(0,1fr); } .admin-ui .contact-field input { grid-column:1 / -1; } }
+
+/* Zone highlights + recommended facilities editor */
+.admin-ui .zone-features-editor { display:grid; grid-template-columns:minmax(0,1fr); gap:16px; padding:20px; border:1px solid #dbe5df; border-radius:16px; background:#fff; }
+.admin-ui .zone-features-head h2 { margin:0 0 4px; font-size:1.1rem; }
+.admin-ui .zone-features-head p { margin:0; color:#66776e; font-size:.88rem; line-height:1.7; }
+.admin-ui .zone-features-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; align-items:start; }
+@media (max-width:1100px) { .admin-ui .zone-features-grid { grid-template-columns:minmax(0,1fr); } }
+.admin-ui .feature-group { display:grid; gap:10px; min-width:0; margin:0; padding:14px; border:1px solid #e3ebe6; border-radius:14px; background:#f7faf8; }
+.admin-ui .feature-group legend { display:flex; align-items:center; gap:8px; padding:0 6px; font-weight:700; color:#19382c; }
+.admin-ui .feature-group legend small { padding:1px 8px; border-radius:999px; background:#e6f0ea; color:#4d6559; font-size:.75rem; font-weight:600; }
+.admin-ui .feature-rows { display:grid; gap:8px; margin:0; padding:0; list-style:none; }
+.admin-ui .feature-row { display:grid; grid-template-columns:52px minmax(0,1fr) auto; gap:10px; align-items:start; padding:10px; border:1px solid #dbe5df; border-radius:12px; background:#fff; }
+.admin-ui .feature-row[data-invalid] { border-color:#e6a1aa; background:#fffafb; }
+.admin-ui .feature-icon-button { display:grid; place-items:center; width:52px; height:52px; border:1px dashed #9db4a7; border-radius:14px; background:#eef6f1; color:#1f4a37; font:inherit; font-size:1.35rem; line-height:1.2; cursor:pointer; }
+.admin-ui .feature-icon-button span { font-size:.66rem; font-weight:600; }
+.admin-ui .feature-icon-button:hover { border-style:solid; border-color:#1f4a37; }
+.admin-ui .feature-row-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; min-width:0; }
+.admin-ui .feature-row-fields label { display:grid; gap:3px; font-size:.78rem; font-weight:600; color:#4d6559; }
+.admin-ui .feature-row-fields label small { font-weight:400; color:#7b8b82; }
+.admin-ui .feature-row-fields input { width:100%; min-width:0; min-height:36px; font-size:.88rem; }
+.admin-ui .feature-row-english { grid-column:1 / -1; }
+.admin-ui .feature-row-english summary { cursor:pointer; color:#4d6559; font-size:.78rem; }
+.admin-ui .feature-row-english[open] { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.admin-ui .feature-row-english[open] summary { grid-column:1 / -1; }
+.admin-ui .feature-row-actions { display:flex; flex-direction:column; gap:4px; }
+.admin-ui .feature-row-actions .rich-tool { justify-content:center; min-width:32px; padding:4px; border-color:#dbe5df; }
+.admin-ui .feature-row-actions .feature-remove { color:#c14353; }
+.admin-ui .feature-empty { margin:0; padding:12px; border:1px dashed #cdd9d2; border-radius:12px; color:#6b7c72; font-size:.85rem; text-align:center; }
+.admin-ui .feature-add { display:grid; gap:8px; }
+.admin-ui .feature-add > .button { justify-self:start; }
+.admin-ui .feature-presets { display:flex; flex-wrap:wrap; gap:6px; }
+.admin-ui .feature-presets button { display:inline-flex; align-items:center; gap:6px; min-height:32px; padding:4px 10px; border:1px solid #dbe5df; border-radius:999px; background:#fff; color:#33483d; font:inherit; font-size:.8rem; cursor:pointer; }
+.admin-ui .feature-presets button span { color:#2f8f5b; font-weight:700; }
+.admin-ui .feature-presets button:hover:not(:disabled) { border-color:#1f4a37; }
+.admin-ui .feature-presets button:disabled { opacity:.5; cursor:not-allowed; }
+.admin-ui .feature-status { margin-inline-end:auto; color:#8a6a1f; font-size:.85rem; }
+.admin-ui .feature-invalid { color:#c14353; }
+.admin-ui .feature-icon-dialog { width:min(640px,calc(100% - 28px)); }
+.admin-ui .feature-icon-dialog h2 { margin:0; }
+.admin-ui .feature-icon-dialog input[type=search] { width:100%; margin-bottom:12px; }
+.admin-ui .feature-icon-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:6px; max-height:55dvh; overflow:auto; }
+.admin-ui .feature-icon-grid button { display:grid; justify-items:center; gap:6px; padding:10px 4px; border:1px solid #e3ebe6; border-radius:12px; background:#fff; color:#1f4a37; font:inherit; font-size:.72rem; line-height:1.3; text-align:center; cursor:pointer; }
+.admin-ui .feature-icon-grid button svg { font-size:1.3rem; }
+.admin-ui .feature-icon-grid button:hover { border-color:#1f4a37; background:#f2f8f4; }
+.admin-ui .feature-icon-grid button[aria-selected=true] { border-color:#1f4a37; background:#1f4a37; color:#fff; }
+@media (max-width:640px) {
+  .admin-ui .feature-row { grid-template-columns:52px minmax(0,1fr); }
+  .admin-ui .feature-row-fields, .admin-ui .feature-row-english[open] { grid-template-columns:minmax(0,1fr); }
+  .admin-ui .feature-row-actions { grid-column:1 / -1; flex-direction:row; justify-content:flex-end; }
+}
+.admin-ui .zone-features-editor > * { grid-column:1 / -1; }
+
+/* Camp location (map) */
+.admin-ui .location-editor { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:18px; align-items:start; }
+@media (max-width:980px) { .admin-ui .location-editor { grid-template-columns:minmax(0,1fr); } }
+.admin-ui .location-fields { display:grid; gap:12px; }
+.admin-ui .location-fields label { display:grid; gap:4px; font-weight:600; }
+.admin-ui .location-fields label small { color:#6b7c72; font-weight:400; line-height:1.5; }
+.admin-ui .location-fields label[data-invalid] small { color:#c14353; }
+.admin-ui .location-fields label[data-invalid] input { border-color:#d55b6c; }
+.admin-ui .location-fields textarea, .admin-ui .location-fields input { width:100%; }
+.admin-ui .location-preview { display:grid; gap:8px; }
+.admin-ui .location-preview iframe { width:100%; aspect-ratio:4 / 3; border:1px solid #dbe5df; border-radius:14px; background:#eef3ef; }

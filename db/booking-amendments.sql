@@ -1,0 +1,12 @@
+CREATE TABLE IF NOT EXISTS booking_amendments (
+ booking CHAR(20) NOT NULL,
+ revision TINYINT UNSIGNED NOT NULL,
+ request_hash CHAR(64) NOT NULL,
+ old_total INT UNSIGNED NOT NULL,
+ new_total INT UNSIGNED NOT NULL,
+ difference INT NOT NULL,
+ settled_at DATETIME NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ PRIMARY KEY (booking,revision),
+ FOREIGN KEY (booking) REFERENCES bookings(id) ON DELETE CASCADE
+) ENGINE=InnoDB;

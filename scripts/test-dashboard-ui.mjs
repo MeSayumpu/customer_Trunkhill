@@ -1,0 +1,48 @@
+import assert from 'node:assert/strict'
+import {createHmac} from 'node:crypto'
+import {createRequire} from 'node:module'
+import {mkdirSync} from 'node:fs'
+const require=createRequire(import.meta.url)
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE || 'playwright')
+const base=process.env.TEST_BASE_URL || 'http://127.0.0.1:3001'
+const expiry=String(Date.now()+600000)
+const token=expiry+'.'+createHmac('sha256',process.env.ADMIN_SESSION_SECRET).update(expiry).digest('hex')
+const browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE})
+try {
+  const context=await browser.newContext({viewport:{width:1600,height:1100}})
+  await context.addCookies([{name:'trunkhill_admin',value:token,url:base}])
+  const page=await context.newPage(),errors=[]
+  page.on('pageerror',error=>errors.push(error.message))
+  await page.goto(base+'/admin?section=dashboard',{waitUntil:'networkidle'})
+  await page.getByRole('heading',{name:'ภาพรวมแคมป์',exact:true}).waitFor()
+  await page.getByRole('button',{name:/โซน A.*รายการ/}).click()
+  await page.locator('.dashboard-calendar-table').getByRole('rowheader',{name:'A01',exact:true}).waitFor()
+  await page.getByRole('link',{name:'เดือน',exact:true}).click()
+  await page.waitForURL(/mode=month/)
+  assert.ok(await page.locator('.dashboard-calendar-table thead th').count()>=29,'month has all days')
+  await page.getByRole('link',{name:'วัน',exact:true}).click()
+  await page.waitForURL(/mode=day/)
+  assert.equal(await page.locator('.dashboard-calendar-table thead th').count(),2,'day has one date column')
+  await page.getByRole('link',{name:'สัปดาห์',exact:true}).click()
+  await page.waitForURL(/mode=week/)
+  await page.getByRole('button',{name:'รายวัน',exact:true}).click()
+  assert.equal(await page.getByRole('button',{name:'รายวัน',exact:true}).getAttribute('aria-pressed'),'true')
+  await page.locator('input[name=from]').first().fill('2026-11-01')
+  await page.locator('input[name=to]').first().fill('2026-11-30')
+  await page.getByRole('button',{name:'แสดงข้อมูล'}).click()
+  await page.waitForURL(/from=2026-11-01/)
+  await page.waitForLoadState('networkidle')
+  assert.ok(await page.locator('.dashboard-period').innerText().then(s=>s.includes('2026-11-01 ถึง 2026-11-30')))
+  mkdirSync('tmp/dashboard',{recursive:true})
+  await page.screenshot({path:'tmp/dashboard/desktop.png',fullPage:true})
+  await page.setViewportSize({width:390,height:844})
+  await page.waitForTimeout(250)
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),'mobile does not overflow')
+  await page.screenshot({path:'tmp/dashboard/mobile.png',fullPage:true})
+  await page.goto(base+'/admin?section=dashboard&from=2026-12-01&to=2026-11-01',{waitUntil:'networkidle'})
+  assert.ok(await page.locator('.notice[role=alert]').innerText().then(s=>s.includes('วันที่เริ่มต้นต้องไม่เกิน')))
+  await page.goto(base+'/admin?section=dashboard&from=2000-01-01&to=2000-01-01',{waitUntil:'networkidle'})
+  assert.ok(await page.locator('.dashboard-metrics').innerText().then(s=>s.includes('0%')),'empty period has zero occupancy')
+  assert.equal(errors.length,0,errors.join('\n'))
+  console.log('PASS: dashboard renders, zone expansion, month/week/day, daily reports, date range, empty/reversed ranges, mobile overflow and browser errors.')
+} finally {await browser.close()}
