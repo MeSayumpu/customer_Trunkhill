@@ -14,6 +14,7 @@ import { TentDiscountForm } from './tent-discount-form'
 import { isTent } from '../../lib/rentals'
 import { adminSections, adminUrl, inventoryKinds } from './navigation'
 import { AdminDialog } from './admin-dialog'
+import { RoomGallery } from './room-gallery'
 
 const pageSize = 30
 const baseZones = { room:['BOX'], gear:['GEAR'] }
@@ -176,6 +177,7 @@ export async function InventoryList({ section, query }) {
     <Pagination section={section} filters={filters} page={page} rowCursor={row => row.code}/>
     {(adding || editing) && <AdminDialog title={editing ? 'แก้ไข ' + editing.name : 'เพิ่มรายการ' } closeUrl={closeUrl}>
       <InventoryForm row={editing} {...{kind,q,zone,tab,closeUrl}}/>
+      {kind === 'room' && editing && <RoomGallery room={editing}/>}
     </AdminDialog>}
   </section>
 }

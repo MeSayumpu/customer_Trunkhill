@@ -8,6 +8,9 @@ export async function customerExperienceSchema(db){
     ['welcome_subtitle',"VARCHAR(240) NOT NULL DEFAULT 'วันเข้าพัก · จำนวนคน · ล็อกหรือห้องพัก'"],
     ['welcome_title_enabled','BOOLEAN NOT NULL DEFAULT TRUE'],
     ['welcome_subtitle_enabled','BOOLEAN NOT NULL DEFAULT TRUE'],
+    // English versions; empty means the English page uses the built-in translation of the Thai text.
+    ['welcome_title_en',"VARCHAR(160) NOT NULL DEFAULT ''"],
+    ['welcome_subtitle_en',"VARCHAR(240) NOT NULL DEFAULT ''"],
   ]){
     const [[exists]]=await db.execute("SELECT 1 FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='settings' AND column_name=?",[column])
     if(!exists)await db.query(`ALTER TABLE settings ADD COLUMN ${column} ${definition}`)

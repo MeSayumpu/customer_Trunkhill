@@ -4,6 +4,13 @@ import { useState } from 'react'
 import { CampLoader } from './camp-loader'
 import { CustomerIcon } from './customer-icon'
 import { useI18n } from './i18n'
+import { PhotoGallery } from './photo-stage'
+
+// Main photo first, then the room's extra photos in the admin's order.
+const roomPhotos = (room,t) => [
+  ...(room.has_photo ? ['/admin/inventory-photo/' + encodeURIComponent(room.code)] : []),
+  ...String(room.gallery || '').split(',').filter(Boolean).map(id => '/api/inventory-gallery/' + id),
+].map((src,index) => ({src,alt:t('{name} รูปที่ {n}',{name:t(room.name),n:index + 1})}))
 
 export function TrunkboxOption({rooms,counts,ready,busy,onSelect,onRemove}) {
   const {t} = useI18n()
@@ -34,7 +41,8 @@ export function TrunkboxOption({rooms,counts,ready,busy,onSelect,onRemove}) {
         {rooms.map(room=><button type="button" key={room.code} aria-pressed={detail?.code===room.code} onClick={()=>setDetailCode(room.code)}>{t(room.name)}</button>)}
       </div>}
       {detail && <div className="room-detail-content">
-        {!!detail.has_photo ? <img src={'/admin/inventory-photo/'+encodeURIComponent(detail.code)} alt={t(detail.name)} loading="lazy"/> : <p className="empty">{t('ยังไม่มีรูปภาพของ {name}',{name:t(detail.name)})}</p>}
+        <PhotoGallery key={detail.code} photos={roomPhotos(detail,t)} emptyText={t('ยังไม่มีรูปภาพของ {name}',{name:t(detail.name)})}
+          listLabel={t('รูปทั้งหมดของ {name}',{name:t(detail.name)})}/>
         <h3>{t(detail.name)}</h3><p>{detail.detail ? t(detail.detail) : t('ยังไม่มีรายละเอียดเพิ่มเติม')}</p>
       </div>}
     </div>

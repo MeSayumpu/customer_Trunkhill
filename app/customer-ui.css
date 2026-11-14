@@ -297,10 +297,13 @@
 .customer-ui .search-field-text strong { overflow:hidden; font-size:clamp(1rem,.94rem + .35vw,1.2rem); font-weight:700; text-overflow:ellipsis; white-space:nowrap; }
 .customer-ui .search-field-badge { margin-inline-start:auto; padding:4px 10px; border-radius:999px; background:var(--c-sand); color:var(--c-ink); font-size:.8rem; font-weight:600; white-space:nowrap; }
 @media (max-width:560px) {
-  .customer-ui .search-card { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+  /* Guests is a short number, so give the date range most of the width. */
+  .customer-ui .search-card { grid-template-columns:minmax(0,1fr) minmax(84px,max-content); }
   .customer-ui .search-field { flex-direction:column; align-items:flex-start; gap:8px; min-height:0; padding:12px; }
   .customer-ui .search-field-icon { width:34px; height:34px; border-radius:10px; font-size:1rem; }
   .customer-ui .search-field-badge { position:absolute; top:12px; right:10px; }
+  .customer-ui .search-field-text { width:100%; }
+  .customer-ui .search-field-text strong { white-space:normal; line-height:1.25; }
 }
 
 /* Booking type switch */
@@ -468,6 +471,14 @@
 .customer-ui .tent-map-hint { display:flex; align-items:center; gap:8px; color:var(--c-muted); font-size:.86rem; }
 .customer-ui .tent-map-hint .customer-icon { color:var(--c-moss); }
 .customer-ui .tent-map[data-large] .tent-viewport { max-height:calc(100dvh - 220px); }
+/* Full-screen map is capped to the window height, so it scrolls both ways. The reserved gutter keeps the
+   width steady when the scrollbar appears, so the camera is not re-fitted in a loop. */
+.customer-ui .tent-map[data-large] .tent-viewport { overflow:auto; overscroll-behavior:contain; scrollbar-gutter:stable; }
+@media (pointer:fine) {
+  .customer-ui .tent-viewport[data-pannable] { cursor:grab; }
+  .customer-ui .tent-viewport[data-dragging] { cursor:grabbing; user-select:none; }
+  .customer-ui .tent-viewport[data-dragging] * { cursor:grabbing !important; }
+}
 
 /* Tent glyph colours per status */
 .customer-ui .tent-glyph { display:block; width:100%; height:auto; overflow:visible; }
@@ -522,7 +533,7 @@
 .customer-ui .status-pill.selected { background:var(--c-forest); color:#fff; }
 .customer-ui .status-pill.booked { background:var(--c-danger-50); color:var(--c-danger); }
 .customer-ui .room-detail-content { display:grid; gap:10px; }
-.customer-ui .room-detail-content img { width:100%; max-height:420px; border-radius:16px; background:#142b1e; object-fit:cover; }
+.customer-ui .room-detail-content > img { width:100%; max-height:420px; border-radius:16px; background:#142b1e; object-fit:cover; }
 .customer-ui .whole-camp-rates { width:100%; min-width:420px; border-collapse:collapse; table-layout:auto; font-size:.9rem; }
 .customer-ui .whole-camp-rates caption { padding:12px 14px 8px; caption-side:top; font-size:.92rem; font-weight:700; text-align:start; }
 .customer-ui .whole-camp-rates :is(th,td) { padding:10px 14px; border-top:1px solid var(--c-line); border-bottom:0; text-align:start; }
@@ -965,3 +976,15 @@
   .customer-ui .camp-location-map { aspect-ratio:4 / 3; }
 }
 .customer-ui .site-footer-map { display:inline-flex; align-items:center; gap:6px; color:inherit; font-weight:600; }
+
+/* Phones: map zoom/rotate/full-screen sit in a bar above the map instead of covering it. */
+@media (max-width:640px) {
+  .customer-ui .tent-frame { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+  .customer-ui .tent-float { position:static; flex-direction:row; pointer-events:auto; }
+  .customer-ui .tent-float-end { margin-inline-start:auto; }
+  .customer-ui .float-group, .customer-ui .float-group-column { flex-direction:row; box-shadow:none; background:#fff; }
+  .customer-ui .tent-float { gap:6px; }
+  .customer-ui .float-group button { width:32px; height:32px; font-size:.85rem; }
+  .customer-ui .zoom-value { min-width:36px; padding:0 2px; font-size:.7rem; }
+  .customer-ui .tent-viewport { flex:0 0 100%; }
+}

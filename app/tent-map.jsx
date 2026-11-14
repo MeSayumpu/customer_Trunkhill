@@ -170,6 +170,38 @@ export function TentMap({rows, counts, ready, busy, onSelect, mapVersion, zone, 
     centered.current = key
   },[zoom,plots,ready])
 
+  // Mouse drag pans the map (touch screens already scroll natively).
+  const pan = useRef(null)
+  const panned = useRef(false)
+  function startPan(event) {
+    panned.current = false
+    const element = viewport.current
+    if (event.pointerType !== 'mouse' || event.button !== 0 || !element) return
+    if (element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.clientHeight + 1) return
+    pan.current = {x:event.clientX, y:event.clientY, left:element.scrollLeft, top:element.scrollTop, id:event.pointerId, moved:false}
+  }
+  function movePan(event) {
+    const state = pan.current
+    const element = viewport.current
+    if (!state || !element || event.pointerId !== state.id) return
+    const dx = event.clientX - state.x, dy = event.clientY - state.y
+    if (!state.moved) {
+      if (Math.hypot(dx, dy) < 5) return
+      state.moved = true
+      element.dataset.dragging = ''
+      try { element.setPointerCapture(event.pointerId) } catch {}
+    }
+    element.scrollLeft = state.left - dx
+    element.scrollTop = state.top - dy
+  }
+  function endPan() {
+    const state = pan.current
+    pan.current = null
+    if (!state?.moved) return
+    panned.current = true
+    delete viewport.current?.dataset.dragging
+  }
+
   const tilt = mode === '3d' ? tilt3d : 0
   const turn = mode === '3d' ? spin : 0
   const view = useMemo(() => fitCamera({width:fieldWidth,ratio,tilt,turn,plots,mode}),[fieldWidth,ratio,tilt,turn,plots,mode])
@@ -219,7 +251,15 @@ export function TentMap({rows, counts, ready, busy, onSelect, mapVersion, zone, 
       </div>
       {onExpand && <div className="float-group"><button type="button" aria-label={t('เปิดผังเต็มจอ')} title={t('เต็มจอ')} onClick={onExpand}><CustomerIcon name="expand"/></button></div>}
     </div>
-    <div ref={viewport} className="tent-viewport" tabIndex={0} aria-label={t(label) + (ready ? ' · ' + t('ว่าง {n} ล็อก',{n:openCount}) : '')}>
+    <div ref={viewport} className="tent-viewport" tabIndex={0} aria-label={t(label) + (ready ? ' · ' + t('ว่าง {n} ล็อก',{n:openCount}) : '')}
+      data-pannable={large || zoom > 1 || undefined} onPointerDown={startPan} onPointerMove={movePan} onPointerUp={endPan} onPointerCancel={endPan}
+      onClickCapture={event => {
+        // A drag that moved the map must not also pick the tent under the cursor.
+        if (!panned.current) return
+        panned.current = false
+        event.preventDefault()
+        event.stopPropagation()
+      }}>
       <div className="tent-stage" style={{width:zoom * 100 + '%','--zoom':zoom}}>
         <div ref={camera} className="tent-camera" style={cameraStyle}>
         <div className="tent-field" style={fieldStyle}>

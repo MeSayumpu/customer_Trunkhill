@@ -19,9 +19,10 @@ async function requireAdmin() {
 export async function saveWelcome(data) {
   await requireAdmin()
   const title=String(data.get('title')||'').trim(),subtitle=String(data.get('subtitle')||'').trim()
+  const titleEn=String(data.get('titleEn')||'').trim(),subtitleEn=String(data.get('subtitleEn')||'').trim()
   const titleEnabled=data.has('titleEnabled'),subtitleEnabled=data.has('subtitleEnabled')
-  if(title.length>160||subtitle.length>240||(titleEnabled&&!title)||(subtitleEnabled&&!subtitle))redirect(adminUrl('settings',{group:'welcome',error:'invalid'}))
-  await database().execute('UPDATE settings SET welcome_title=?,welcome_subtitle=?,welcome_title_enabled=?,welcome_subtitle_enabled=? WHERE id=1',[title,subtitle,titleEnabled,subtitleEnabled])
+  if(title.length>160||subtitle.length>240||titleEn.length>160||subtitleEn.length>240||(titleEnabled&&!title)||(subtitleEnabled&&!subtitle))redirect(adminUrl('settings',{group:'welcome',error:'invalid'}))
+  await database().execute('UPDATE settings SET welcome_title=?,welcome_subtitle=?,welcome_title_en=?,welcome_subtitle_en=?,welcome_title_enabled=?,welcome_subtitle_enabled=? WHERE id=1',[title,subtitle,titleEn,subtitleEn,titleEnabled,subtitleEnabled])
   redirect(adminUrl('settings',{group:'welcome',saved:'settings'}))
 }
 

@@ -30,7 +30,10 @@ const nextDay = value => new Date(Date.parse(value) + 86400000).toISOString().sl
 const dayCount = (a,b) => (Date.parse(b) - Date.parse(a)) / 86400000
 const compactDateRange = (arrival,departure) => arrival.slice(0,7) === departure.slice(0,7)
   ? Number(arrival.slice(-2)) + '–' + displayDate(departure)
-  : displayDate(arrival) + ' – ' + displayDate(departure)
+  // Same year: drop the first year so the range fits the search card on phones (30/11 – 3/12/2026).
+  : arrival.slice(0,4) === departure.slice(0,4)
+    ? displayDate(arrival).replace(/\/\d{4}$/, '') + ' – ' + displayDate(departure)
+    : displayDate(arrival) + ' – ' + displayDate(departure)
 
 function MapDialog({onClose,children}) {
   const {t} = useI18n()
@@ -51,7 +54,7 @@ function MapDialog({onClose,children}) {
 
 export default function CampPage({ review: initialReview = false, amendment = null }) {
   const confirm = useConfirm()
-  const {t,msg,money} = useI18n()
+  const {t,msg,money,lang} = useI18n()
   const [editReview,setEditReview] = useState(false)
   const review = amendment ? editReview : initialReview
   const [editGuest,setEditGuest] = useState(amendment?.booking.guest || '')
@@ -401,8 +404,10 @@ export default function CampPage({ review: initialReview = false, amendment = nu
     </div>
   </div>
 
-  const welcomeTitle = catalog?.settings.welcome_title_enabled !== 0 && t(catalog?.settings.welcome_title ?? 'เลือกวันพัก แล้วเลือกมุมโปรดของคุณ')
-  const welcomeSubtitle = catalog?.settings.welcome_subtitle_enabled !== 0 && t(catalog?.settings.welcome_subtitle ?? 'วันเข้าพัก · จำนวนคน · ล็อกหรือห้องพัก')
+  // English visitors get the admin's English text; when it is empty, the built-in translation of the Thai text.
+  const welcomeText = (thai,english,fallback) => lang === 'en' && english?.trim() ? english : t(thai ?? fallback)
+  const welcomeTitle = catalog?.settings.welcome_title_enabled !== 0 && welcomeText(catalog?.settings.welcome_title,catalog?.settings.welcome_title_en,'เลือกวันพัก แล้วเลือกมุมโปรดของคุณ')
+  const welcomeSubtitle = catalog?.settings.welcome_subtitle_enabled !== 0 && welcomeText(catalog?.settings.welcome_subtitle,catalog?.settings.welcome_subtitle_en,'วันเข้าพัก · จำนวนคน · ล็อกหรือห้องพัก')
   const mapProps = { rows:visible, counts, ready, busy:bookingBusy, onSelect:selectPlot, mapVersion:catalog?.settings.map_version }
 
   return <div className={'camp-home' + (review ? ' flow-page' : ' camp-front')}>
@@ -493,8 +498,8 @@ export default function CampPage({ review: initialReview = false, amendment = nu
                   <h2 id="map-panel-title">{t('ผังลาน')}</h2>
                   <p><CustomerIcon name="info"/>{t('จัดพื้นที่ในล็อกได้อิสระ ไม่มีค่าใช้จ่ายเพิ่ม')}</p>
                 </div>
-                <button className="button secondary button-sm" type="button" aria-haspopup="dialog" onClick={menuActions.onZoneDetails}>
-                  <CustomerIcon name="gallery"/>{t('ดูรูปแต่ละโซน')}
+                <button className="button secondary button-sm" type="button" aria-haspopup="dialog" aria-label={t('ดูรูปแต่ละโซน')} onClick={menuActions.onZoneDetails}>
+                  <CustomerIcon name="gallery"/>{t('ดูรูป')}
                 </button>
               </header>
               {ready && catalog.wholeCampBooked && <p className="notice error" role="status">{t('ช่วงวันที่เลือกมีผู้เหมาลานแล้ว กรุณาเลือกวันใหม่')}</p>}

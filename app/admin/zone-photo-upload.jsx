@@ -24,6 +24,11 @@ function PhotoPreview({file,onRemove}) {
 }
 
 export function ZonePhotoUpload({zone,remaining}) {
+  return <PhotoBatchUpload action={'/admin/zone-media?zone=' + zone} remaining={remaining} scope="โซนนี้" kind/>
+}
+
+// Multi-photo picker with previews; used for zone photos and room galleries.
+export function PhotoBatchUpload({action,remaining,scope,title = 'รูปภาพ',kind = false}) {
   const confirm = useConfirm()
   const [files,setFiles] = useState([])
   const [error,setError] = useState('')
@@ -56,13 +61,13 @@ export function ZonePhotoUpload({zone,remaining}) {
     event.currentTarget.elements.media.files = upload.files
   }
 
-  return <UploadForm action={'/admin/zone-media?zone=' + zone} method="post" encType="multipart/form-data"
-    className="panel stack" onSubmit={submit}>
-    <h2>รูปภาพ</h2>
-    <input type="hidden" name="kind" value="image"/>
+  return <UploadForm action={action} method="post" encType="multipart/form-data"
+    className="panel stack photo-batch-upload" onSubmit={submit}>
+    <h2>{title}</h2>
+    {kind && <input type="hidden" name="kind" value="image"/>}
     <label>{files.length ? 'เลือกรูปเพิ่ม' : 'เลือกรูปได้หลายไฟล์'}
       <input name="media" type="file" accept={formats.join(',')} multiple disabled={!remaining} onChange={selectPhotos}/>
-      <small>JPG, PNG หรือ WebP · โซนนี้เพิ่มได้อีก {remaining} รูป</small>
+      <small>JPG, PNG หรือ WebP · {scope}เพิ่มได้อีก {remaining} รูป</small>
     </label>
     {error && <p className="notice error" role="alert">{error}</p>}
     {files.length > 0 && <div className="stack">
