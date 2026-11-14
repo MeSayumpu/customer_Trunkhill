@@ -363,6 +363,7 @@
 .customer-ui .summary-item-text .summary-item-extra { color:var(--c-moss); }
 .customer-ui .summary-item-features { display:flex; flex-wrap:wrap; gap:4px 6px; margin:6px 0 2px; padding:0; list-style:none; }
 .customer-ui .summary-item-features li { display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:999px; background:rgba(36,80,57,.08); color:var(--c-ink); font-size:.76rem; font-weight:500; line-height:1.5; }
+.customer-ui .receipt-preview { display:block; width:100%; max-width:360px; margin-inline:auto; border:1px solid var(--c-line); border-radius:12px; -webkit-touch-callout:default; user-select:auto; }
 .customer-ui .review-cost-detail { color:var(--c-muted); font-size:.92em; }
 .customer-ui .review-cost-detail > span:last-child { flex-shrink:0; white-space:nowrap; }
 .customer-ui .review-cost-rule { color:var(--c-muted); font-size:.9em; }

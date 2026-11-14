@@ -1,7 +1,7 @@
 import { translate, formatMoney } from '../lib/i18n'
 
-// Draws the proof-of-submission image in the visitor's language (pass the useI18n() value).
-export async function downloadBookingReceipt(booking, i18n = {}){
+// Draws the proof-of-submission image in the visitor's language (pass the useI18n() value) and returns it as a PNG file.
+export async function bookingReceiptFile(booking, i18n = {}){
   const lang=i18n.lang||'th'
   const t=(text,params)=>translate(lang,text,params)
   await document.fonts.ready
@@ -27,7 +27,16 @@ export async function downloadBookingReceipt(booking, i18n = {}){
   text('Trunkhill Campfield' + (i18n.phone ? ' · ' + i18n.phone : ''),1010,25)
   const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'))
   if(!blob)throw new Error('สร้างรูปไม่สำเร็จ')
-  const url=URL.createObjectURL(blob),link=document.createElement('a')
-  link.href=url;link.download=`Trunkhill-${booking.reference||booking.id}.png`;link.click()
+  return new File([blob],`Trunkhill-${booking.reference||booking.id}.png`,{type:'image/png'})
+}
+
+export function downloadReceiptFile(file){
+  const url=URL.createObjectURL(file),link=document.createElement('a')
+  link.href=url;link.download=file.name;link.click()
   setTimeout(()=>URL.revokeObjectURL(url),10000)
+}
+
+// Phones that can hand an image to the system share sheet ("Save Image" puts it in the photo library, or send to LINE).
+export function canShareReceipt(file){
+  try{return matchMedia('(pointer:coarse)').matches&&!!navigator.canShare?.({files:[file]})}catch{return false}
 }

@@ -3,7 +3,7 @@
 import {prepareUploads} from '../upload-files'
 import Link, { PendingScreen } from '../pending-ui'
 import { useEffect, useState, useRef } from 'react'
-import {downloadBookingReceipt} from '../booking-receipt-image'
+import {bookingReceiptFile,canShareReceipt,downloadReceiptFile} from '../booking-receipt-image'
 import { displayDate } from '../booking-pickers'
 import { PagedItems } from '../paged-items'
 import { CampLoader } from '../camp-loader'
@@ -32,7 +32,33 @@ export function PaymentScreen({id}) {
     if(!file || !file.type.startsWith('image/')){setPreview('');return}
     const url=URL.createObjectURL(file);setPreview(url);return()=>URL.revokeObjectURL(url)
   },[file])
-  async function downloadReceipt(){try{await downloadBookingReceipt(booking,i18n);setDownloadMessage('')}catch{setDownloadMessage('ดาวน์โหลดไม่สำเร็จ กรุณาลองอีกครั้ง')}}
+  // The proof image is drawn as soon as the result page shows, so the share sheet can open straight from the tap
+  // (iOS only allows it while the tap is still "fresh", which drawing the image first would use up).
+  const [receipt,setReceipt] = useState(null)
+  const [receiptUrl,setReceiptUrl] = useState('')
+  const [showReceipt,setShowReceipt] = useState(false)
+  useEffect(()=>{
+    if(!receipt)return
+    const url=URL.createObjectURL(receipt);setReceiptUrl(url);return()=>URL.revokeObjectURL(url)
+  },[receipt])
+  async function downloadReceipt(){
+    try{
+      const file=receipt||await bookingReceiptFile(booking,i18n)
+      if(!receipt)setReceipt(file)
+      if(canShareReceipt(file)){
+        try{await navigator.share({files:[file]});setDownloadMessage('')}
+        catch(error){
+          // Closing the share sheet is not a failure; anything else falls back to the image shown for long-press saving.
+          if(error?.name!=='AbortError'){setShowReceipt(true);setDownloadMessage('กดค้างที่รูปด้านล่าง แล้วเลือกบันทึกรูปภาพ')}
+        }
+        return
+      }
+      downloadReceiptFile(file)
+      // Touch browsers without file sharing (some in-app browsers) often block downloads too, so the image is shown as well.
+      if(matchMedia('(pointer:coarse)').matches){setShowReceipt(true);setDownloadMessage('หากรูปไม่ถูกบันทึก กดค้างที่รูปด้านล่าง แล้วเลือกบันทึกรูปภาพ')}
+      else setDownloadMessage('')
+    }catch{setDownloadMessage('ดาวน์โหลดไม่สำเร็จ กรุณาลองอีกครั้ง')}
+  }
   const [paymentMethod,setPaymentMethod] = useState('qr')
   const [copyMessage,setCopyMessage] = useState('')
   const [cancelling,setCancelling] = useState(false)
@@ -120,7 +146,11 @@ export function PaymentScreen({id}) {
     const key='trunkhill-receipt-downloaded-'+id
     if(sessionStorage.getItem(key))return
     autoDownloaded.current=true
-    downloadBookingReceipt(booking,i18n).then(()=>{sessionStorage.setItem(key,'1');setDownloadMessage('')}).catch(()=>{})
+    bookingReceiptFile(booking,i18n).then(file=>{
+      setReceipt(file)
+      // Computers still get the automatic download; phones save through the share sheet when the guest taps the button.
+      if(!matchMedia('(pointer:coarse)').matches){downloadReceiptFile(file);sessionStorage.setItem(key,'1')}
+    }).catch(()=>{})
   },[done,id,booking])
   const expired = booking && !booking.submitted && seconds === 0
   const cancelled = booking?.status === 'cancelled'
@@ -150,6 +180,7 @@ export function PaymentScreen({id}) {
 
         <p>{displayDate(booking.arrival)} – {displayDate(booking.departure)} · {t('{n} คืน',{n:nights})} · {money(booking.total)}</p>
         <button className="button" onClick={downloadReceipt}><CustomerIcon name="download"/> {t('บันทึกรูปหลักฐานการจอง')}</button>{/* Only a failed download says anything here. */}{downloadMessage && <p className="small muted" role="status">{t(downloadMessage)}</p>}
+        {showReceipt && receiptUrl && <img className="receipt-preview" src={receiptUrl} alt={t('รูปหลักฐานการจอง')}/>}
         <Link className="button secondary" href="/">{t('กลับหน้าหลัก')}</Link>
       </section>}
       {booking && !done && <>
