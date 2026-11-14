@@ -1,4 +1,5 @@
 import {addMonths} from '../../lib/booking-window'
+import { purgeUnpaidBookings } from '../../lib/booking-cleanup'
 import { database } from '../../lib/db'
 import { effectiveStatus } from '../../lib/payment-rules'
 import { isCalendarDate } from '../../lib/booking-dates'
@@ -37,6 +38,8 @@ function where(filters) {
   return {sql:clauses.length?' WHERE '+clauses.join(' AND '):'',values}
 }
 export async function bookingStats(filters) {
+  // Unpaid bookings past their payment window are deleted before the list is counted or shown.
+  await purgeUnpaidBookings()
   const {sql,values}=where(filters)
   const [[row]]=await database().execute(`SELECT COUNT(*) AS total,
     COALESCE(SUM((${effectiveStatus})='pending' AND p.submitted_at IS NOT NULL),0) AS review,

@@ -93,6 +93,13 @@ export function BookingReview({
   const limit = settings?.reschedule_limit ?? rescheduleLimit
   const difference = amendment?.quote?.difference
 
+  // Person pricing: the adults a plot is billed for and the per-person rate that applies, one entry per distinct rate.
+  const plotLines = row => pricing?.plotBreakdown?.get(row.code)?.lines ?? []
+  const plotLineLabel = (row,line) => {
+    const adults = pricing.plotBreakdown.get(row.code).adults
+    return <>{t('ผู้ใหญ่ {n} คน × {price}/คน × {nights} คืน',{n:adults,price:money(line.price),nights:line.nights})}
+      <small className="review-cost-rule"> · {t(adults === 1 ? 'ราคาผู้ใหญ่ 1 คนต่อล็อก' : 'ราคาผู้ใหญ่ 2 คนขึ้นไปต่อล็อก')}</small></>
+  }
   return <section className="review-page" aria-labelledby="review-title">
     {!amendment&&<BookingSteps current={2}/>}
     <header className="review-heading">
@@ -131,10 +138,16 @@ export function BookingReview({
                 rentalDialog.current.scrollTop = 0
               }}>{t('+ เช่าอุปกรณ์เพิ่ม')}</button>}
           </div>
+          {/* Person pricing: one line per rate, so the guest sees how many adults the plot is billed for and at what price. */}
+          {/* When the nights have different rates, each rate gets its own line above the plot total. */}
+          {plotLines(row).length > 1 && plotLines(row).map(line => <div className="review-cost review-cost-detail" key={line.price}>
+            <ReviewCostLabel stay>{plotLineLabel(row,line)}</ReviewCostLabel>
+            <span>{money(line.price * pricing.plotBreakdown.get(row.code).adults * line.nights)}</span>
+          </div>)}
           <div className="review-cost">
-            <ReviewCostLabel stay>{row.code === wholeCampCode ? t('ราคาเหมาลานตามคืนที่เข้าพัก') : row.kind === 'plot'
+            <ReviewCostLabel stay>{plotLines(row).length > 1 ? t('รวมล็อกนี้') : plotLines(row).length ? plotLineLabel(row,plotLines(row)[0]) : row.code === wholeCampCode ? t('ราคาเหมาลานตามคืนที่เข้าพัก') : row.kind === 'plot'
               ? (personPricing ? t('ราคาตามจำนวนผู้ใหญ่และคืนที่เข้าพัก') : t('ราคาตามล็อกและคืนที่เข้าพัก'))
-              : t('{price} / คืน',{price:money(row.price)})} × {nightsLabel}</ReviewCostLabel>
+              : t('{price} / คืน',{price:money(row.price)})}{!plotLines(row).length && <> × {nightsLabel}</>}</ReviewCostLabel>
             <strong>{money(row.kind === 'plot' ? (pricing?.plotAmounts.get(row.code) ?? 0) : row.price * row.quantity * nights)}</strong>
           </div>
           {row.code === wholeCampCode && freeUnits != null && <p className="small muted">{t('ค่าไฟฟรี {n} หน่วยต่อกลุ่ม',{n:freeUnits})}</p>}
@@ -167,6 +180,9 @@ export function BookingReview({
           <div className="review-line-actions"><RemoveAction row={row} disabled={bookingBusy} onRemove={removeRow}/></div>
         </article>)}
 
+        {/* Rental subtotals (before the tent discount) sit with the plot subtotal so the total is easy to follow. */}
+        {pricing?.tentTotal > 0 && <div className="review-cost review-rental-subtotal"><span>{t('รวมค่าเช่าเต็นท์')}</span><span>{money(pricing.tentTotal)}</span></div>}
+        {pricing?.gearTotal > 0 && <div className="review-cost review-rental-subtotal"><span>{t('รวมค่าเช่าอุปกรณ์')}</span><span>{money(pricing.gearTotal)}</span></div>}
         {pricing?.discount > 0 && <div className="review-cost"><span>{t('ส่วนลดค่าเช่าเต็นท์')}</span><strong>−{money(pricing.discount)}</strong></div>}
         <div className="review-cost review-total"><strong>{t('ยอดรวม')}</strong><strong>{money(total)}</strong></div>
         <button type="button" className="button" onClick={() => setView('guest')}>{t('กรอกข้อมูลผู้จอง →')}</button>

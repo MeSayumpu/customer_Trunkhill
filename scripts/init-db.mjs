@@ -131,6 +131,10 @@ try {
   await connection.query(await readFile(new URL('../db/admin-feedback.sql',import.meta.url),'utf8'))
   await connection.query(await readFile(new URL('../db/facility-media.sql',import.meta.url),'utf8'))
   await ensureColumns([['zone_details','features','LONGTEXT NULL']])
+  // Which of its zone's highlights/facilities a plot has; NULL = all of them.
+  await ensureColumns([['inventory','plot_features','LONGTEXT NULL']])
+  // Admin-chosen display order of rental items; 0 = not arranged yet (falls back to code order).
+  await ensureColumns([['inventory','sort_order','INT NOT NULL DEFAULT 0']])
   await connection.query(await readFile(new URL('../db/inventory-gallery.sql',import.meta.url),'utf8'))
   console.log(pricingOnly ? 'Trunkhill pricing schema is ready.' : rescheduleOnly ? 'Trunkhill reschedule schema is ready.' :
     checkoutOnly ? 'Trunkhill checkout schema is ready.' : 'Trunkhill schema and demo catalog are ready.')

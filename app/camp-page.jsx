@@ -23,6 +23,8 @@ import { useConfirm } from './confirm-dialog'
 import { useI18n } from './i18n'
 import { ContactList } from './camp-contacts'
 import { locationLinks } from '../lib/camp-contacts'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { zoneFeatureIcon } from '../lib/zone-features'
 
 
 const thaiDate = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Bangkok' })
@@ -258,8 +260,14 @@ export default function CampPage({ review: initialReview = false, amendment = nu
     if (accepted) select(code, 0)
   }
 
+  // Tapping a picked plot or room again just unpicks it. It only asks first when rented gear would go with it.
+  function toggleOff(code) {
+    if (rentalLines.some(line => line.host === code)) return requestRemove(code)
+    select(code, 0)
+  }
+
   function selectPlot(row, quantity) {
-    if (!quantity) return requestRemove(row.code)
+    if (!quantity) return toggleOff(row.code)
     if (tabs.some(([id]) => id === row.zone)) setZone(row.zone)
     select(row.code, quantity)
   }
@@ -344,6 +352,15 @@ export default function CampPage({ review: initialReview = false, amendment = nu
   const reviewDisabled = !ready || !selected.length || tooManyGuests
   const dateLabel = arrival && departure ? compactDateRange(arrival,departure) : t('เลือกวันที่')
 
+  // Highlights first, then facilities, as picked for the plot in admin.
+  const plotFeatureItems = row => row.features ? [...row.features.highlights,...row.features.facilities] : []
+  const plotFeatureChips = row => plotFeatureItems(row).length > 0 && <ul className="summary-item-features" role="list" aria-label={t('จุดเด่นและสิ่งอำนวยความสะดวก')}>
+    {plotFeatureItems(row).map((item,index) => <li key={index} title={(lang === 'en' ? item.noteEn : item.note) || undefined}>
+      <FontAwesomeIcon icon={zoneFeatureIcon(item.icon)}/>{lang === 'en' ? item.labelEn || t(item.label) : item.label}
+    </li>)}
+  </ul>
+  // Small screens have no summary sidebar, so the picked plots' features sit under the map there.
+  const pickedPlotFeatures = hosts.filter(row => plotFeatureItems(row).length > 0)
   const summaryItems = hosts.length > 0 && <ul className="summary-items" role="list" aria-label={t('ล็อกและห้องพักที่เลือก')}>
     {hosts.map(row => {
       const attached = rentalLines.filter(line => line.host === row.code)
@@ -354,6 +371,7 @@ export default function CampPage({ review: initialReview = false, amendment = nu
         <span className="summary-item-text">
           <strong>{t(row.name)}</strong>
           <small>{row.code === wholeCampCode ? t('ทั้งลานตลอดช่วงที่เลือก') : row.detail || campZoneLabel(row.zone)}</small>
+          {plotFeatureChips(row)}
           {attached.length > 0 && <small className="summary-item-extra">+ {attached.map(line => (allRows.find(item => item.code === line.code)?.name || line.code) + ' × ' + line.quantity).join(', ')}</small>}
         </span>
         <button type="button" className="icon-button remove-button" aria-label={t('นำ {name} ออก',{name:t(row.name)})}
@@ -376,7 +394,7 @@ export default function CampPage({ review: initialReview = false, amendment = nu
       </dl>
       {summaryItems || <div className="summary-empty">
         <TentGlyph status="available"/>
-        <p>{t(mode === 'box' ? 'เลือกห้อง Trunkbox ที่ต้องการ' : mode === 'whole' ? 'ตรวจสอบว่าลานว่างครบทุกคืนที่เลือก' : 'แตะเต็นท์บนผังเพื่อเลือกล็อก')}</p>
+        <p>{t(mode === 'box' ? 'เลือกห้อง Trunkbox ที่ต้องการ' : mode === 'whole' ? 'ตรวจสอบว่าลานว่างครบทุกคืนที่เลือก' : 'แตะล็อกบนผังเพื่อเลือก')}</p>
       </div>}
       <div className="summary-total">
         <span>{t('ยอดรวมโดยประมาณ')}</span>
@@ -438,13 +456,13 @@ export default function CampPage({ review: initialReview = false, amendment = nu
         settings={catalog?.settings}
         amendment={amendment ? {guest:editGuest,setGuest:setEditGuest,phone:amendment.phone,quote:editQuote,save:saveAmendment,onBack:()=>setEditReview(false),noticeDays:amendment.booking.reschedule_notice_days,usedCount:amendment.booking.reschedule_count} : null}/>
     </main> : <>
-      {!amendment && <section className="booking-hero" aria-labelledby={welcomeTitle ? 'booking-title' : undefined}>
+      {!amendment && <section className="booking-hero" aria-labelledby="booking-title">
         <div className="camp-shell booking-hero-inner">
-          <div className="booking-hero-copy">
-            <span className="eyebrow"><CustomerIcon name="mountain"/>Relax · Connect · Enjoy</span>
-            {welcomeTitle && <h1 id="booking-title">{welcomeTitle}</h1>}
+          {/* The tagline is switched on and off in admin (Settings › คำโปรยหน้าจอง); with both lines off, the steps sit at the top. */}
+          {welcomeTitle || welcomeSubtitle ? <div className="booking-hero-copy">
+            {welcomeTitle ? <h1 id="booking-title">{welcomeTitle}</h1> : <h1 id="booking-title" className="visually-hidden">{t('จองลานและอุปกรณ์')}</h1>}
             {welcomeSubtitle && <p>{welcomeSubtitle}</p>}
-          </div>
+          </div> : <h1 id="booking-title" className="visually-hidden">{t('จองลานและอุปกรณ์')}</h1>}
           <BookingSteps current={1}/>
         </div>
       </section>}
@@ -491,7 +509,7 @@ export default function CampPage({ review: initialReview = false, amendment = nu
             onRetry={wholeCampUnavailable ? () => checkDates(arrival,departure,true) : undefined}
             status={wholeCampError || (loading ? t('กำลังตรวจสอบลานว่าง…') : ready ? t('ว่างสำหรับเหมาลานตลอดช่วงที่เลือก') : '')}/> : mode === 'box' ?
             <TrunkboxOption rooms={visible.filter(row=>row.kind==='room')} counts={counts} ready={ready} busy={bookingBusy}
-              onSelect={select} onRemove={requestRemove}/> :
+              onSelect={select} onRemove={toggleOff}/> :
             <section className="panel map-panel" aria-labelledby="map-panel-title">
               <header className="map-panel-head">
                 <div>
@@ -510,6 +528,12 @@ export default function CampPage({ review: initialReview = false, amendment = nu
                   : <p className="empty">{t('โซนนี้ยังไม่มีรายการเปิดให้จอง')}</p>}
                 {loading && <div className="map-loading"><CampLoader label={t('กำลังตรวจสอบลานว่าง…')}/></div>}
               </div>
+              {pickedPlotFeatures.length > 0 && <ul className="picked-plot-features" role="list" aria-label={t('จุดเด่นและสิ่งอำนวยความสะดวก')}>
+                {pickedPlotFeatures.map(row => <li key={row.code}>
+                  <strong>{t(row.name)} · {campZoneLabel(row.zone)}</strong>
+                  {plotFeatureChips(row)}
+                </li>)}
+              </ul>}
             </section>}
         </section>
         {asideSummary}

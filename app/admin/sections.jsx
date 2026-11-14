@@ -15,6 +15,9 @@ import { isTent } from '../../lib/rentals'
 import { adminSections, adminUrl, inventoryKinds } from './navigation'
 import { AdminDialog } from './admin-dialog'
 import { RoomPhotosField } from './room-photos-field'
+import { PlotFeaturesField } from './plot-features-field'
+import { GearOrderForm } from './gear-order-form'
+import { normalizeZoneFeatures, plotFeatureSelection } from '../../lib/zone-features'
 
 const pageSize = 30
 const baseZones = { room:['BOX'], gear:['GEAR'] }
@@ -64,6 +67,8 @@ async function InventoryForm({ row = {}, kind, q, zone, tab, closeUrl }) {
     ...(row.has_photo > 0 ? [{token:'cover',src:'/admin/inventory-photo/' + encodeURIComponent(row.code) + '?v=' + Date.now()}] : []),
     ...gallery.map(({id}) => ({token:'g:' + id,src:'/api/inventory-gallery/' + id})),
   ]
+  const [featureRows] = kind !== 'gear' ? await database().query('SELECT zone,features FROM zone_details') : [[]]
+  const zoneFeatures = Object.fromEntries(featureRows.map(item => [item.zone,normalizeZoneFeatures(item.features)]))
   return <ActionForm action={saveInventory} className="admin-edit-form inventory-edit-form">
     <input type="hidden" name="original" value={row.code || ''}/>
     <input type="hidden" name="kind" value={kind}/>
@@ -82,6 +87,9 @@ async function InventoryForm({ row = {}, kind, q, zone, tab, closeUrl }) {
       {kind === 'gear' && <label>จำนวน<input name="stock" type="number" min="0" max="1000" defaultValue={row.stock ?? 1} required/></label>}
       <label className="checkbox"><input type="checkbox" name="active" defaultChecked={row.active ?? true}/> เปิดให้จอง</label>
     </fieldset>
+    {kind !== 'gear' && <PlotFeaturesField zones={zoneFeatures} room={kind === 'room'}
+      zone={kind === 'room' ? 'BOX' : row.zone || zone || zones.plot[0]} originalZone={row.zone}
+      selection={plotFeatureSelection(row.plot_features)} mediaUrl={adminUrl('zoneMedia',kind === 'room' ? {zone:'BOX'} : {})}/>}
     {tent && <fieldset className="inventory-edit-group inventory-edit-discount">
       <legend>ส่วนลดเต็นท์รุ่นนี้</legend>
       <label>ส่วนลด (บาท/ผู้ใหญ่/คืน)
@@ -140,7 +148,7 @@ export async function InventoryList({ section, query }) {
     values.push(position.value)
   }
   const [rows] = await database().execute(
-    `SELECT code,zone,name,detail,price,stock,active,is_tent,tent_discount_per_guest,tent_discount_guest_limit,
+    `SELECT code,zone,name,detail,price,stock,active,is_tent,tent_discount_per_guest,tent_discount_guest_limit,plot_features,
        EXISTS(SELECT 1 FROM inventory_photos p WHERE p.code=inventory.code) AS has_photo
      FROM inventory WHERE ${clauses.join(' AND ')}
      ORDER BY code ${position.backwards ? 'DESC' : 'ASC'} LIMIT ?`,[...values,pageSize+1])
@@ -151,6 +159,8 @@ export async function InventoryList({ section, query }) {
   const editing = page.visible.find(row => row.code === query.edit)
   const adding = query.add === '1'
   const tableLabel = tab === 'tents' ? 'เต็นท์' : adminSections[section]
+  const [orderRows] = kind === 'gear' ? await database().execute(
+    'SELECT code,name,active FROM inventory WHERE kind=? AND is_tent=? ORDER BY sort_order,code',['gear',tab === 'tents']) : [[]]
   const [zoneRows] = kind === 'plot' ? await database().query("SELECT z.zone,z.active,(SELECT COUNT(*) FROM inventory i WHERE i.zone=z.zone) AS total FROM zone_details z WHERE z.zone NOT IN ('BOX','GEAR') ORDER BY z.zone") : [[]]
   return <section className="panel stack admin-content">
     {kind === "plot" && <details className="panel zone-create"><summary>จัดการโซน / เพิ่มโซน / เปิด–ปิดการใช้งาน</summary><p>เพิ่มโซน เช่น E แล้วเลือกโซนนี้ตอนเพิ่มล็อก จากนั้นจัดวางล็อกในหน้าจัดการผังลาน</p><ActionForm action={addZone} className="actions"><label>รหัสโซน<input name="zone" placeholder="E" pattern="[A-Za-z][A-Za-z0-9-]{0,11}" maxLength={12} required/></label><button className="button">เพิ่มโซน</button></ActionForm><ZoneStatusList zones={zoneRows}/></details>}
@@ -159,6 +169,7 @@ export async function InventoryList({ section, query }) {
         <Link key={type} href={adminUrl(section,{q,tab:type})} aria-current={tab === type ? 'page' : undefined}>{label}</Link>)}
     </nav>}
     {tab === 'tents' && <TentDiscountSettings/>}
+    {kind === 'gear' && orderRows.length > 1 && <GearOrderForm key={tab + orderRows.map(row => row.code).join()} items={orderRows} tab={tab}/>}
     <AdminSearchForm key={adminUrl(section,filters)} className="admin-filters">
       <input type="hidden" name="section" value={section}/>
       {tab && <input type="hidden" name="tab" value={tab}/>}

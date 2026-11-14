@@ -246,7 +246,7 @@
 /* ---------- Booking hero ---------- */
 .customer-ui .booking-hero {
   position:relative; isolation:isolate; overflow:hidden; color:#f6f1e4;
-  padding-block:clamp(28px,5vw,56px) clamp(70px,9vw,104px);
+  padding-block:clamp(18px,2.5vw,28px) clamp(60px,6vw,76px);
   background:
     radial-gradient(60% 90% at 82% 0%,rgba(240,180,60,.28),transparent 60%),
     linear-gradient(180deg,#1d4634 0%,#245039 60%,#2b5a42 100%);
@@ -256,10 +256,9 @@
   background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320' preserveAspectRatio='none'%3E%3Cpath fill='%23356a50' fill-opacity='.55' d='M0 214 120 150l110 52 130-92 120 80 120-70 120 60 140-90 120 80 120-50 140 70 120-50 80 30v150H0Z'/%3E%3Cpath fill='%23163c2c' d='M0 262c180-40 300 22 480-14s300 26 480-6 300 22 480-10v88H0Z'/%3E%3Cpath fill='%23f6f2e9' d='M0 300c240-14 480 10 720 2s480-14 720 0v18H0Z'/%3E%3C/svg%3E") bottom / 100% 100% no-repeat;
 }
 .customer-ui .booking-hero-inner { display:grid; justify-items:center; gap:clamp(18px,3vw,28px); text-align:center; }
-.customer-ui .booking-hero-copy { display:grid; justify-items:center; gap:10px; max-width:46rem; }
+.customer-ui .booking-hero-copy { display:grid; justify-items:center; gap:8px; max-width:46rem; }
 .customer-ui .booking-hero h1 { color:#fffaf0; text-wrap:balance; }
 .customer-ui .booking-hero p { color:rgba(246,241,228,.82); font-size:clamp(.95rem,.9rem + .3vw,1.12rem); }
-.customer-ui .booking-hero .eyebrow { color:var(--c-sun); }
 .customer-ui .booking-hero .booking-steps ol::before { background:rgba(255,255,255,.22); }
 .customer-ui .booking-hero .booking-step { color:rgba(246,241,228,.72); }
 .customer-ui .booking-hero .booking-step-number { border-color:rgba(255,255,255,.35); background:rgba(255,255,255,.08); color:#f6f1e4; }
@@ -360,6 +359,18 @@
 .customer-ui .summary-item-text { display:grid; min-width:0; }
 .customer-ui .summary-item-text small { overflow-wrap:anywhere; }
 .customer-ui .summary-item-text .summary-item-extra { color:var(--c-moss); }
+.customer-ui .summary-item-features { display:flex; flex-wrap:wrap; gap:4px 6px; margin:6px 0 2px; padding:0; list-style:none; }
+.customer-ui .summary-item-features li { display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:999px; background:rgba(36,80,57,.08); color:var(--c-ink); font-size:.76rem; font-weight:500; line-height:1.5; }
+.customer-ui .review-cost-detail { color:var(--c-muted); font-size:.92em; }
+.customer-ui .review-cost-detail > span:last-child { flex-shrink:0; white-space:nowrap; }
+.customer-ui .review-cost-rule { color:var(--c-muted); font-size:.9em; }
+.customer-ui .picked-plot-features { display:grid; gap:10px; margin:14px 0 0; padding:0; list-style:none; }
+.customer-ui .picked-plot-features li { padding:10px 12px; border:1px solid rgba(36,80,57,.14); border-radius:12px; background:#fff; }
+.customer-ui .picked-plot-features .summary-item-features { margin-bottom:0; }
+.customer-ui .picked-plot-features .summary-item-features li { padding:2px 8px; border:0; border-radius:999px; background:rgba(36,80,57,.08); }
+@media (min-width:1024px) { .customer-ui .picked-plot-features { display:none; } }
+.customer-ui .room-features li { font-size:.84rem; padding:3px 10px; }
+.customer-ui .summary-item-features svg { width:.85em; height:.85em; color:var(--c-moss); }
 .customer-ui .remove-button { border-color:transparent; background:transparent; color:var(--c-danger); }
 .customer-ui .remove-button:hover:not(:disabled) { border-color:#f0cfcb; background:var(--c-danger-50); }
 .customer-ui .summary-empty { display:grid; justify-items:center; gap:10px; padding:18px 12px; border:1px dashed var(--c-line-strong); border-radius:14px; color:var(--c-muted); font-size:.9rem; text-align:center; }
@@ -375,6 +386,7 @@
 .customer-ui .tent-legend { display:flex; flex-wrap:wrap; gap:6px 14px; margin:0; padding:0; list-style:none; color:var(--c-muted); font-size:.84rem; font-weight:500; }
 .customer-ui .tent-legend li { display:inline-flex; align-items:center; gap:6px; }
 .customer-ui .tent-legend .tent-glyph { width:24px; }
+.customer-ui .legend-plot { width:18px; height:14px; border:1.5px dashed #8a9a7c; border-radius:3px; background:rgba(255,250,232,.6); }
 .customer-ui .tent-frame { position:relative; }
 .customer-ui .tent-float { position:absolute; z-index:4; bottom:12px; display:flex; flex-direction:column; align-items:center; gap:8px; pointer-events:none; }
 .customer-ui .tent-float-start { left:12px; }
@@ -482,19 +494,19 @@
 
 /* Tent glyph colours per status */
 .customer-ui .tent-glyph { display:block; width:100%; height:auto; overflow:visible; }
-.customer-ui .tent-glyph path { stroke:var(--t-outline); stroke-width:1.3; stroke-linejoin:round; stroke-linecap:round; }
+.customer-ui .tent-glyph path { stroke:var(--t-outline); stroke-width:1.1; stroke-linejoin:round; stroke-linecap:round; }
 .customer-ui .tent-glyph-side { fill:var(--t-side); }
 .customer-ui .tent-glyph-front { fill:var(--t-front); }
-.customer-ui .tent-glyph-door { fill:var(--t-door); }
 .customer-ui .tent-glyph-flap { fill:var(--t-flap); }
-.customer-ui .tent-glyph .tent-glyph-seam { fill:none; opacity:.35; }
-.customer-ui .tent-glyph .tent-glyph-ridge { fill:none; stroke:var(--t-ridge); stroke-width:1.6; }
-.customer-ui .tent-glyph .tent-glyph-pole { fill:none; stroke-width:1.4; }
-.customer-ui .tent-glyph .tent-glyph-flag { fill:var(--t-flag); stroke:none; }
-.customer-ui .tent-glyph[data-status=available] { --t-front:#fbf4e3; --t-side:#e4d3ae; --t-door:#6a5638; --t-flap:#f3e7c9; --t-outline:#4d4130; --t-ridge:#fff; --t-flag:#3f8f5f; }
-.customer-ui .tent-glyph[data-status=selected] { --t-front:#43996a; --t-side:#2c6d4b; --t-door:#0f3322; --t-flap:#6bb98b; --t-outline:#103724; --t-ridge:#c9f0d6; --t-flag:#f0b43c; }
-.customer-ui .tent-glyph[data-status=booked] { --t-front:#da7268; --t-side:#b3544c; --t-door:#4d1b17; --t-flap:#ea938a; --t-outline:#5b201b; --t-ridge:#ffd9d4; --t-flag:#7d2b25; }
-.customer-ui .tent-glyph[data-status=unchecked] { --t-front:#ecece6; --t-side:#d2d4cc; --t-door:#93978f; --t-flap:#e3e4de; --t-outline:#8f948b; --t-ridge:#fff; --t-flag:#b7bbb2; }
+.customer-ui .tent-glyph .tent-glyph-seam { fill:none; stroke:var(--t-side); stroke-width:1; opacity:.7; }
+.customer-ui .tent-glyph .tent-glyph-ridge { fill:none; stroke:var(--t-ridge); stroke-width:1.5; }
+.customer-ui .tent-glyph .tent-glyph-hem { fill:none; stroke:var(--t-ridge); stroke-width:1.2; }
+.customer-ui .tent-glyph .tent-glyph-guy { fill:none; stroke:var(--t-guy); stroke-width:.7; }
+/* "Available" wears the real tent's colours; it never sits beside the red booked tents on the map, where free plots show no tent. */
+.customer-ui .tent-glyph[data-status=available] { --t-front:#e2a758; --t-flap:#ecbb74; --t-side:#8a6748; --t-outline:#5a3d22; --t-ridge:#c9372f; --t-guy:rgba(90,61,34,.45); }
+.customer-ui .tent-glyph[data-status=selected] { --t-front:#43996a; --t-flap:#63b587; --t-side:#1f5c3d; --t-outline:#103724; --t-ridge:#f0b43c; --t-guy:rgba(255,255,255,.8); }
+.customer-ui .tent-glyph[data-status=booked] { --t-front:#da7268; --t-flap:#e88f86; --t-side:#8f3b34; --t-outline:#5b201b; --t-ridge:#ffd9d4; --t-guy:rgba(255,255,255,.75); }
+.customer-ui .tent-glyph[data-status=unchecked] { --t-front:#ecece6; --t-flap:#f4f4ef; --t-side:#b9bcb3; --t-outline:#8f948b; --t-ridge:#fff; --t-guy:rgba(143,148,139,.5); }
 
 /* Tent cards (plots without a map position) */
 .customer-ui .tent-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(112px,1fr)); gap:10px; margin:0; padding:0; list-style:none; }
@@ -740,7 +752,8 @@
 .customer-ui .rental-dialog { width:min(680px,calc(100% - 24px)); max-height:min(860px,calc(100dvh - 32px)); }
 .customer-ui .rental-dialog[open] { display:flex; flex-direction:column; gap:14px; }
 .customer-ui .rental-dialog .dialog-header { margin-bottom:0; }
-.customer-ui .rental-columns { display:grid; flex:1; gap:12px; min-height:0; padding-inline-end:4px; overflow:auto; }
+/* flex-basis must stay auto: with flex:1 (basis 0) iOS Safari collapses this list to zero height inside the max-height dialog. */
+.customer-ui .rental-columns { display:grid; flex:0 1 auto; gap:12px; min-height:0; padding-inline-end:4px; overflow:auto; }
 .customer-ui .rental-columns > section { gap:10px; min-width:0; }
 .customer-ui .rental-options { display:grid; gap:8px; min-width:0; margin:0; padding:0; border:0; }
 .customer-ui :is(.rental-stay-counter,.rental-equipment) { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:12px; padding:10px 12px; border:1px solid var(--c-line); border-radius:14px; background:#fff; }

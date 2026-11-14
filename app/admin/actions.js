@@ -9,6 +9,7 @@ import { codePattern, integer } from '../../lib/camp'
 import { adminUrl, inventorySections } from './navigation'
 import { liveAllocation, uploadMime } from '../../lib/payment-rules'
 import { isTent } from '../../lib/rentals'
+import { normalizeZoneFeatures, zoneFeatureGroups } from '../../lib/zone-features'
 import { readPhotoOrder, saveRoomPhotos } from '../../lib/room-photos'
 import { isCalendarDate } from '../../lib/booking-dates'
 import { wholeCampCode, wholeCampGuestLimit, wholeCampRateFields } from '../../lib/whole-camp'
@@ -228,6 +229,22 @@ export async function deleteCalendarPeriod(data) {
   redirect(calendarFormUrl(data,{saved:'calendar'}))
 }
 
+export async function saveGearOrder(data) {
+  await requireAdmin()
+  const tab = data.get('tab') === 'tents' ? 'tents' : 'equipment'
+  let codes = null
+  try { codes = JSON.parse(data.get('codes')) } catch {}
+  if (!Array.isArray(codes) || codes.length > 1000 || new Set(codes).size !== codes.length ||
+      codes.some(code => typeof code !== 'string' || !codePattern.test(code))) redirect(adminUrl('gear',{tab,error:'invalid'}))
+  await transaction(async connection => {
+    // Only rental items of this tab are renumbered; anything not in the list keeps its place after them.
+    for (const [index,code] of codes.entries()) {
+      await connection.execute("UPDATE inventory SET sort_order=? WHERE code=? AND kind='gear' AND is_tent=?",[index + 1,code,tab === 'tents'])
+    }
+  })
+  redirect(adminUrl('gear',{tab,saved:'inventory'}))
+}
+
 export async function saveInventory(data) {
   await requireAdmin()
   const original = data.get('original')
@@ -264,22 +281,36 @@ export async function saveInventory(data) {
   }
 
   let result
+  let zoneFeatures = normalizeZoneFeatures(null)
   try {
     result = await transaction(async connection => {
       await lockStorage(connection)
       if(photo){const uploaded=await claimUpload(connection,photo,'admin');photo=uploaded.content;mime=uploaded.mime}
       if (kind === 'plot') {
-        const [[targetZone]] = await connection.execute('SELECT zone FROM zone_details WHERE zone=? FOR UPDATE', [zone])
+        const [[targetZone]] = await connection.execute('SELECT zone,features FROM zone_details WHERE zone=? FOR UPDATE', [zone])
         if (!targetZone) return {error:'invalid'}
+        zoneFeatures = normalizeZoneFeatures(targetZone.features)
+      } else if (kind === 'room') {
+        const [[box]] = await connection.execute('SELECT features FROM zone_details WHERE zone=?', [zone])
+        zoneFeatures = normalizeZoneFeatures(box?.features)
       }
       const [[current]] = await connection.execute('SELECT * FROM inventory WHERE code = ? FOR UPDATE', [code])
+      // Keep only ticks that exist in the plot's zone; everything ticked is stored as NULL so later additions to the zone show too.
+      let plotFeatures = current?.zone === zone ? current.plot_features ?? null : null
+      if (kind !== 'gear' && data.has('plotFeaturesForm')) {
+        const ticked = new Set(data.getAll('plotFeature'))
+        const picked = Object.fromEntries(zoneFeatureGroups.map(([group]) => [group,
+          zoneFeatures[group].filter(item => ticked.has(group + ':' + item.label)).map(item => item.label)]))
+        const all = zoneFeatureGroups.every(([group]) => picked[group].length === zoneFeatures[group].length)
+        plotFeatures = all ? null : JSON.stringify(picked)
+      }
       const tent = kind === 'gear' && (data.has('rentalType') ? data.get('rentalType') === 'tents' : current ? isTent(current) : tab === 'tents')
       const discountValues = tent ? [discount,discountGuestLimit] : [null,null]
       if (!current && !original) {
         await connection.execute(
-          `INSERT INTO inventory (code,kind,zone,name,detail,price,stock,active,is_tent,tent_discount_per_guest,tent_discount_guest_limit)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
-          [code,kind,zone,name,detail,price,stock,active,tent,...discountValues],
+          `INSERT INTO inventory (code,kind,zone,name,detail,price,stock,active,is_tent,tent_discount_per_guest,tent_discount_guest_limit,plot_features)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+          [code,kind,zone,name,detail,price,stock,active,tent,...discountValues,plotFeatures],
         )
       } else {
         if (!current || !original || current.kind !== kind) return {error:'invalid'}
@@ -290,8 +321,8 @@ export async function saveInventory(data) {
            ) nightly`, [code])
         if (stock < Number(peak)) return {error:'stock'}
         await connection.execute(
-          `UPDATE inventory SET zone=?,name=?,detail=?,price=?,stock=?,active=?,is_tent=?,tent_discount_per_guest=?,tent_discount_guest_limit=? WHERE code=?`,
-          [zone,name,detail,price,stock,active,tent,...discountValues,code],
+          `UPDATE inventory SET zone=?,name=?,detail=?,price=?,stock=?,active=?,is_tent=?,tent_discount_per_guest=?,tent_discount_guest_limit=?,plot_features=? WHERE code=?`,
+          [zone,name,detail,price,stock,active,tent,...discountValues,plotFeatures,code],
         )
       }
       if (photo) {

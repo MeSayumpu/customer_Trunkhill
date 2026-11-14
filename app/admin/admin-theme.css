@@ -432,3 +432,20 @@
 .admin-ui .room-photo-actions { display:flex; gap:4px; }
 .admin-ui .room-photo-actions .button { flex:1; min-height:30px; padding:2px 6px; font-size:.8rem; }
 .admin-ui .room-photo-picker[data-disabled] { opacity:.55; }
+
+/* ---------- Plot edit: highlights and facilities picked from the zone ---------- */
+.admin-ui .plot-features-field { grid-column:1 / -1; }
+.admin-ui .plot-features-field > * { grid-column:1 / -1; }
+.admin-ui .plot-features-group { display:grid; gap:6px; margin-top:8px; }
+.admin-ui .plot-features-group ul { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:6px 14px; margin:0; padding:0; list-style:none; }
+.admin-ui .plot-features-group label.checkbox { display:flex; align-items:center; gap:8px; font-weight:500; }
+.admin-ui .plot-features-group label svg { color:#1f4a37; }
+.admin-ui .plot-features-group label small { color:#66776e; font-weight:400; }
+
+/* ---------- Rental items: display order ---------- */
+.admin-ui .gear-order > summary { cursor:pointer; font-weight:600; }
+.admin-ui .gear-order-list { display:grid; gap:6px; margin:0; padding:0; list-style:none; }
+.admin-ui .gear-order-list li { display:grid; grid-template-columns:2.2em minmax(0,1fr) auto auto; align-items:center; gap:8px; padding:6px 10px; border:1px solid #dbe5df; border-radius:10px; background:#fff; }
+.admin-ui .gear-order-list li[data-inactive] { opacity:.6; }
+.admin-ui .gear-order-number { color:#66776e; font-variant-numeric:tabular-nums; text-align:center; }
+.admin-ui .gear-order-list .button { min-width:40px; padding:4px 10px; }

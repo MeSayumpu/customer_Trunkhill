@@ -13,9 +13,11 @@ import { ZoneFeaturesEditor } from './zone-features-editor'
 import { normalizeZoneFeatures } from '../../lib/zone-features'
 
 export async function ZoneMediaSettings({query}) {
-  // Trunkbox photos and details are managed per room (ห้องพัก → แก้ไข); its zone entry is not shown to customers.
-  const zones=(await campZones()).filter(code => code !== 'BOX')
-  const zone = zones.includes(query.zone) ? query.zone : zones[0] ?? 'A'
+  // Trunkbox photos and details are managed per room (ห้องพัก → แก้ไข); its tab here only holds the list of
+  // highlights and facilities that each room then picks from.
+  const zones=await campZones()
+  const box = query.zone === 'BOX' && zones.includes('BOX')
+  const zone = zones.includes(query.zone) ? query.zone : zones.find(code => code !== 'BOX') ?? 'A'
   const details = await getZoneDetails(zone)
   const [media] = await database().execute('SELECT id,kind FROM zone_media WHERE zone=? ORDER BY id',[zone])
   const video = media.find(item => item.kind === 'video')
@@ -31,7 +33,8 @@ export async function ZoneMediaSettings({query}) {
       {zones.map(code => <Link key={code} href={adminUrl('zoneMedia',{zone:code})}
         aria-current={code === zone ? 'page' : undefined}>{code === 'BOX' ? 'Trunkbox' : 'Zone ' + code}</Link>)}
     </nav>
-    <p className="muted small">รูปและรายละเอียดของ Trunkbox จัดการได้ที่ <Link href={adminUrl('rooms')}>ห้องพัก</Link> → แก้ไขแต่ละห้อง</p>
+    <p className="muted small">รูปและรายละเอียดของ Trunkbox จัดการได้ที่ <Link href={adminUrl('rooms')}>ห้องพัก</Link> → แก้ไขแต่ละห้อง{box && ' · แท็บนี้ใช้ตั้งรายการจุดเด่นและสิ่งอำนวยความสะดวกของ Trunkbox แล้วไปติ๊กเลือกให้แต่ละห้องในหน้าห้องพัก'}</p>
+    {box ? <ZoneFeaturesEditor key="featuresBOX" zone="BOX" zoneLabel="Trunkbox" initial={details?.features ?? {highlights:[],facilities:[]}} others={others}/> : <>
     <ActionForm action={saveZoneText} className="admin-edit-form" key={zone}>
       <input type="hidden" name="zone" value={zone}/>
       <label>รายละเอียดโซน<textarea name="description" rows="4" maxLength={2000} defaultValue={details?.description}/></label>
@@ -73,5 +76,6 @@ export async function ZoneMediaSettings({query}) {
         </ActionForm>
       </article>)}
     </div>
+    </>}
   </section>
 }

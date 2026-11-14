@@ -57,8 +57,10 @@ export function RentalPicker({ dialog, rows, draft, setDraft, onConfirm, hostNam
   const {t,money} = useI18n()
   const [view,setView] = useState('stay')
   const tentRows = rows.filter(isTent)
-  const tents = [...tentCodes.map(code => tentRows.find(row => row.code === code)).filter(Boolean),
-    ...tentRows.filter(row => !tentCodes.includes(row.code))]
+  // Rows arrive in the admin's order; until the admin arranges the tents, keep the original built-in order.
+  const tents = tentRows.some(row => row.sort_order > 0) ? tentRows
+    : [...tentCodes.map(code => tentRows.find(row => row.code === code)).filter(Boolean),
+      ...tentRows.filter(row => !tentCodes.includes(row.code))]
   // Tents only: Trunkbox rooms are booked from the Trunkbox tab on the booking page, not as a plot add-on.
   const stays = tents
   const equipment = rows.filter(row => !isRentalStay(row))

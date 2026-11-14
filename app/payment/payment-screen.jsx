@@ -32,7 +32,7 @@ export function PaymentScreen({id}) {
     if(!file || !file.type.startsWith('image/')){setPreview('');return}
     const url=URL.createObjectURL(file);setPreview(url);return()=>URL.revokeObjectURL(url)
   },[file])
-  async function downloadReceipt(){try{await downloadBookingReceipt(booking,i18n);setDownloadMessage('หากรูปไม่ดาวน์โหลด กดบันทึกรูปหลักฐานอีกครั้ง')}catch{setDownloadMessage('ดาวน์โหลดไม่สำเร็จ กรุณาลองอีกครั้ง หรือบันทึกเป็น PDF')}}
+  async function downloadReceipt(){try{await downloadBookingReceipt(booking,i18n);setDownloadMessage('')}catch{setDownloadMessage('ดาวน์โหลดไม่สำเร็จ กรุณาลองอีกครั้ง')}}
   const [paymentMethod,setPaymentMethod] = useState('qr')
   const [copyMessage,setCopyMessage] = useState('')
   const [cancelling,setCancelling] = useState(false)
@@ -120,12 +120,15 @@ export function PaymentScreen({id}) {
     const key='trunkhill-receipt-downloaded-'+id
     if(sessionStorage.getItem(key))return
     autoDownloaded.current=true
-    downloadBookingReceipt(booking,i18n).then(()=>{sessionStorage.setItem(key,'1');setDownloadMessage('ส่งคำขอดาวน์โหลดรูปแล้ว หากยังไม่ได้รับรูป กดบันทึกรูปหลักฐานด้านล่าง')}).catch(()=>setDownloadMessage('กดบันทึกรูปหลักฐานเพื่อดาวน์โหลด'))
+    downloadBookingReceipt(booking,i18n).then(()=>{sessionStorage.setItem(key,'1');setDownloadMessage('')}).catch(()=>{})
   },[done,id,booking])
   const expired = booking && !booking.submitted && seconds === 0
   const cancelled = booking?.status === 'cancelled'
   const countdown = String(Math.floor(seconds / 60)).padStart(2,'0') + ':' + String(seconds % 60).padStart(2,'0')
   const nights = booking ? (Date.parse(booking.departure) - Date.parse(booking.arrival)) / 86400000 : 0
+  const subtotals = { plot:0, room:0, tent:0, gear:0 }
+  for (const item of booking?.items ?? []) subtotals[item.kind === 'gear' ? (item.is_tent ? 'tent' : 'gear') : item.kind] += item.amount
+  const wholeCampBooking = booking?.items.some(item => item.code === 'WHOLE-CAMP')
   const code = booking?.reference || booking?.id
   return <div className="camp-home customer-compact payment-home">
     {busy && <PendingScreen label="กำลังส่งและตรวจสลิปซ้ำ…"/>}
@@ -146,9 +149,7 @@ export function PaymentScreen({id}) {
         <div className="payment-code"><span>{t('รหัสการจอง')}</span><strong>{code}</strong></div>
 
         <p>{displayDate(booking.arrival)} – {displayDate(booking.departure)} · {t('{n} คืน',{n:nights})} · {money(booking.total)}</p>
-        <p className="notice">{t('แคปหน้าจอนี้ไว้เป็นหลักฐาน ใช้รหัสจองและเบอร์โทรที่ลงทะเบียนในหน้า')} <Link href="/booking">{t('ตรวจสอบการจอง')}</Link></p>
-        <button className="button" onClick={downloadReceipt}><CustomerIcon name="download"/> {t('บันทึกรูปหลักฐาน')}</button><p className="small muted" role="status">{t(downloadMessage)}</p>
-        <button className="button secondary" onClick={() => window.print()}><CustomerIcon name="print"/> {t('พิมพ์หรือบันทึกเป็น PDF')}</button>
+        <button className="button" onClick={downloadReceipt}><CustomerIcon name="download"/> {t('บันทึกรูปหลักฐานการจอง')}</button>{/* Only a failed download says anything here. */}{downloadMessage && <p className="small muted" role="status">{t(downloadMessage)}</p>}
         <Link className="button secondary" href="/">{t('กลับหน้าหลัก')}</Link>
       </section>}
       {booking && !done && <>
@@ -168,8 +169,13 @@ export function PaymentScreen({id}) {
             <h3>{t('สรุปค่าใช้จ่าย')}</h3>
             <PagedItems items={booking.items} size={3} label={t('รายการค่าใช้จ่าย')}>{page => page.map((item,index) =>
               <div className="review-cost" key={index}><span>{t(item.name)} × {item.quantity}</span><span>{money(item.amount)}</span></div>)}</PagedItems>
+            {/* Same subtotals as the review step, so the guest can follow how the total was reached. */}
+            {subtotals.plot > 0 && <div className="review-cost review-lodging-subtotal"><span>{t(wholeCampBooking ? 'รวมค่าเหมาลาน' : booking.pricing_mode === 'person' ? 'รวมค่าลานตามจำนวนคน' : 'รวมค่าลาน')}</span><span>{money(subtotals.plot)}</span></div>}
+            {subtotals.room > 0 && <div className="review-cost"><span>{t('ค่าห้องพัก')}</span><span>{money(subtotals.room)}</span></div>}
+            {subtotals.tent > 0 && <div className="review-cost"><span>{t('รวมค่าเช่าเต็นท์')}</span><span>{money(subtotals.tent)}</span></div>}
+            {subtotals.gear > 0 && <div className="review-cost"><span>{t('รวมค่าเช่าอุปกรณ์')}</span><span>{money(subtotals.gear)}</span></div>}
             {booking.tent_discount > 0 && <div className="review-cost"><span>{t('ส่วนลดค่าเช่าเต็นท์')}</span><strong>−{money(booking.tent_discount)}</strong></div>}
-            <div className="review-total review-cost"><strong>{t('รวมทั้งหมด')}</strong><strong>{money(booking.total)}</strong></div>
+            <div className="review-total review-cost"><strong>{t('ยอดรวม')}</strong><strong>{money(booking.total)}</strong></div>
             <p className="small muted">{t('หลังส่งสลิป แคมป์จะตรวจสอบการชำระเงินก่อนยืนยันรายการ')}</p>
           </section>
           <section className="panel stack payment-card payment-method-card">

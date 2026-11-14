@@ -101,7 +101,7 @@ export function PlotDetailsDialog({onClose}) {
             !highlights.length && !facilities.length && <p className="zone-showcase-empty">{t('ยังไม่มีรายละเอียดเพิ่มเติมสำหรับโซนนี้')}</p>}
           {highlights.length > 0 && <FeatureList items={highlights} className="zone-highlights"/>}
           {facilities.length > 0 && <div className="zone-facilities">
-            <h4>{t('สิ่งอำนวยความสะดวกที่แนะนำ')}</h4>
+            <h4>{t('สิ่งอำนวยความสะดวก')}</h4>
             <FeatureList items={facilities} className="zone-facility-list"/>
           </div>}
           {zone?.gallery_caption && <GalleryCaption text={zone.gallery_caption}/>}

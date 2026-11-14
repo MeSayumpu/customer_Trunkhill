@@ -1,4 +1,5 @@
 import { database } from '../../lib/db'
+import { purgeUnpaidBookings } from '../../lib/booking-cleanup'
 import { effectiveStatus } from '../../lib/payment-rules'
 import { isCalendarDate, shiftDate, stayNights } from '../../lib/booking-dates'
 import { wholeCampCode } from '../../lib/whole-camp'
@@ -14,6 +15,7 @@ export function dashboardFilters(query, current) {
 }
 
 export async function dashboardData(filters, current) {
+  await purgeUnpaidBookings()
   const db = database()
   const [[first]] = await db.query('SELECT MIN(arrival) AS first FROM bookings')
   const to = filters.to || current

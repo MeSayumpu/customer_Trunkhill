@@ -5,6 +5,8 @@ import { CampLoader } from './camp-loader'
 import { CustomerIcon } from './customer-icon'
 import { useI18n } from './i18n'
 import { PhotoGallery } from './photo-stage'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { zoneFeatureIcon } from '../lib/zone-features'
 
 // Main photo first, then the room's extra photos in the admin's order.
 const roomPhotos = (room,t) => [
@@ -13,9 +15,10 @@ const roomPhotos = (room,t) => [
 ].map((src,index) => ({src,alt:t('{name} รูปที่ {n}',{name:t(room.name),n:index + 1})}))
 
 export function TrunkboxOption({rooms,counts,ready,busy,onSelect,onRemove}) {
-  const {t} = useI18n()
+  const {t,lang} = useI18n()
   const [detailCode,setDetailCode] = useState(null)
   const detail = rooms.find(room=>room.code===detailCode) ?? rooms[0]
+  const roomFeatures = detail?.features ? [...detail.features.highlights,...detail.features.facilities] : []
   return <section className="option-panel accommodation-option" aria-labelledby="trunkbox-title">
     <div className="panel stack">
       <header className="option-head">
@@ -44,6 +47,12 @@ export function TrunkboxOption({rooms,counts,ready,busy,onSelect,onRemove}) {
         <PhotoGallery key={detail.code} photos={roomPhotos(detail,t)} emptyText={t('ยังไม่มีรูปภาพของ {name}',{name:t(detail.name)})}
           listLabel={t('รูปทั้งหมดของ {name}',{name:t(detail.name)})}/>
         <h3>{t(detail.name)}</h3><p>{detail.detail ? t(detail.detail) : t('ยังไม่มีรายละเอียดเพิ่มเติม')}</p>
+        {/* Highlights and facilities picked for this room in admin. */}
+        {roomFeatures.length > 0 && <ul className="summary-item-features room-features" role="list" aria-label={t('จุดเด่นและสิ่งอำนวยความสะดวก')}>
+          {roomFeatures.map((item,index) => <li key={index} title={(lang === 'en' ? item.noteEn : item.note) || undefined}>
+            <FontAwesomeIcon icon={zoneFeatureIcon(item.icon)}/>{lang === 'en' ? item.labelEn || t(item.label) : item.label}
+          </li>)}
+        </ul>}
       </div>}
     </div>
   </section>

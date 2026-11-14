@@ -7,7 +7,6 @@ import { useI18n } from './i18n'
 
 const builtInMap = { src:'/camp-map.webp', ratio:565 / 324 }
 const statusLabels = { unchecked:'กำลังตรวจสอบ', selected:'เลือกอยู่', available:'ว่าง', booked:'จองแล้ว' }
-const viewKey = 'trunkhill-tent-map-view'
 const tilt3d = 52
 const spinLimit = 45
 const zoomSteps = [1, 1.25, 1.5, 1.8, 2.2, 2.6]
@@ -21,27 +20,28 @@ export function plotStatus(row, counts, ready) {
   return Number(row.available) > 0 ? 'available' : 'booked'
 }
 
-/* A ridge tent drawn at a three-quarter angle; colours come from CSS so status changes are a single attribute. */
+/*
+  The rental dome tent (the 600-baht model every plot uses) at a three-quarter angle: a tall dome with a dark
+  top panel, a low sloping vestibule in front, a zipped door panel and trimmed pole sleeves.
+  Colours come from CSS so status changes are a single attribute.
+*/
 export function TentGlyph({status = 'available', className = ''}) {
   return <svg className={'tent-glyph ' + className} data-status={status} viewBox="0 0 64 56" aria-hidden="true" focusable="false">
-    <path className="tent-glyph-side" d="M23 9 43 5 59 47 41 52Z"/>
-    <path className="tent-glyph-seam" d="M33 7 50 49.5"/>
-    <path className="tent-glyph-front" d="M23 9 5 52H41Z"/>
-    <path className="tent-glyph-door" d="M23 22 15 52H31Z"/>
-    <path className="tent-glyph-flap" d="M23 22 31 52H35Z"/>
-    <path className="tent-glyph-ridge" d="M23 9 43 5"/>
-    <path className="tent-glyph-pole" d="M23 9V1.5"/>
-    <path className="tent-glyph-flag" d="M23 1.5 31 4 23 6.5Z"/>
+    <path className="tent-glyph-guy" d="M17.5 17 1 35M54 22 63.5 30"/>
+    <path className="tent-glyph-front" d="M21 16C27 8 35 5.5 40 6C50 7 58 22 62 40L43 45.6 31.5 49.5Z"/>
+    <path className="tent-glyph-side" d="M24 12.5C29 7.5 35.5 5.6 40 6C43.5 6.3 46.5 8.6 49 12.5L41 18C42.3 26 43 36 43 45.6L51.5 43C51.3 32 50.5 21 49 12.5L41 18C36.5 13.5 30 11.8 24 12.5Z"/>
+    <path className="tent-glyph-flap" d="M2.5 44C8 32 13 22 17.5 17L10 50Z"/>
+    <path className="tent-glyph-front" d="M17.5 17C20 12 25 11.5 27 16.5C29 23 30.2 30 30.5 37.5L31.5 49.5 10 50Z"/>
+    <path className="tent-glyph-seam" d="M22.5 13.5 10 50M27 16.5C32 13 38 13.5 41 18"/>
+    <path className="tent-glyph-flap" d="M30.6 25C30.5 22.8 31.6 21.6 33.5 21.6L38.6 21.8C40.3 21.9 41.2 23 41.4 24.8L43 45.6 31.5 49.5Z"/>
+    <path className="tent-glyph-ridge" d="M17.5 17C20 12 25 11.5 27 16.5C29 23 30.2 30 30.5 37.5L31.5 49.5M30.6 25C30.5 22.8 31.6 21.6 33.5 21.6L38.6 21.8C40.3 21.9 41.2 23 41.4 24.8"/>
+    <path className="tent-glyph-hem" d="M2.5 44 10 50 31.5 49.5 43 45.6 62 40"/>
   </svg>
 }
 
-function readView() {
-  try { return JSON.parse(window.localStorage.getItem(viewKey)) } catch { return null }
-}
+// Every plot rents the same tent, so every tent is drawn the same size (percent of the field width).
+const tentSize = 6
 
-function saveView(view) {
-  try { window.localStorage.setItem(viewKey, JSON.stringify(view)) } catch {}
-}
 
 /*
   Projects the tilted field (and the tents standing on it) the same way CSS does, so the camera box
@@ -103,9 +103,7 @@ function plotGeometry(row, mapVersion) {
   const shape = customerPlotShape(row, mapVersion)
   const position = row.map_x == null && shape ? shapeCenter(shape) : mapPosition(row)
   if (!position) return null
-  const xs = shape ? shapePoints(shape).map(point => point[0]) : []
-  const width = xs.length ? Math.max(...xs) - Math.min(...xs) : 7
-  return { shape, x:position[0], y:position[1], size:Math.max(4.2, Math.min(7.4, width * .8)) }
+  return { shape, x:position[0], y:position[1], size:tentSize }
 }
 
 export function TentMap({rows, counts, ready, busy, onSelect, mapVersion, zone, large = false, onExpand, label = 'ผังลานกางเต็นท์'}) {
@@ -113,7 +111,8 @@ export function TentMap({rows, counts, ready, busy, onSelect, mapVersion, zone, 
   const viewport = useRef(null)
   const camera = useRef(null)
   const centered = useRef(false)
-  const [mode,setMode] = useState('3d')
+  // Every visit opens on the flat top view at 100%; 3D, rotation and zoom are one tap away.
+  const [mode,setMode] = useState('top')
   const [spin,setSpin] = useState(0)
   const [zoom,setZoom] = useState(1)
   const [ratio,setRatio] = useState(builtInMap.ratio)
@@ -132,17 +131,6 @@ export function TentMap({rows, counts, ready, busy, onSelect, mapVersion, zone, 
     return () => observer.disconnect()
   },[])
 
-  useEffect(() => {
-    const saved = readView()
-    if (saved?.mode === '3d' || saved?.mode === 'top') setMode(saved.mode)
-    if (Number.isFinite(saved?.spin)) setSpin(clampSpin(saved.spin))
-    // Phones start zoomed in so every tent is a comfortable tap target (about 36px and up).
-    const narrow = window.matchMedia('(max-width: 640px)').matches
-    const medium = window.matchMedia('(max-width: 900px)').matches
-    setZoom(narrow ? 2.2 : medium && !large ? 1.25 : 1)
-  },[large])
-
-  useEffect(() => { if (!large) saveView({mode,spin}) },[mode,spin,large])
   useEffect(() => { if (!custom) setRatio(builtInMap.ratio) },[custom])
 
   const plots = useMemo(() => rows.filter(row => row.kind !== 'gear' && !row.map_hidden).map(row => {
@@ -229,7 +217,7 @@ export function TentMap({rows, counts, ready, busy, onSelect, mapVersion, zone, 
   return <div className="tent-map" data-mode={mode} data-large={large || undefined}>
     <div className="tent-map-toolbar">
       <ul className="tent-legend" role="list" aria-label={t('สถานะล็อก')}>
-        {['available','selected','booked'].map(status => <li key={status}><TentGlyph status={status}/>{t(statusLabels[status])}</li>)}
+        {['available','selected','booked'].map(status => <li key={status}>{status === 'available' ? <span className="legend-plot" aria-hidden="true"/> : <TentGlyph status={status}/>}{t(statusLabels[status])}</li>)}
       </ul>
       <div className="segmented" role="group" aria-label={t('มุมมองผัง')}>
         <button type="button" aria-pressed={mode === '3d'} onClick={() => setMode('3d')}><CustomerIcon name="cube"/>3D</button>
@@ -284,11 +272,13 @@ export function TentMap({rows, counts, ready, busy, onSelect, mapVersion, zone, 
             const canSelect = !busy && ready && status !== 'booked'
             const activate = () => onSelect(row, selected ? 0 : 1)
             const title = row.code + ' · ' + t(statusLabels[status]) + (row.detail ? ' · ' + row.detail : '')
+            // Only taken plots (picked by this guest or already booked) stand a tent; a free plot is its outline and code tag, to keep the map calm.
+            const pitched = selected || status === 'booked'
             return <div className="tent-plot" key={row.code} data-status={status} data-dimmed={dimmed || undefined}>
-              <span className="tent-shadow" style={{left:x + '%',top:y + '%',width:size * 1.15 + '%'}} aria-hidden="true"/>
+              {pitched && <span className="tent-shadow" style={{left:x + '%',top:y + '%',width:size * 1.15 + '%'}} aria-hidden="true"/>}
               <button type="button" className="tent" style={{left:x + '%',top:y + '%',width:size + '%'}}
                 aria-pressed={selected} aria-label={title} title={title} disabled={!canSelect} onClick={activate}>
-                <TentGlyph status={status}/>
+                {pitched && <TentGlyph status={status}/>}
                 <span className="tent-code">{row.code}</span>
                 {selected && <span className="tent-check" aria-hidden="true"><CustomerIcon name="tick"/></span>}
               </button>
@@ -300,7 +290,7 @@ export function TentMap({rows, counts, ready, busy, onSelect, mapVersion, zone, 
     </div>
     </div>
     <p className="tent-map-hint">
-      <CustomerIcon name="tent"/>{ready ? t('แตะเต็นท์เพื่อเลือกล็อก · ว่าง {open} จาก {n} ล็อก',{open:openCount,n:plots.length}) : t('กำลังตรวจสอบล็อกว่าง…')}
+      <CustomerIcon name="tent"/>{ready ? t('แตะล็อกเพื่อเลือก · ว่าง {open} จาก {n} ล็อก',{open:openCount,n:plots.length}) : t('กำลังตรวจสอบล็อกว่าง…')}
     </p>
   </div>
 }
