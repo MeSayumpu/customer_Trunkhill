@@ -298,9 +298,10 @@
 @media (max-width:560px) {
   /* Guests is a short number, so give the date range most of the width. */
   .customer-ui .search-card { grid-template-columns:minmax(0,1fr) minmax(84px,max-content); }
-  .customer-ui .search-field { flex-direction:column; align-items:flex-start; gap:8px; min-height:0; padding:12px; }
-  .customer-ui .search-field-icon { width:34px; height:34px; border-radius:10px; font-size:1rem; }
-  .customer-ui .search-field-badge { position:absolute; top:12px; right:10px; }
+  /* The icon tiles are dropped on phones: label and value alone keep the card to two short lines. */
+  .customer-ui .search-field { flex-direction:column; align-items:flex-start; gap:8px; min-height:0; padding:10px 12px; }
+  .customer-ui .search-field-icon { display:none; }
+  .customer-ui .search-field-badge { position:absolute; top:8px; right:10px; padding:2px 8px; font-size:.74rem; }
   .customer-ui .search-field-text { width:100%; }
   .customer-ui .search-field-text strong { white-space:normal; line-height:1.25; }
 }
@@ -326,8 +327,9 @@
 .customer-ui .mode-switch button[aria-pressed=true] small { color:rgba(255,255,255,.75); }
 @media (max-width:640px) {
   .customer-ui .mode-switch { gap:6px; }
-  .customer-ui .mode-switch button { flex-direction:column; justify-content:center; gap:6px; min-height:82px; padding:10px 4px; text-align:center; }
-  .customer-ui .mode-switch button > .customer-icon { width:38px; height:38px; padding:9px; }
+  /* Phones: icon beside the label keeps the three choices to one short row, so the map starts higher. */
+  .customer-ui .mode-switch button { justify-content:center; gap:6px; min-height:48px; padding:6px 4px; border-radius:14px; text-align:center; }
+  .customer-ui .mode-switch button > .customer-icon { width:26px; height:26px; padding:5px; border-radius:8px; }
   .customer-ui .mode-switch small { display:none; }
   .customer-ui .mode-switch strong { font-size:.88rem; }
 }
@@ -990,9 +992,25 @@
 }
 .customer-ui .site-footer-map { display:inline-flex; align-items:center; gap:6px; color:inherit; font-weight:600; }
 
-/* Phones: map zoom/rotate/full-screen sit in a bar above the map instead of covering it. */
+/* Phones: the view switch, zoom, rotate and full-screen share one bar above the map instead of covering it,
+   and the panel is packed tighter so the map needs less scrolling to reach. */
 @media (max-width:640px) {
-  .customer-ui .tent-frame { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+  .customer-ui .map-panel { gap:8px; padding:12px; }
+  .customer-ui .map-panel-head { flex-wrap:nowrap; gap:6px 10px; }
+  .customer-ui .map-panel-head > div { min-width:0; }
+  .customer-ui .map-panel-head p { align-items:flex-start; }
+  .customer-ui .map-panel-head .button { flex:none; }
+  .customer-ui .map-panel-head p { font-size:.8rem; }
+  .customer-ui .tent-map { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+  .customer-ui .tent-map-toolbar, .customer-ui .tent-frame { display:contents; }
+  .customer-ui .tent-legend { flex:0 0 100%; order:1; gap:4px 12px; font-size:.78rem; }
+  .customer-ui .tent-legend .tent-glyph { width:20px; }
+  .customer-ui .tent-map .segmented { order:2; }
+  .customer-ui .tent-map .segmented button { min-height:30px; padding:4px 10px; font-size:.8rem; }
+  .customer-ui .tent-float-start { order:3; }
+  .customer-ui .tent-float-end { order:4; }
+  .customer-ui .tent-viewport { order:5; }
+  .customer-ui .tent-map-hint { flex:0 0 100%; order:6; font-size:.8rem; }
   .customer-ui .tent-float { position:static; flex-direction:row; pointer-events:auto; }
   .customer-ui .tent-float-end { margin-inline-start:auto; }
   .customer-ui .float-group, .customer-ui .float-group-column { flex-direction:row; box-shadow:none; background:#fff; }
