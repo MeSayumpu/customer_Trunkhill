@@ -275,7 +275,8 @@
 .customer-ui .booking-hero p { color:rgba(246,241,228,.82); font-size:clamp(.95rem,.9rem + .3vw,1.12rem); }
 .customer-ui .booking-hero .booking-steps ol::before { background:rgba(255,255,255,.22); }
 .customer-ui .booking-hero .booking-step { color:rgba(246,241,228,.72); }
-.customer-ui .booking-hero .booking-step-number { border-color:rgba(255,255,255,.35); background:rgba(255,255,255,.08); color:#f6f1e4; }
+/* Opaque fill, so the connecting line does not show through the circles. */
+.customer-ui .booking-hero .booking-step-number { border-color:rgba(255,255,255,.45); background:#2c5a44; color:#f6f1e4; }
 .customer-ui .booking-hero [aria-current=step] .booking-step { color:#fff; }
 .customer-ui .booking-hero [aria-current=step] .booking-step-number { border-color:var(--c-sun); background:var(--c-sun); color:#2a1d02; box-shadow:0 0 0 5px rgba(240,180,60,.22); }
 
@@ -378,8 +379,7 @@
 .customer-ui .summary-item-features { display:flex; flex-wrap:wrap; gap:4px 6px; margin:6px 0 2px; padding:0; list-style:none; }
 .customer-ui .summary-item-features li { display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:999px; background:rgba(36,80,57,.08); color:var(--c-ink); font-size:.76rem; font-weight:500; line-height:1.5; }
 .customer-ui .receipt-preview { display:block; width:100%; max-width:360px; margin-inline:auto; border:1px solid var(--c-line); border-radius:12px; -webkit-touch-callout:default; user-select:auto; }
-.customer-ui .review-cost-detail { color:var(--c-muted); font-size:.92em; }
-.customer-ui .review-cost-detail > span:last-child { flex-shrink:0; white-space:nowrap; }
+.customer-ui .review-cost-detail { color:var(--c-muted); font-size:.92em; }.customer-ui .review-cost-detail > span:last-child { flex-shrink:0; white-space:nowrap; }
 .customer-ui .review-cost-rule { color:var(--c-muted); font-size:.9em; }
 .customer-ui .picked-plot-features { display:grid; gap:10px; margin:14px 0 0; padding:0; list-style:none; }
 .customer-ui .picked-plot-features li { padding:10px 12px; border:1px solid rgba(36,80,57,.14); border-radius:12px; background:#fff; }
@@ -559,9 +559,6 @@
 .customer-ui .room-choice-text strong { font-size:1rem; }
 /* Yellow note on the review page: seniors billed as adults when no adult comes along. */
 .customer-ui .review-senior-note { margin:0; padding:10px 14px; border:1px solid #ecd27a; border-radius:12px; background:#fff3bf; color:#5c4700; font-weight:600; }
-/* No-reschedule period: the period name on one line, the rule in lighter text under it. */
-.customer-ui .review-blackout-note { display:grid; gap:2px; font-size:.9rem; font-weight:500; }
-.customer-ui .review-blackout-note strong { font-size:.95rem; }
 .customer-ui .room-choice-item { display:grid; gap:6px; }
 .customer-ui .room-choice-price { color:var(--c-forest); font-weight:600; }
 /* Guests entered for a picked room, with a way back into its picker. */
@@ -673,6 +670,8 @@
 .customer-ui .guest-description { min-width:0; }
 .customer-ui .guest-type-label { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
 .customer-ui .guest-type-label strong { font-size:1.05rem; }
+.customer-ui .free-guest-mark { color:#c62828; font-weight:700; }
+.customer-ui .guest-type-note { display:block; }
 .customer-ui .free-guest-badge { padding:2px 8px; border-radius:999px; background:#fff3cf; color:#855500; font-size:.75rem; font-weight:700; white-space:nowrap; }
 .customer-ui .guest-counter { display:grid; grid-template-columns:40px 48px 40px; align-items:center; gap:6px; }
 .customer-ui .guest-counter > span { display:none; }
@@ -773,6 +772,11 @@
 .customer-ui .review-line-actions > .danger-text:hover:not(:disabled) { background:var(--c-danger-50); }
 .customer-ui .review-breakdown { display:grid; gap:8px; }
 .customer-ui .review-lodging-subtotal { padding-top:10px; border-top:1px dashed var(--c-line-strong); }
+/* Review page: the dashed rule opens the summary, with the 0-baht guest lines above the plot subtotal. */
+.customer-ui .review-lodging-summary { display:grid; gap:8px; padding-top:10px; border-top:1px dashed var(--c-line-strong); }
+.customer-ui .review-lodging-summary .review-lodging-subtotal { padding-top:0; border-top:0; }
+.customer-ui .review-lodging-summary .review-lodging-subtotal > span:last-child { font-weight:700; }
+.customer-ui .review-group-title { margin:6px 0 -4px; padding:6px 12px; border-radius:10px; background:var(--c-forest-50,#eef5f0); color:var(--c-forest,#1f4a37); font-size:.95rem; font-weight:700; }
 .customer-ui .review-total { align-items:center; padding:14px 16px; border:1px solid #bfdcc8; border-radius:14px; background:#e6f3ea; color:var(--c-forest-700); font-size:1rem; }
 .customer-ui .review-total strong:last-child { color:var(--c-forest); font-size:1.3rem; font-variant-numeric:tabular-nums; }
 .customer-ui .review-form { display:grid; gap:20px; }
@@ -837,6 +841,8 @@
 .customer-ui .payment-code { display:grid; gap:2px; width:100%; padding:14px; border:1px dashed var(--c-forest); border-radius:14px; background:var(--c-forest-50); }
 .customer-ui .payment-code > span { color:var(--c-muted); font-size:.85rem; }
 .customer-ui .payment-code > strong { font-size:clamp(1.2rem,4vw,1.8rem); letter-spacing:.04em; overflow-wrap:anywhere; }
+.customer-ui .payment-guest { overflow-wrap:anywhere; }
+.customer-ui .payment-guest > span { color:var(--c-muted); }
 .customer-ui .payment-receipt .button { width:100%; }
 .customer-ui .customer-pagination { display:flex; align-items:center; justify-content:center; gap:10px; font-size:.86rem; }
 .customer-ui .customer-pagination .button { min-height:34px; padding:4px 12px; }

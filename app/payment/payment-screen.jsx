@@ -179,7 +179,7 @@ export function PaymentScreen({id}) {
         <p>{t(booking.status === 'confirmed' ? 'แคมป์ยืนยันการจองแล้ว' : booking.total > 0
           ? 'แคมป์จะตรวจสอบสลิปก่อนยืนยันการจอง' : 'รอแคมป์ยืนยันการจอง')}</p>
         <div className="payment-code"><span>{t('รหัสการจอง')}</span><strong>{code}</strong></div>
-
+        {booking.guest && <p className="payment-guest"><span>{t('ผู้จอง')}</span> <strong>{booking.guest}</strong></p>}
         <p>{displayDate(booking.arrival)} – {displayDate(booking.departure)} · {t('{n} คืน',{n:nights})} · {money(booking.total)}</p>
         <button className="button" onClick={downloadReceipt}><CustomerIcon name="download"/> {t('บันทึกรูปหลักฐานการจอง')}</button>{/* Only a failed download says anything here. */}{downloadMessage && <p className="small muted" role="status">{t(downloadMessage)}</p>}
         {showReceipt && receiptUrl && <img className="receipt-preview" src={receiptUrl} alt={t('รูปหลักฐานการจอง')}/>}

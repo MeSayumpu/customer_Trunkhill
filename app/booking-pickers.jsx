@@ -7,13 +7,15 @@ import {useCampOptions} from './use-camp-options'
 import {bookingWindowEnd} from '../lib/booking-window'
 import { shiftDate } from '../lib/booking-dates'
 import { useI18n } from './i18n'
+import { guestTypeText, normalizeGuestRate, normalizeGuestTypes } from '../lib/guest-types'
 
 const day = 86400000
 const weekdays = ['อา','จ','อ','พ','พฤ','ศ','ส']
+// The line under each label (age, and the note for the red * after "ฟรี") comes from the admin: see lib/guest-types.js.
 export const guestTypes = [
-  ['adults', 'ผู้ใหญ่', 'อายุ 14–64 ปี'],
-  ['children', 'เด็ก', 'อายุไม่เกิน 13 ปี'],
-  ['seniors', 'ผู้สูงอายุ', 'อายุ 65 ปีขึ้นไป'],
+  ['adults', 'ผู้ใหญ่'],
+  ['children', 'เด็ก'],
+  ['seniors', 'ผู้สูงอายุ'],
 ]
 
 export function displayDate(value) {
@@ -103,8 +105,15 @@ function GuestCountInput({value,label,onChange}) {
     onBlur={() => setDraft(null)}/>
 }
 
-export function GuestPicker({ guests, setGuests, settings, rates = [], dialog, wholeCamp = false }) {
-  const {t,money} = useI18n()
+export function GuestPicker({ guests, setGuests, settings, rates = [], dialog, wholeCamp = false, guestInfo, guestRate }) {
+  const {t,money,lang} = useI18n()
+  const info = normalizeGuestTypes(guestInfo)
+  const detail = key => guestTypeText(info[key],'detail',lang,t)
+  const note = key => guestTypeText(info[key],'note',lang,t)
+  // The admin's own lines for the rate box (plots only); auto = the system's rate text is shown as well.
+  const rate = normalizeGuestRate(guestRate)
+  const ownLines = wholeCamp ? [] : rate.lines
+  const showAuto = wholeCamp || rate.auto || !ownLines.length
   const hasWeekdayRates = rates.length ? rates.some(rate => rate.personTiers?.length) : settings?.hasWeekdayRates
   function rateRange(field) {
     const values = rates.length ? rates.map(rate => rate[field]) : [settings[field]]
@@ -117,11 +126,14 @@ export function GuestPicker({ guests, setGuests, settings, rates = [], dialog, w
   }
   // Plots: seniors are free only when an adult comes along; children need an adult or a senior with them.
   const seniorsPay = !wholeCamp && guests.adults === 0 && guests.seniors > 0
+  const free = key => key !== 'adults' && !(key === 'seniors' && seniorsPay)
   const childrenAlone = !wholeCamp && guests.adults + guests.seniors === 0 && guests.children > 0
   return <div className="stack picker-content">
     <h2 id="guest-title">{t('เลือกจำนวนผู้เข้าพัก')}</h2>
-    {guestTypes.map(([key, label, detail]) => <div className="guest-row" key={key}>
-      <div className="guest-description"><div className="guest-type-label"><strong>{t(label)}</strong>{key !== 'adults' && !(key === 'seniors' && seniorsPay) && <span className="free-guest-badge">{t('ฟรี')}</span>}</div><small>{t(detail)}</small></div>
+    {guestTypes.map(([key, label]) => <div className="guest-row" key={key}>
+      <div className="guest-description"><div className="guest-type-label"><strong>{t(label)}</strong>{free(key) && <span className="free-guest-badge">{t('ฟรี')}{note(key) && <span className="free-guest-mark" aria-hidden="true">*</span>}</span>}</div>
+        {detail(key) && <small>{detail(key)}</small>}
+        {free(key) && note(key) && <small className="guest-type-note"><span className="free-guest-mark">*</span> {note(key)}</small>}</div>
       <div className="guest-counter">
         <button aria-label={t('ลดจำนวน{label}',{label:t(label)})} disabled={guests[key] === 0} onClick={() => adjust(key, -1)}><CustomerIcon name="minus"/></button>
         <GuestCountInput value={guests[key]} label={t(label)} onChange={number => setGuests(previous => ({...previous,[key]:number}))}/>
@@ -130,11 +142,12 @@ export function GuestPicker({ guests, setGuests, settings, rates = [], dialog, w
       </div>
     </div>)}
     <div className="guest-rate"><strong>{t('อัตราค่าเข้าพัก')}</strong><span>{t('ผู้ใหญ่ {n} คน',{n:guests.adults})}</span>
-      {wholeCamp ? <b>{t('ราคาเหมาลานตามจำนวนผู้ใหญ่และคืนที่เข้าพัก เด็กและผู้สูงอายุไม่นับรวม')}</b> : settings?.mode === 'person' ? hasWeekdayRates
+      {showAuto && (wholeCamp ? <b>{t('ราคาเหมาลานตามจำนวนผู้ใหญ่และคืนที่เข้าพัก เด็กและผู้สูงอายุไม่นับรวม')}</b> : settings?.mode === 'person' ? hasWeekdayRates
         ? <b>{t('ราคาขึ้นอยู่กับวันเข้าพักและจำนวนผู้ใหญ่ต่อล็อก ดูยอดรวมได้ที่หน้าตรวจสอบการจอง')}</b> : <b>
         {t('1 คนต่อล็อก {price} / คืน',{price:rateRange('solo_person_price')})}<br/>
         {t('2 คนขึ้นไปต่อล็อก {price} / คน / คืน',{price:rateRange('person_price')})}
-      </b> : <b>{settings ? t('คิดราคาตามล็อก') : t('รอตรวจสอบราคา')}</b>}</div>
+      </b> : <b>{settings ? t('คิดราคาตามล็อก') : t('รอตรวจสอบราคา')}</b>)}
+      {ownLines.map((line,index) => <b className="guest-rate-line" key={index}>{lang === 'en' && line.en ? line.en : t(line.th)}</b>)}</div>
     {seniorsPay && <p className="notice" role="note">{t('กรณีผู้สูงอายุเข้าพักโดยไม่มีผู้ใหญ่ จะคิดราคาผู้สูงอายุตามราคาผู้ใหญ่')}</p>}
     {childrenAlone && <p className="notice error" role="alert">{t('การจองล็อกต้องมีผู้ใหญ่หรือผู้สูงอายุอย่างน้อย 1 คน')}</p>}
     <div className="picker-actions"><button className="button" onClick={() => dialog.current.close()}>{t('เสร็จสิ้น')}</button></div>

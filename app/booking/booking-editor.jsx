@@ -63,7 +63,7 @@ export function BookingEditor({booking,phone,onSaved,onClose}) {
    <section className="panel stack"><h1>{t('เลื่อนวันที่ / เปลี่ยนล็อก')}</h1>
     <ul className="booking-edit-rules"><li>{t('รหัสเดิม')} <strong>{booking.reference||booking.id}</strong> · {t('เลื่อนแล้ว {used}/{limit} ครั้ง',{used:booking.reschedule_count,limit})}</li>
     <li>{t('คงข้อมูลผู้จอง จำนวนคน จำนวนคืน ห้องพัก และอุปกรณ์เดิม ยอดจอง {amount}',{amount:money(booking.total)})}</li>
-    <li>{t('เลื่อนล่วงหน้าอย่างน้อย {days} วัน ส่งสลิปแล้วเลื่อนได้โดยไม่ต้องรอแอดมินยืนยัน',{days:notice})}</li></ul>
+    <li>{t('เลื่อนล่วงหน้าอย่างน้อย {days} วัน ก่อนวันที่เข้าพัก',{days:notice})}</li></ul>
     <button type="button" className="button secondary danger-text" disabled={busy} onClick={discard}><CustomerIcon name="back"/>{t('กลับโดยไม่บันทึก')}</button>
    </section>
    <section className="camp-booking stack" aria-label={t('เลือกวันที่และล็อกใหม่')}>
@@ -89,7 +89,7 @@ export function BookingEditor({booking,phone,onSaved,onClose}) {
     <section className="panel stack"><h2>{t('รายการที่ย้ายไปด้วย')}</h2>
      {booking.lines.map(i=><div className="review-cost" key={i.code}><span>{mapping[i.code]&&mapping[i.code]!==i.code?`${t(i.name)} → ${mapping[i.code]}`:t(i.name)} × {i.quantity}</span><span>{money(i.amount)}</span></div>)}
      <p>{t('อุปกรณ์ที่ผูกกับล็อกเดิมจะย้ายตามล็อกใหม่โดยอัตโนมัติ')}</p>
-     {shortages.length>0&&<div className="notice error" role="alert">{shortages.map(i=><p key={i.code}>{t('{name}: ต้องการ {need} เหลือ {left} ในวันที่เลือก กรุณาเลือกวันใหม่',{name:t(i.name),need:i.quantity,left:Number(inventory.find(row=>row.code===i.code)?.available||0)})}</p>)}</div>}
+     {shortages.length>0&&<div className="notice error" role="alert">{shortages.map(i=><p key={i.code}>{t('{name}: ไม่ว่างในวันที่คุณเลือก กรุณาเลือกวันอื่น',{name:t(i.name)})}</p>)}</div>}
      {error&&<p className="notice error" role="alert">{msg(error)}</p>}
      {!catalog&&error&&<button type="button" className="button secondary" onClick={()=>setRetry(n=>n+1)}>{t('ตรวจสอบอีกครั้ง')}</button>}
      <button type="button" className="button" disabled={!catalog||busy||shortages.length>0} onClick={check}>{busy?t('กำลังตรวจสอบ…'):t('ตรวจวันว่าง ล็อกว่าง และสต๊อก')}</button>

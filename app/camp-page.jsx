@@ -598,11 +598,11 @@ export default function CampPage({ review: initialReview = false, amendment = nu
     <dialog ref={guestDialog} className="dialog booking-picker" aria-labelledby="guest-title">
       <form method="dialog" className="dialog-close"><button className="icon-button" aria-label={t('ปิดตัวเลือกผู้เข้าพัก')}><CustomerIcon name="close"/></button></form>
       <GuestPicker guests={guests} setGuests={setGuests} settings={catalog?.settings} rates={ready ? catalog.rates : []}
-        dialog={guestDialog} wholeCamp={wholeCamp}/>
+        dialog={guestDialog} wholeCamp={wholeCamp} guestInfo={options.guestTypes} guestRate={options.guestRate}/>
     </dialog>
     <dialog ref={roomGuestDialog} className="dialog booking-picker" aria-labelledby="room-guest-title" onClose={() => setRoomPick(null)}>
       {roomPick && allRows.some(row => row.code === roomPick) && <RoomGuestPicker key={roomPick} room={allRows.find(row => row.code === roomPick)}
-        initial={roomGuests[roomPick]} nights={nights}
+        initial={roomGuests[roomPick]} nights={nights} guestInfo={options.guestTypes}
         onConfirm={value => confirmRoomGuests(roomPick,value)} onCancel={() => roomGuestDialog.current.close()}/>}
     </dialog>
     <dialog ref={guestWarningDialog} className="dialog confirm-dialog tone-warning camp-guest-warning" aria-labelledby="camp-guest-warning"

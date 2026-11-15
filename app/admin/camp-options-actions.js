@@ -4,6 +4,7 @@ import {isAdmin} from '../../lib/auth'
 import {database,transaction} from '../../lib/db'
 import {revalidatePath} from 'next/cache'
 import {facilityCategories,heroCategory} from '../../lib/camp-options'
+import {guestRateLineMax,guestRateLinesMax,guestTypeKeys,guestTypeTextMax,normalizeGuestRate} from '../../lib/guest-types'
 import {contactChannels,parseCoordinates,validContact,validLink} from '../../lib/camp-contacts'
 import {claimUpload,ensureStorage,lockStorage,storageId,StorageError} from '../../lib/storage'
 async function guard(){if(!await isAdmin())redirect('/admin')}
@@ -15,6 +16,29 @@ export async function saveBookingWindow(data){
   await guard();const value=Number(data.get('value')),unit=data.get('unit')
   if(!Number.isInteger(value)||value<1||!['days','months'].includes(unit)||value>(unit==='months'?36:1095))redirect('/admin?section=settings&group=rates&error=invalid')
   await save('window',{value,unit});redirect('/admin?section=settings&group=rates&saved=settings')
+}
+// Texts under each guest type in the customer's guest picker (age line, and the note for the red * after "ฟรี").
+export async function saveGuestTypes(data){
+  await guard()
+  const field=name=>String(data.get(name)||'').trim()
+  const values=Object.fromEntries(guestTypeKeys.map(key=>[key,{detail:field(key+'Detail'),detailEn:field(key+'DetailEn'),note:field(key+'Note'),noteEn:field(key+'NoteEn')}]))
+  if(Object.values(values).some(row=>Object.values(row).some(text=>text.length>guestTypeTextMax)))redirect('/admin?section=settings&group=rates&error=invalid')
+  await save('guestTypes',values);revalidatePath('/');redirect('/admin?section=settings&group=rates&saved=settings')
+}
+// Admin's own lines for the "อัตราค่าเข้าพัก" box of the guest picker, and whether the system's rate text stays.
+export async function saveGuestRate(data){
+  await guard()
+  let lines
+  try{lines=JSON.parse(String(data.get('lines')||'[]'))}catch{lines=null}
+  if(!Array.isArray(lines)||lines.length>guestRateLinesMax||lines.some(row=>typeof row?.th!=='string'||typeof row?.en!=='string'||!row.th.trim()||row.th.length>guestRateLineMax||row.en.length>guestRateLineMax))redirect('/admin?section=settings&group=rates&error=invalid')
+  await save('guestRate',normalizeGuestRate({auto:data.get('auto')==='on',lines}));revalidatePath('/');redirect('/admin?section=settings&group=rates&saved=settings')
+}
+// Description under the reschedule terms on the customer's booking lookup page; blank Thai text = the built-in wording.
+export async function saveRescheduleNote(data){
+  await guard()
+  const th=String(data.get('th')||'').trim(),en=String(data.get('en')||'').trim()
+  if(th.length>600||en.length>600)redirect('/admin?section=settings&group=policy&error=invalid')
+  await save('rescheduleNote',{th,en});redirect('/admin?section=settings&group=policy&saved=settings')
 }
 export async function saveFacilities(data){
   await guard();const values=Object.fromEntries(facilityKeys.map(key=>[key,String(data.get(key)||'').trim()]))

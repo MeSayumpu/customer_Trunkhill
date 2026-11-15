@@ -1,4 +1,4 @@
-import { BookingWindowSettings,ContactsSettings,FacilitiesSettings } from './camp-options-settings'
+import { BookingWindowSettings,ContactsSettings,FacilitiesSettings,GuestTypeSettings } from './camp-options-settings'
 import Link from '../pending-ui'
 import { adminUrl } from './navigation'
 import { PricingSettings, PaymentSettings } from './sections'
@@ -39,7 +39,7 @@ export function CampSettings({query}) {
         <div className="actions"><a href="#base-rates">ราคาพื้นฐานและเหมาลาน ↓</a><a href="#camp-calendar">ปฏิทินและฤดูกาล ↓</a></div>
       </div>
       <div id="base-rates" className="stack settings-anchor"><PricingSettings/></div>
-      <BookingWindowSettings/><section id="camp-calendar" className="stack settings-anchor"><header><h2>ปฏิทินเปิด–ปิดและฤดูกาล</h2>
+      <GuestTypeSettings/><BookingWindowSettings/><section id="camp-calendar" className="stack settings-anchor"><header><h2>ปฏิทินเปิด–ปิดและฤดูกาล</h2>
         <p className="muted">เลือกวันเพื่อดูราคา หรือเพิ่มช่วงปิดรับจอง วันหยุด และราคาฤดูกาล</p></header>
         <CampCalendar query={query}/></section>
     </>}

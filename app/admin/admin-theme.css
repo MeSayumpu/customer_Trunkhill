@@ -55,6 +55,12 @@
 .admin-ui .admin-dialog-header { @apply ad:border-b ad:border-slate-200 ad:bg-white ad:p-4; }
 .admin-ui .admin-dialog-header .button { @apply ad:min-h-9 ad:w-9 ad:p-0; }
 .admin-ui .admin-booking-detail>div { @apply ad:rounded-lg ad:bg-slate-50 ad:p-3; }
+/* Booking / transfer time: the admin matches it against the time on the slip, so it stands out in the table and the dialog. */
+.admin-ui .booking-time-field { display:grid; gap:2px; margin:0; padding:12px; border:1.5px solid #e2b93b; border-radius:8px; background:#fff7d6; }
+.admin-ui .booking-time-field span { color:#6b4e00; font-weight:600; }
+.admin-ui .booking-time-field strong { font-size:1.2rem; font-weight:700; color:#3d2c00; font-variant-numeric:tabular-nums; }
+.admin-ui .booking-made-at { display:inline-grid; gap:1px; margin-top:6px; padding:4px 10px; border:1.5px solid #e2b93b; border-radius:8px; background:#fff7d6; color:#6b4e00; font-size:.75rem; font-weight:600; line-height:1.3; }
+.admin-ui .booking-made-at strong { font-size:.95rem; color:#3d2c00; font-variant-numeric:tabular-nums; white-space:nowrap; }
 .admin-ui .admin-detail-total { @apply ad:rounded-lg ad:bg-emerald-50 ad:p-3; }
 .admin-ui .admin-edit-form { @apply ad:gap-4; }
 .admin-ui .inventory-edit-group { @apply ad:rounded-lg ad:border ad:border-solid ad:border-slate-200 ad:p-4; }
@@ -485,3 +491,9 @@
 .admin-ui .hero-media-preview { position:relative; isolation:isolate; overflow:hidden; display:grid; place-items:center; min-height:150px; border-radius:14px; color:#f6f1e4; font-weight:600; font-size:.9rem; text-align:center; background:linear-gradient(180deg,#1d4634 0%,#245039 60%,#2b5a42 100%); }
 .admin-ui .hero-media-preview :is(img,video) { position:absolute; inset:0; z-index:-2; width:100%; height:100%; object-fit:cover; }
 .admin-ui .hero-media-preview:has(img,video)::before { content:''; position:absolute; inset:0; z-index:-1; background:linear-gradient(180deg,rgba(17,46,33,.94) 0%,rgba(29,70,52,.78) 50%,rgba(43,90,66,.5) 100%); }
+/* Guest type texts: Thai and English side by side, stacked on phones. */
+.guest-type-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 14px; }
+@media (max-width:640px) { .guest-type-fields { grid-template-columns:1fr; } }
+.admin-ui .check-row { display:flex; align-items:flex-start; gap:8px; }
+.admin-ui .check-row input { width:auto; margin-top:4px; }
+@media (max-width:640px) { .admin-ui .guest-rate-line-row { grid-template-columns:1fr auto; } .admin-ui .guest-rate-line-row label { grid-column:1 / -1; } }

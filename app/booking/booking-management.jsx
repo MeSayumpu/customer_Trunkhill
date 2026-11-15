@@ -7,7 +7,7 @@ import { PageHero } from '../page-hero'
 import { RescheduleHistory } from './reschedule-history'
 
 import { useEffect, useState } from 'react'
-import { rescheduleLimit, stayNights } from '../../lib/booking-dates'
+import { rescheduleLimit, rescheduleNoteDefault, stayNights } from '../../lib/booking-dates'
 import { statuses } from '../../lib/pricing'
 import { displayDate, guestTypes } from '../booking-pickers'
 import { readCamp } from '../camp-request'
@@ -55,8 +55,8 @@ function BookingSummary({booking}) {
 }
 
 export function BookingManagement() {
-  const {t,msg} = useI18n()
-  const {contacts} = useCampOptions()
+  const {t,msg,lang} = useI18n()
+  const {contacts,rescheduleNote} = useCampOptions()
   const campPhone = contacts.tel
   const [booking,setBooking]=useState(null)
   const [phone,setPhone]=useState('')
@@ -74,6 +74,10 @@ export function BookingManagement() {
     catch(error){setError(error.message)}finally{setBusy(false)}
   }
   const remaining=booking?Math.max(0,(booking.reschedule_limit??rescheduleLimit)-booking.reschedule_count):0
+  // Admin's own description (settings → reschedule terms) or the built-in one; {days} and {n} are filled in either way.
+  const noteParams={days:booking?.reschedule_notice_days,n:booking?.reschedule_limit??rescheduleLimit}
+  const customNote=(lang==='en'&&rescheduleNote?.en?.trim())||rescheduleNote?.th?.trim()
+  const noteLines=(customNote?customNote.replace(/\{(days|n)\}/g,(_,key)=>noteParams[key]):t(rescheduleNoteDefault,noteParams)).split('\n').filter(line=>line.trim())
   const saved=value=>{setBooking(value);setEditing(false);setMessage('บันทึกการแก้ไขแล้ว ใช้สิทธิ์ 1 ครั้ง')}
   if(editing&&booking)return <BookingEditor booking={booking} phone={phone} onClose={()=>setEditing(false)} onSaved={saved}/>
   return <div className="camp-home customer-compact booking-management">
@@ -81,7 +85,6 @@ export function BookingManagement() {
     <CampHeader onCampInfo={menuActions.onCampInfo} onZoneDetails={menuActions.onZoneDetails} lookup/>
     <PageHero aria-labelledby="manage-booking-title"><div className="booking-hero-copy">
       <h1 id="manage-booking-title">{t('ตรวจสอบการจอง')}</h1>
-      {!booking&&<p>{t('กรอกรหัสการจองและเบอร์โทรเพื่อดูรายละเอียดทั้งหมด')}</p>}
     </div></PageHero>
     <main className={'camp-shell stack manage-booking'+(booking?'':' manage-booking-search')}>
       {!booking&&<form onSubmit={search} className="panel stack booking-lookup">
@@ -116,7 +119,7 @@ export function BookingManagement() {
         {booking.status!=='cancelled'&&<section className="notice" aria-label={t('เงื่อนไขการแก้ไขการจอง')}>
           <strong>{t('สามารถเลื่อนหรือแก้ไขการจองได้รวม {n} ครั้ง และไม่สามารถยกเลิกการจองได้',{n:booking.reschedule_limit??rescheduleLimit})}</strong>
           <p>{t('ใช้สิทธิ์แล้ว {used} ครั้ง · เหลือ {left} ครั้ง',{used:booking.reschedule_count,left:remaining})}</p>
-          <p>{t('เลื่อนเฉพาะวันที่และล็อก ล่วงหน้าอย่างน้อย {days} วัน โดยส่งสลิปแล้วเลื่อนได้ ไม่ต้องรอแอดมินยืนยัน และต้องยังไม่ Check-out',{days:booking.reschedule_notice_days})}</p>
+          {noteLines.map((line,index)=><p key={index}>{line}</p>)}
         </section>}
       </>}
     </main>

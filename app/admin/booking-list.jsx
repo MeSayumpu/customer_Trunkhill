@@ -12,6 +12,8 @@ import { bookingFilters, bookingStats, bookingRows, bookingExpansion, bookingSor
 import { BookingFilters, BookingPageSize } from './booking-controls'
 import { AdminIcon } from './admin-icon'
 
+// Database times are UTC strings; shown in Thai time so the admin can match them with the time on the transfer slip.
+const thaiDateTime=value=>value?new Date(String(value).replace(' ','T')+'Z').toLocaleString('th-TH',{timeZone:'Asia/Bangkok',dateStyle:'short',timeStyle:'short'})+' น.':'—'
 const filterStatuses={...statuses,review:'รอตรวจสลิป'}
 function Status({row}) {
   return <span className={'admin-status '+row.status}>{row.status==='pending' && row.payment_required
@@ -58,7 +60,7 @@ export async function BookingList({query}) {
           return <Fragment key={row.id}><tr data-expanded={open||undefined}>
             <td data-label="รหัสจอง"><div className="admin-booking-id"><Link className="admin-expand-booking" href={adminUrl('bookings',{...current,expand:open?'':row.id})} scroll={false}
               aria-expanded={open} aria-label={(open?'ย่อ ':'ขยาย ')+row.id}>{open?'⌄':'›'}</Link><div><code>{row.reference||row.id}</code><small className={row.reschedule_count?'booking-moved':''}>เลื่อน {row.reschedule_count}/{policy.reschedule_limit} ครั้ง</small></div></div></td>
-            <td data-label="ผู้จอง"><strong>{row.guest}</strong><br/><small>{row.phone}</small></td>
+            <td data-label="ผู้จอง"><strong>{row.guest}</strong><br/><small>{row.phone}</small><br/><span className="booking-made-at">จอง/โอนเงิน<strong>{thaiDateTime(row.created_at)}</strong></span></td>
             <td data-label="เช็กอิน" className="admin-booking-date">{row.arrival}</td><td data-label="เช็กเอาต์" className="admin-booking-date">{row.departure}</td>
             <td data-label="รายการ"><div className="admin-item-badges">{Number(row.lodging_count)>0&&<span className="lodging">ลาน / ห้อง ({row.lodging_count})</span>}{row.item_count-row.lodging_count>0&&<span className="rental">อุปกรณ์ ({row.item_count-row.lodging_count})</span>}</div></td>
             <td data-label="ยอดรวม" className="admin-amount"><strong>{money(row.total)}</strong></td><td data-label="สถานะ"><Status row={row}/></td>
@@ -88,6 +90,8 @@ export async function BookingList({query}) {
       <dl className="admin-booking-detail"><div><dt>รหัสจอง</dt><dd><code>{detail.reference||detail.id}</code></dd></div><div><dt>ผู้จอง</dt><dd>{detail.guest}</dd></div><div><dt>เบอร์โทร</dt><dd>{detail.phone}</dd></div><div><dt>วันเข้าพัก – วันออก</dt><dd>{detail.arrival} → {detail.departure}</dd></div><div><dt>สถานะ</dt><dd><Status row={detail}/></dd></div><div><dt>จำนวนครั้งที่เลื่อน</dt><dd>{detail.reschedule_count}/{policy.reschedule_limit} ครั้ง</dd></div></dl>
       <RescheduleHistory history={expansions.get(detail.id).history}/>
       {!!detail.has_slip&&<SlipDialog id={detail.id} mime={detail.slip_mime}/>}
+      {/* Right above the slip, so the admin can compare it with the time printed on the slip. */}
+      <p className="booking-time-field"><span>วันที่จอง (วันที่โอนเงิน)</span><strong>{thaiDateTime(detail.created_at)}</strong></p>
       {detail.slip_mime?.startsWith('image/')&&<img loading="lazy" decoding="async" className="admin-slip-preview" src={'/admin/slip/'+detail.id} alt="สลิปการโอนของรายการนี้"/>}
       {rejection&&<p className="notice error">ปฏิเสธการจองเนื่องจากใช้ไฟล์สลิปซ้ำ</p>}
       <BookingItemsTable items={items} label="รายการที่จองทั้งหมด"/>

@@ -5,10 +5,15 @@ import {database} from '../../lib/db'
 import {ActionForm} from '../pending-ui'
 import {saveBookingPolicy,addRescheduleBlackout,deleteRescheduleBlackout} from './actions'
 import {blackoutRange} from '../../lib/reschedule-blackout'
+import {campOptions} from '../../lib/camp-options'
+import {rescheduleNoteDefault} from '../../lib/booking-dates'
+import {saveRescheduleNote} from './camp-options-actions'
 export async function BookingPolicy(){
  const [[settings]]=await database().query('SELECT reschedule_notice_days,reschedule_limit FROM settings WHERE id=1')
  const notice=settings.reschedule_notice_days??rescheduleNotice
  const limit=settings.reschedule_limit??rescheduleLimit
+ const saved=(await campOptions()).rescheduleNote
+ const note={th:saved?.th||'',en:saved?.en||''}
  const [blackouts]=await database().query("SELECT id,label,DATE_FORMAT(start_date,'%Y-%m-%d') AS start_date,DATE_FORMAT(end_date,'%Y-%m-%d') AS end_date,end_date<CURRENT_DATE AS past FROM reschedule_blackouts ORDER BY start_date,id")
  return <section className="panel stack admin-content"><h2>เงื่อนไขการเลื่อนการจอง</h2>
   <ActionForm action={saveBookingPolicy} className="stack">
@@ -21,6 +26,13 @@ export async function BookingPolicy(){
   <p>เลื่อนได้รวม {limit} ครั้ง ล่วงหน้าอย่างน้อย {notice} วัน ทั้งวันเข้าพักเดิมและวันเข้าพักใหม่</p>
   <p>ส่งสลิปแล้วเลื่อนได้โดยไม่ต้องรอแอดมินตรวจ ลูกค้าเปลี่ยนได้เฉพาะวันที่และล็อก จำนวนคืน ข้อมูลผู้จอง อุปกรณ์ และยอดจองคงเดิม</p>
   <p>ต้องผ่านการตรวจวันเปิดให้เข้าพัก ล็อกว่าง และสต๊อกอุปกรณ์ตลอดทุกคืน ระบบเก็บประวัติภายใต้รหัสเดิม</p>
+  <h3>คำอธิบายใต้เงื่อนไขในหน้าตรวจสอบการจอง</h3>
+  <p>แสดงใต้บรรทัด “ใช้สิทธิ์แล้ว … ครั้ง · เหลือ … ครั้ง” หลังลูกค้าค้นหาการจอง ขึ้นบรรทัดใหม่ได้ พิมพ์ {'{days}'} แทนจำนวนวันล่วงหน้า และ {'{n}'} แทนจำนวนครั้งที่เลื่อนได้ เว้นว่างเพื่อใช้ข้อความเดิมของระบบ</p>
+  <ActionForm action={saveRescheduleNote} className="stack">
+   <label>ภาษาไทย<textarea name="th" rows={3} maxLength={600} defaultValue={note.th} placeholder={rescheduleNoteDefault}/></label>
+   <label>English<textarea name="en" lang="en" rows={3} maxLength={600} defaultValue={note.en} placeholder="เว้นว่างเพื่อใช้ข้อความภาษาไทย"/></label>
+   <div className="actions"><button className="button"><AdminIcon name="save"/>บันทึกคำอธิบาย</button></div>
+  </ActionForm>
   <h3>ช่วงวันที่ห้ามเลื่อนการจอง</h3>
   <p>เช่น Long Weekend หรือวันหยุดยาว การจองที่มีคืนเข้าพักอยู่ในช่วงนี้ ลูกค้าจะเลื่อนหรือแก้ไขเองไม่ได้ และจะเห็นข้อความแจ้งก่อนยืนยันการจอง</p>
   {blackouts.length ? <ul className="blackout-list" role="list">

@@ -3,10 +3,35 @@ import {contactChannels} from '../../lib/camp-contacts'
 import {database} from '../../lib/db'
 import {ActionForm} from '../pending-ui'
 import {SocialIcon} from '../social-icon'
-import {saveBookingWindow,saveContacts,saveFacilities,saveLocation} from './camp-options-actions'
+import {saveBookingWindow,saveContacts,saveFacilities,saveGuestRate,saveGuestTypes,saveLocation} from './camp-options-actions'
+import {GuestRateLinesField} from './guest-rate-lines-field'
+import {guestTypeTextMax} from '../../lib/guest-types'
 import {LocationFields} from './location-fields'
 import {FacilitiesEditor} from './rich-text-editor'
 import {AdminIcon} from './admin-icon'
+const guestTypeLabels=[['adults','ผู้ใหญ่'],['children','เด็ก'],['seniors','ผู้สูงอายุ']]
+export async function GuestTypeSettings(){
+  const {guestTypes,guestRate}=await campOptions()
+  return <section className="panel stack"><h2>คำอธิบายประเภทผู้เข้าพัก</h2>
+    <p>ข้อความที่ลูกค้าเห็นใต้ชื่อแต่ละประเภทในหน้าเลือกจำนวนผู้เข้าพัก หมายเหตุจะแสดงคู่กับเครื่องหมาย <strong style={{color:'#c62828'}}>*</strong> หลังคำว่า “ฟรี” เว้นว่างได้ถ้าไม่ต้องการแสดง ช่องภาษาอังกฤษถ้าเว้นว่างจะใช้คำแปลของระบบ</p>
+    <ActionForm action={saveGuestTypes} className="stack">
+      {guestTypeLabels.map(([key,label])=><fieldset key={key} className="guest-type-fields"><legend>{label}</legend>
+        <label>คำอธิบาย (เงื่อนไขอายุ)<input name={key+'Detail'} maxLength={guestTypeTextMax} defaultValue={guestTypes[key].detail}/></label>
+        <label>คำอธิบาย (English)<input name={key+'DetailEn'} maxLength={guestTypeTextMax} defaultValue={guestTypes[key].detailEn}/></label>
+        <label>หมายเหตุ * (แสดงเมื่อขึ้นคำว่า ฟรี)<input name={key+'Note'} maxLength={guestTypeTextMax} defaultValue={guestTypes[key].note} placeholder={key==='adults'?'ผู้ใหญ่ไม่มีคำว่า ฟรี':'เช่น ผู้ติดตาม'} disabled={key==='adults'}/></label>
+        <label>หมายเหตุ * (English)<input name={key+'NoteEn'} maxLength={guestTypeTextMax} defaultValue={guestTypes[key].noteEn} disabled={key==='adults'}/></label>
+      </fieldset>)}
+      <div className="actions"><button className="button"><AdminIcon name="save"/>บันทึกคำอธิบาย</button></div>
+    </ActionForm>
+    <h3>คำอธิบายในกล่อง “อัตราค่าเข้าพัก”</h3>
+    <p>ข้อความที่ลูกค้าเห็นในกล่องอัตราค่าเข้าพักของหน้าเลือกจำนวนผู้เข้าพัก (การจองล็อก) เพิ่ม แก้ไข หรือลบได้ทีละบรรทัด สูงสุด 10 บรรทัด</p>
+    <ActionForm action={saveGuestRate} className="stack">
+      <GuestRateLinesField lines={guestRate.lines}/>
+      <label className="check-row"><input type="checkbox" name="auto" defaultChecked={guestRate.auto}/> แสดงอัตราราคาที่ระบบคำนวณจากราคาที่ตั้งไว้ด้วย (เช่น “1 คนต่อล็อก 200 บาท / คืน”)</label>
+      <p className="small muted">ถ้าไม่ติ๊ก ลูกค้าจะเห็นเฉพาะข้อความที่เขียนไว้ด้านบน ถ้าไม่ได้เขียนไว้เลย ระบบจะแสดงอัตราราคาอัตโนมัติตามเดิม</p>
+      <div className="actions"><button className="button"><AdminIcon name="save"/>บันทึกคำอธิบายอัตราค่าเข้าพัก</button></div>
+    </ActionForm></section>
+}
 export async function BookingWindowSettings(){
   const {window}=await campOptions()
   return <section className="panel stack"><h2>ตั้งค่าวันจองล่วงหน้า</h2><p>เลือกวันเข้าพักได้ตั้งแต่วันนี้ถึงวันสุดท้ายของระยะที่กำหนด วันออกเลือกได้ไม่เกินวันถัดจากวันสุดท้าย</p>

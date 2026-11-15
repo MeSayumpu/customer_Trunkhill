@@ -5,14 +5,18 @@ import { CustomerIcon } from './customer-icon'
 import { useI18n } from './i18n'
 import { guestTypes } from './booking-pickers'
 import { roomExtraGuests } from '../lib/pricing'
+import { guestTypeText, normalizeGuestTypes } from '../lib/guest-types'
 
 // Shown as "ผู้ใหญ่ 2 · ผู้สูงอายุ 1 · เด็ก 1"; empty groups are left out.
 export const roomGuestText = (guests,t) => guestTypes.filter(([key]) => guests[key]).map(([key,label]) => t(label) + ' ' + guests[key]).join(' · ')
 
 // Guests of one Trunkbox room. Unlike the plot picker, seniors pay like adults here, so only children are free.
 // Adults + seniors may not exceed what the room takes; children are not counted.
-export function RoomGuestPicker({room, initial, nights, onConfirm, onCancel}) {
-  const {t,money} = useI18n()
+export function RoomGuestPicker({room, initial, nights, onConfirm, onCancel, guestInfo}) {
+  const {t,money,lang} = useI18n()
+  const info = normalizeGuestTypes(guestInfo)
+  const detail = key => guestTypeText(info[key],'detail',lang,t)
+  const note = key => guestTypeText(info[key],'note',lang,t)
   const [guests,setGuests] = useState(initial ?? {adults:Math.min(2,room.room_max_guests),seniors:0,children:0})
   const paying = guests.adults + guests.seniors
   const full = paying >= room.room_max_guests
@@ -23,8 +27,10 @@ export function RoomGuestPicker({room, initial, nights, onConfirm, onCancel}) {
     <h2 id="room-guest-title">{t('ผู้เข้าพัก {name}',{name:t(room.name)})}</h2>
     <p className="small muted">{t('ราคาห้อง {price} / คืน รวมผู้เข้าพัก {base} คน · รับได้สูงสุด {max} คน (ไม่นับเด็ก)',
       {price:money(room.price),base:room.room_base_guests,max:room.room_max_guests})}</p>
-    {guestTypes.map(([key,label,detail]) => <div className="guest-row" key={key}>
-      <div className="guest-description"><div className="guest-type-label"><strong>{t(label)}</strong>{key === 'children' && <span className="free-guest-badge">{t('ฟรี')}</span>}</div><small>{t(detail)}</small></div>
+    {guestTypes.map(([key,label]) => <div className="guest-row" key={key}>
+      <div className="guest-description"><div className="guest-type-label"><strong>{t(label)}</strong>{key === 'children' && <span className="free-guest-badge">{t('ฟรี')}{note(key) && <span className="free-guest-mark" aria-hidden="true">*</span>}</span>}</div>
+        {detail(key) && <small>{detail(key)}</small>}
+        {key === 'children' && note(key) && <small className="guest-type-note"><span className="free-guest-mark">*</span> {note(key)}</small>}</div>
       <div className="guest-counter">
         <button type="button" aria-label={t('ลดจำนวน{label}',{label:t(label)})} disabled={guests[key] === 0} onClick={() => adjust(key,-1)}><CustomerIcon name="minus"/></button>
         <output aria-label={t('จำนวน{label}',{label:t(label)})}>{guests[key]}</output>
