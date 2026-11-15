@@ -141,7 +141,7 @@ export function GuestPicker({ guests, setGuests, settings, rates = [], dialog, w
         <span>{t('คน')}</span>
       </div>
     </div>)}
-    <div className="guest-rate"><strong>{t('อัตราค่าเข้าพัก')}</strong><span>{t('ผู้ใหญ่ {n} คน',{n:guests.adults})}</span>
+    <div className="guest-rate"><strong>{t('อัตราค่าเข้าพัก')}</strong>
       {showAuto && (wholeCamp ? <b>{t('ราคาเหมาลานตามจำนวนผู้ใหญ่และคืนที่เข้าพัก เด็กและผู้สูงอายุไม่นับรวม')}</b> : settings?.mode === 'person' ? hasWeekdayRates
         ? <b>{t('ราคาขึ้นอยู่กับวันเข้าพักและจำนวนผู้ใหญ่ต่อล็อก ดูยอดรวมได้ที่หน้าตรวจสอบการจอง')}</b> : <b>
         {t('1 คนต่อล็อก {price} / คืน',{price:rateRange('solo_person_price')})}<br/>
