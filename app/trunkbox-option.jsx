@@ -7,6 +7,7 @@ import { useI18n } from './i18n'
 import { PhotoGallery } from './photo-stage'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { zoneFeatureIcon } from '../lib/zone-features'
+import { roomGuestText } from './room-guest-picker'
 
 // Main photo first, then the room's extra photos in the admin's order.
 const roomPhotos = (room,t) => [
@@ -14,8 +15,8 @@ const roomPhotos = (room,t) => [
   ...String(room.gallery || '').split(',').filter(Boolean).map(id => '/api/inventory-gallery/' + id),
 ].map((src,index) => ({src,alt:t('{name} รูปที่ {n}',{name:t(room.name),n:index + 1})}))
 
-export function TrunkboxOption({rooms,counts,ready,busy,onSelect,onRemove}) {
-  const {t,lang} = useI18n()
+export function TrunkboxOption({rooms,counts,ready,busy,roomGuests = {},onSelect,onRemove}) {
+  const {t,lang,money} = useI18n()
   const [detailCode,setDetailCode] = useState(null)
   const detail = rooms.find(room=>room.code===detailCode) ?? rooms[0]
   const roomFeatures = detail?.features ? [...detail.features.highlights,...detail.features.facilities] : []
@@ -29,12 +30,20 @@ export function TrunkboxOption({rooms,counts,ready,busy,onSelect,onRemove}) {
         {rooms.map(room=>{
           const available = Number(room.available) > 0
           const checked = !!counts[room.code]
-          return <label className="room-choice" key={room.code} data-checked={checked || undefined} data-booked={!available && !checked || undefined}>
-            <input type="checkbox" checked={checked} disabled={busy || (!available && !checked)}
-              onChange={event=>event.target.checked ? onSelect(room.code,1) : onRemove(room.code)}/>
-            <span className="room-choice-text"><strong>{t(room.name)}</strong><small>{t(room.detail)}</small></span>
-            <span className={'status-pill ' + (checked ? 'selected' : available ? 'available' : 'booked')}>{t(checked ? 'เลือกอยู่' : available ? 'ว่าง' : 'จองแล้ว')}</span>
-          </label>
+          const guests = checked && roomGuests[room.code]
+          return <div className="room-choice-item" key={room.code}>
+            <label className="room-choice" data-checked={checked || undefined} data-booked={!available && !checked || undefined}>
+              {/* Ticking a room opens its guest picker; the room is only picked once the guests are confirmed. */}
+              <input type="checkbox" checked={checked} disabled={busy || (!available && !checked)}
+                onChange={event=>event.target.checked ? onSelect(room.code) : onRemove(room.code)}/>
+              <span className="room-choice-text"><strong>{t(room.name)}</strong><small>{t(room.detail)}</small>
+                <small className="room-choice-price">{t('{price} / คืน · รวม {base} คน · เพิ่มคนละ {extra} · สูงสุด {max} คน',
+                  {price:money(room.price),base:room.room_base_guests,extra:money(room.room_extra_guest_price),max:room.room_max_guests})}</small></span>
+              <span className={'status-pill ' + (checked ? 'selected' : available ? 'available' : 'booked')}>{t(checked ? 'เลือกอยู่' : available ? 'ว่าง' : 'จองแล้ว')}</span>
+            </label>
+            {guests && <div className="room-choice-guests"><span><CustomerIcon name="guests"/>{roomGuestText(guests,t)}</span>
+              <button type="button" className="button secondary button-sm" disabled={busy} onClick={()=>onSelect(room.code)}>{t('แก้ไขผู้เข้าพัก')}</button></div>}
+          </div>
         })}
       </div> : <p className="empty">{t('ยังไม่มีห้องพักเปิดให้จอง')}</p>}
     </div>

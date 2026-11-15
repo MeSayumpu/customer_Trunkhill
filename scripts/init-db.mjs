@@ -24,6 +24,21 @@ async function initBase() {
   await ensureColumns([['settings','reschedule_limit','TINYINT UNSIGNED NOT NULL DEFAULT 3']])
   await connection.query(await readFile(new URL('../db/booking-amendments.sql',import.meta.url),'utf8'))
   await connection.query(await readFile(new URL('../db/slip-protection.sql',import.meta.url),'utf8'))
+  // Date ranges (long weekends…) in which a booked stay cannot be rescheduled.
+  await connection.query(`CREATE TABLE IF NOT EXISTS reschedule_blackouts (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, label VARCHAR(120) NOT NULL, start_date DATE NOT NULL, end_date DATE NOT NULL,
+    INDEX reschedule_blackouts_dates (start_date,end_date))`)
+  await ensureColumns([['inventory','tent_discount_tiers','TEXT NULL']])
+  // Rooms: guests covered by the price, the most adults + seniors a room takes, and the nightly charge per extra one.
+  await ensureColumns([
+    ['inventory','room_base_guests','TINYINT UNSIGNED NOT NULL DEFAULT 2'],
+    ['inventory','room_max_guests','TINYINT UNSIGNED NOT NULL DEFAULT 4'],
+    ['inventory','room_extra_guest_price','INT UNSIGNED NOT NULL DEFAULT 150'],
+    ['booking_lines','room_adults','TINYINT UNSIGNED NULL'],
+    ['booking_lines','room_seniors','TINYINT UNSIGNED NULL'],
+    ['booking_lines','room_children','TINYINT UNSIGNED NULL'],
+  ])
+  await ensureColumns([['settings','slip_duplicate_check','BOOLEAN NOT NULL DEFAULT TRUE']])
   await ensureColumns([['payment_config','bank_name','VARCHAR(120) NULL'],['payment_config','bank_account','VARCHAR(20) NULL']])
   const [[galleryCaption]] = await connection.execute(
     "SELECT 1 FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='zone_details' AND column_name='gallery_caption'",

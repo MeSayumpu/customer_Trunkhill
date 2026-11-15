@@ -8,11 +8,12 @@ import { BookingPolicy } from './booking-policy'
 import { PricePriority } from './price-priority'
 import { AdminIcon } from './admin-icon'
 import { WelcomeSettings } from './welcome-settings'
+import { HeroMediaSettings } from './hero-media-settings'
 
 const groups = [
   ['facilities','ข้อมูลทั่วไปและสิ่งอำนวยความสะดวก','ข้อความจัดรูปแบบ · แนบรูป · พรีวิว'],
   ['contacts','ช่องทางติดต่อและที่ตั้ง','Tel · LINE · Facebook · TikTok · ฯลฯ · แผนที่'],
-  ['welcome','คำโปรยหน้าจอง','ข้อความหัวข้อ · ข้อความรอง · เปิด–ปิด'],
+  ['welcome','แถบด้านบนและคำโปรย','รูป/วิดีโอพื้นหลัง · ข้อความหัวข้อ · ข้อความรอง'],
   ['rates','ราคาและปฏิทิน','ราคาลาน · วันเปิด–ปิด · ฤดูกาล'],
   ['payment','การรับเงินและค่าไฟ','QR ค่าจอง · บัญชีธนาคาร · Check-out'],
   ['policy','การเลื่อนการจอง','จำนวนครั้ง · จำนวนวันล่วงหน้า'],
@@ -51,6 +52,6 @@ export function CampSettings({query}) {
     {group === 'policy' && <BookingPolicy/>}
     {group === 'facilities' && <FacilitiesSettings/>}
     {group === 'contacts' && <ContactsSettings query={query}/>}
-    {group === 'welcome' && <WelcomeSettings/>}
+    {group === 'welcome' && <><HeroMediaSettings/><WelcomeSettings/></>}
   </div>
 }

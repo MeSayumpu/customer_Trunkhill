@@ -8,8 +8,10 @@ import { useRouter } from 'next/navigation'
 import {useCampOptions} from './use-camp-options'
 import { money, stayPricing } from '../lib/pricing'
 import { DatePicker, GuestPicker, displayDate, guestTypes } from './booking-pickers'
+import { RoomGuestPicker } from './room-guest-picker'
 import { BookingReview } from './booking-review'
 import { BookingSteps } from './booking-steps'
+import { PageHero } from './page-hero'
 import { CampHeader, campZoneLabel, MobileCampMenu, useCampDetails } from './camp-navigation'
 import { draftKey, readBookingDraft } from './booking-draft'
 import { TentGlyph, TentList, TentMap } from './tent-map'
@@ -77,6 +79,9 @@ export default function CampPage({ review: initialReview = false, amendment = nu
   const [wholeCamp,setWholeCamp] = useState(false)
   const [rentalsByLock,setRentalsByLock] = useState({})
   const [guests,setGuests] = useState({adults:0,children:0,seniors:0})
+  // Guests of each picked Trunkbox room: {code:{adults,seniors,children}}. The guests state above is for the plots only.
+  const [roomGuests,setRoomGuests] = useState({})
+  const [roomPick,setRoomPick] = useState(null)
   const [guestWarning,setGuestWarning] = useState(false)
   const [availabilityError,setAvailabilityError] = useState('')
   const [bookingError,setBookingError] = useState('')
@@ -87,6 +92,7 @@ export default function CampPage({ review: initialReview = false, amendment = nu
   const activeCheck = useRef(null)
   const dateDialog = useRef(null)
   const guestDialog = useRef(null)
+  const roomGuestDialog = useRef(null)
   const guestWarningDialog = useRef(null)
   const {dialogs,...menuActions} = useCampDetails({zone,gear:catalog?.inventory.filter(row => row.kind === 'gear')})
 
@@ -149,6 +155,7 @@ export default function CampPage({ review: initialReview = false, amendment = nu
       setCounts(draft.counts)
       setWholeCamp(draft.wholeCamp === true)
       setRentalsByLock(draft.rentalsByLock || {})
+      setRoomGuests(draft.roomGuests || {})
       if (tabs.some(([id]) => id === draft.zone)) setZone(draft.zone)
     }
     setArrival(start)
@@ -161,24 +168,34 @@ export default function CampPage({ review: initialReview = false, amendment = nu
   const allRows = catalog?.inventory || []
   const visible = allRows.filter(row => zone === 'BOX' ? row.zone === 'BOX' : row.kind === 'plot')
   const hasMap = zone !== 'BOX' && (!visible.length || visible.some(mapPosition))
-  const guestCount = Object.values(guests).reduce((sum, count) => sum + count, 0)
   const tier = wholeCamp ? wholeCampTier(guests.adults,catalog?.wholeCampTiers) : null
   const wholeCampItem = { code:wholeCampCode, name:wholeCampName, kind:'plot', quantity:1 }
+  // A room only counts as picked once its guests are known (a booking being amended keeps its rooms as they are).
+  const liveCounts = amendment ? counts : Object.fromEntries(Object.entries(counts).filter(([code]) =>
+    allRows.find(row => row.code === code)?.kind !== 'room' || roomGuests[code]))
   const hosts = wholeCamp ? (ready && catalog.wholeCampAvailable ? [wholeCampItem] : [])
-    : allRows.filter(row => row.kind !== 'gear' && counts[row.code])
-    .map(row => ({ ...row, quantity:counts[row.code] }))
+    : allRows.filter(row => row.kind !== 'gear' && liveCounts[row.code])
+    .map(row => ({ ...row, quantity:liveCounts[row.code], ...(row.kind === 'room' && roomGuests[row.code] ? { guests:roomGuests[row.code] } : {}) }))
+  // The plot guest picker only counts when something other than rooms is booked; room guests are added on top.
+  const pickedRooms = hosts.filter(row => row.kind === 'room' && row.guests)
+  const onlyRooms = hosts.length > 0 && hosts.every(row => row.kind === 'room')
+  const totalGuests = Object.fromEntries(['adults','children','seniors'].map(key =>
+    [key,(onlyRooms ? 0 : guests[key]) + pickedRooms.reduce((sum,row) => sum + row.guests[key],0)]))
+  const guestCount = Object.values(totalGuests).reduce((sum, count) => sum + count, 0)
   const rentalLines = hosts.flatMap(host => allRows
     .filter(row => (row.kind === 'gear' || (!wholeCamp && row.kind === 'room')) && rentalsByLock[host.code]?.[row.code] > 0)
     .map(row => ({ host:host.code, code:row.code, quantity:rentalsByLock[host.code][row.code] })))
-  const combined = wholeCamp ? {} : { ...counts }
+  const combined = wholeCamp ? {} : { ...liveCounts }
   for (const { code, quantity } of rentalLines) combined[code] = (combined[code] || 0) + quantity
   const selected = [
     ...(wholeCamp ? hosts : []),
-    ...allRows.filter(row => combined[row.code]).map(row => ({ ...row, quantity:combined[row.code] })),
+    ...allRows.filter(row => combined[row.code]).map(row => hosts.find(host => host.code === row.code && host.guests) ?? { ...row, quantity:combined[row.code] }),
   ]
   const nights = ready ? dayCount(arrival,departure) : 0
-  const pricing = ready ? stayPricing(selected,catalog.settings,guests.adults,catalog.rates,
-    wholeCamp ? (tier ? catalog.wholeCampPrices[tier.maxGuests] : 0) : null) : null
+  const pricing = ready ? stayPricing(selected,catalog.settings,totalGuests.adults,catalog.rates,
+    wholeCamp ? (tier ? catalog.wholeCampPrices[tier.maxGuests] : 0) : null, totalGuests.seniors) : null
+  // A plot needs an adult or a senior from the main guest picker; children alone cannot book one.
+  const plotNeedsGrownUp = !wholeCamp && hosts.some(row => row.kind === 'plot') && guests.adults + guests.seniors < 1
   const total = pricing?.total ?? 0
   const maxWholeCampGuests = catalog?.wholeCampTiers.at(-1)?.maxGuests
   const tooManyGuests = wholeCamp && ready && (guests.adults > maxWholeCampGuests || (guestCount > 0 && !guests.adults))
@@ -186,12 +203,12 @@ export default function CampPage({ review: initialReview = false, amendment = nu
   const wholeCampError = wholeCampUnavailable ? t('เหมาลานไม่ได้ เพราะมีรายการจองในช่วงวันที่เลือก')
     : tooManyGuests ? (guests.adults ? t('เหมาลานได้สูงสุดผู้ใหญ่ {n} คน กรุณาปรับจำนวนผู้เข้าพัก',{n:maxWholeCampGuests}) : t('เหมาลานต้องมีผู้ใหญ่อย่างน้อย 1 คน')) : ''
   const guestSummary = t('{n} คน',{n:guestCount}) + (guestCount > 0 ? ' · ' +
-    guestTypes.filter(([key]) => guests[key]).map(([key,label]) => t(label) + ' ' + guests[key]).join(' / ') : '')
+    guestTypes.filter(([key]) => totalGuests[key]).map(([key,label]) => t(label) + ' ' + totalGuests[key]).join(' / ') : '')
   const selectedNames = selected.map(row => row.name + (row.quantity > 1 ? ' × ' + row.quantity : ''))
   const mode = wholeCamp ? 'whole' : zone === 'BOX' ? 'box' : 'plots'
 
   useEffect(() => {
-    if (ready && !amendment) sessionStorage.setItem(draftKey, JSON.stringify({ arrival, departure, guests, counts, zone, rentalsByLock, wholeCamp }))
+    if (ready && !amendment) sessionStorage.setItem(draftKey, JSON.stringify({ arrival, departure, guests, counts, zone, rentalsByLock, wholeCamp, roomGuests }))
   }, [ready, arrival, departure, guests, counts, zone, rentalsByLock, wholeCamp])
 
   useEffect(()=>{setEditQuote(previous => previous === null ? previous : null)},[arrival,departure,guests,counts,rentalsByLock,wholeCamp,editGuest,catalog])
@@ -213,7 +230,7 @@ export default function CampPage({ review: initialReview = false, amendment = nu
     setLoading(false)
     setAvailabilityError('')
     setChecked(null)
-    if (!amendment) {setCounts({});setRentalsByLock({})}
+    if (!amendment) {setCounts({});setRentalsByLock({});setRoomGuests({})}
     setArrival(start)
     setDeparture(end)
     void checkDates(start,end,!!amendment)
@@ -223,6 +240,7 @@ export default function CampPage({ review: initialReview = false, amendment = nu
     setWholeCamp(exclusive)
     setCounts({})
     setRentalsByLock({})
+    setRoomGuests({})
     setBookingError('')
   }
 
@@ -241,7 +259,10 @@ export default function CampPage({ review: initialReview = false, amendment = nu
       return
     }
     setCounts(previous => ({ ...previous, [code]: quantity }))
-    if (!quantity) setRentalsByLock(previous => ({ ...previous, [code]: {} }))
+    if (!quantity) {
+      setRentalsByLock(previous => ({ ...previous, [code]: {} }))
+      setRoomGuests(({[code]:removed,...rest}) => rest)
+    }
     setBookingError('')
   }
 
@@ -272,19 +293,33 @@ export default function CampPage({ review: initialReview = false, amendment = nu
     select(row.code, quantity)
   }
 
+  // Picking a Trunkbox room (or editing one already picked) asks who stays in it first.
+  function openRoomGuests(code) {
+    setRoomPick(code)
+    roomGuestDialog.current.showModal()
+    roomGuestDialog.current.scrollTop = 0
+  }
+
+  function confirmRoomGuests(code, value) {
+    setRoomGuests(previous => ({ ...previous, [code]: value }))
+    select(code, 1)
+    roomGuestDialog.current.close()
+  }
+
   function confirmRentals(host, quantities) {
     setRentalsByLock(previous => ({ ...previous, [host]: quantities }))
     setBookingError('')
   }
 
   function goReview() {
-    if (!guestCount) {
-      setGuestWarning(true)
+    // Plots are priced by the guests of the main picker, so a plot needs them even when a room already has guests.
+    if (!guestCount || plotNeedsGrownUp) {
+      setGuestWarning(guests.children > 0 && plotNeedsGrownUp ? 'children' : true)
       guestWarningDialog.current.showModal()
       return
     }
     if(amendment){setEditReview(true);window.scrollTo({top:0,behavior:'smooth'});return}
-    sessionStorage.setItem(draftKey, JSON.stringify({ arrival, departure, guests, counts, zone, rentalsByLock, wholeCamp }))
+    sessionStorage.setItem(draftKey, JSON.stringify({ arrival, departure, guests, counts, zone, rentalsByLock, wholeCamp, roomGuests }))
     startNavigation(() => router.push('/review'))
   }
 
@@ -295,18 +330,22 @@ export default function CampPage({ review: initialReview = false, amendment = nu
       setBookingError(t('กรุณาเลือกจำนวนผู้เข้าพักก่อนยืนยันการจอง'))
       return
     }
+    if (plotNeedsGrownUp) {
+      setBookingError(t('การจองล็อกต้องมีผู้ใหญ่หรือผู้สูงอายุอย่างน้อย 1 คน'))
+      return
+    }
     const fields = new FormData(event.currentTarget)
     if (amendment) {
       setBookingBusy(true);setBookingError('');setEditQuote(null)
-      const payload={...guests,arrival,departure,guest:editGuest,id:amendment.booking.id,phone:amendment.phone,
+      const payload={...totalGuests,arrival,departure,guest:editGuest,id:amendment.booking.id,phone:amendment.phone,
         revision:amendment.booking.reschedule_count,items:selected.map(({code,quantity})=>({code,quantity})),rentalLines}
       try {setEditQuote({payload,...await read('/api/camp',{...payload,action:'quoteAmendment'})})}
       catch(error){setBookingError(error.message)}finally{setBookingBusy(false)}
       return
     }
     const payload = {
-      ...guests, arrival, departure, guest:fields.get('guest'), phone:fields.get('phone'),
-      items:selected.map(({code,quantity}) => ({code,quantity})), expectedTotal:total,
+      ...totalGuests, arrival, departure, guest:fields.get('guest'), phone:fields.get('phone'),
+      items:selected.map(({code,quantity,guests}) => guests ? {code,quantity,guests} : {code,quantity}), expectedTotal:total,
       ...(tier ? { expectedWholeCampFreeUnits:tier.freeUnits } : {}),
       ...(rentalLines.length ? { rentalLines } : {}),
     }
@@ -349,6 +388,8 @@ export default function CampPage({ review: initialReview = false, amendment = nu
     if (accepted) amendment.onClose()
   }
 
+  // On the Trunkbox tab with no plot picked, guests come from the room pickers alone.
+  const roomsOnlyMode = !amendment && mode === 'box' && !hosts.some(row => row.kind === 'plot')
   const reviewDisabled = !ready || !selected.length || tooManyGuests
   const dateLabel = arrival && departure ? compactDateRange(arrival,departure) : t('เลือกวันที่')
 
@@ -447,25 +488,25 @@ export default function CampPage({ review: initialReview = false, amendment = nu
       </section>
     </div>}
 
-    {review ? <main className="camp-shell flow-shell">
+    {review ? <>
+      {!amendment && <PageHero aria-label={t('ขั้นตอนการจอง')}><BookingSteps current={2}/></PageHero>}
+      <main className="camp-shell flow-shell">
       <BookingReview {...{ ready, loading, availabilityError, selected, nights, pricing, arrival, departure, guestSummary,
         bookingBusy, bookingError, receipt, book, select, confirmRentals, hosts, rentalLines, combined, wholeCamp, wholeCampError }}
-        freeUnits={tier?.freeUnits}
+        freeUnits={tier?.freeUnits} plotGuests={guests}
         gear={allRows.filter(row => row.kind === 'gear' || (!wholeCamp && row.kind === 'room'))} rentalsByLock={rentalsByLock}
         onRetry={() => checkDates(arrival, departure, true)}
         settings={catalog?.settings}
         amendment={amendment ? {guest:editGuest,setGuest:setEditGuest,phone:amendment.phone,quote:editQuote,save:saveAmendment,onBack:()=>setEditReview(false),noticeDays:amendment.booking.reschedule_notice_days,usedCount:amendment.booking.reschedule_count} : null}/>
-    </main> : <>
-      {!amendment && <section className="booking-hero" aria-labelledby="booking-title">
-        <div className="camp-shell booking-hero-inner">
+    </main></> : <>
+      {!amendment && <PageHero aria-labelledby="booking-title">
           {/* The tagline is switched on and off in admin (Settings › คำโปรยหน้าจอง); with both lines off, the steps sit at the top. */}
           {welcomeTitle || welcomeSubtitle ? <div className="booking-hero-copy">
             {welcomeTitle ? <h1 id="booking-title">{welcomeTitle}</h1> : <h1 id="booking-title" className="visually-hidden">{t('จองลานและอุปกรณ์')}</h1>}
             {welcomeSubtitle && <p>{welcomeSubtitle}</p>}
           </div> : <h1 id="booking-title" className="visually-hidden">{t('จองลานและอุปกรณ์')}</h1>}
           <BookingSteps current={1}/>
-        </div>
-      </section>}
+      </PageHero>}
 
       <main className="camp-shell booking-layout">
         <section className="booking-main" id="booking" aria-label={t('จองลานและอุปกรณ์')}>
@@ -479,13 +520,15 @@ export default function CampPage({ review: initialReview = false, amendment = nu
               <span className="search-field-text"><span>{t('เข้าพัก – วันออก')}</span><strong>{dateLabel}</strong></span>
               {nights > 0 && <span className="search-field-badge">{t('{n} คืน',{n:nights})}</span>}
             </button>
-            <button className="search-field" disabled={bookingBusy} aria-invalid={guestWarning && !guestCount ? true : undefined}
+            {/* Trunkbox guests are entered per room, so with only rooms in play this opens the room's own picker. */}
+            <button className="search-field" disabled={bookingBusy || (roomsOnlyMode && !pickedRooms.length)} aria-invalid={guestWarning && !guestCount ? true : undefined}
               aria-describedby={guestWarning && !guestCount ? 'camp-guest-warning' : undefined} onClick={() => {
+                if (roomsOnlyMode) return openRoomGuests(pickedRooms[0].code)
                 guestDialog.current.showModal()
                 guestDialog.current.scrollTop = 0
               }}>
               <span className="search-field-icon" aria-hidden="true"><CustomerIcon name="guests"/></span>
-              <span className="search-field-text"><span>{t('ผู้เข้าพัก')}</span><strong>{guestCount ? t('{n} คน',{n:guestCount}) : t('เพิ่มผู้เข้าพัก')}</strong></span>
+              <span className="search-field-text"><span>{t('ผู้เข้าพัก')}</span><strong>{guestCount ? t('{n} คน',{n:guestCount}) : roomsOnlyMode ? t('ระบุเมื่อเลือกห้อง') : t('เพิ่มผู้เข้าพัก')}</strong></span>
             </button>
           </div>
 
@@ -508,8 +551,8 @@ export default function CampPage({ review: initialReview = false, amendment = nu
             tiers={catalog?.wholeCampTiers ?? []}
             onRetry={wholeCampUnavailable ? () => checkDates(arrival,departure,true) : undefined}
             status={wholeCampError || (loading ? t('กำลังตรวจสอบลานว่าง…') : ready ? t('ว่างสำหรับเหมาลานตลอดช่วงที่เลือก') : '')}/> : mode === 'box' ?
-            <TrunkboxOption rooms={visible.filter(row=>row.kind==='room')} counts={counts} ready={ready} busy={bookingBusy}
-              onSelect={select} onRemove={toggleOff}/> :
+            <TrunkboxOption rooms={visible.filter(row=>row.kind==='room')} counts={liveCounts} ready={ready} busy={bookingBusy}
+              roomGuests={roomGuests} onSelect={openRoomGuests} onRemove={toggleOff}/> :
             <section className="panel map-panel" aria-labelledby="map-panel-title">
               <header className="map-panel-head">
                 <div>
@@ -557,12 +600,17 @@ export default function CampPage({ review: initialReview = false, amendment = nu
       <GuestPicker guests={guests} setGuests={setGuests} settings={catalog?.settings} rates={ready ? catalog.rates : []}
         dialog={guestDialog} wholeCamp={wholeCamp}/>
     </dialog>
+    <dialog ref={roomGuestDialog} className="dialog booking-picker" aria-labelledby="room-guest-title" onClose={() => setRoomPick(null)}>
+      {roomPick && allRows.some(row => row.code === roomPick) && <RoomGuestPicker key={roomPick} room={allRows.find(row => row.code === roomPick)}
+        initial={roomGuests[roomPick]} nights={nights}
+        onConfirm={value => confirmRoomGuests(roomPick,value)} onCancel={() => roomGuestDialog.current.close()}/>}
+    </dialog>
     <dialog ref={guestWarningDialog} className="dialog confirm-dialog tone-warning camp-guest-warning" aria-labelledby="camp-guest-warning"
       onClose={() => setGuestWarning(false)}>
       <div className="confirm-dialog-body">
         <span className="confirm-dialog-icon" aria-hidden="true"><CustomerIcon name="guests"/></span>
-        <h2 id="camp-guest-warning" role="alert">{t('กรุณาเลือกจำนวนผู้เข้าพักก่อน')}</h2>
-        <p className="confirm-dialog-message">{t('ระบบใช้จำนวนผู้เข้าพักในการคำนวณราคา')}</p>
+        <h2 id="camp-guest-warning" role="alert">{t(guestWarning === 'children' ? 'การจองล็อกต้องมีผู้ใหญ่หรือผู้สูงอายุอย่างน้อย 1 คน' : 'กรุณาเลือกจำนวนผู้เข้าพักก่อน')}</h2>
+        <p className="confirm-dialog-message">{t(guestWarning === 'children' ? 'เด็กเข้าพักฟรีเมื่อมากับผู้ใหญ่หรือผู้สูงอายุ กรุณาเพิ่มผู้ใหญ่หรือผู้สูงอายุ' : 'ระบบใช้จำนวนผู้เข้าพักในการคำนวณราคา')}</p>
         <div className="confirm-dialog-actions">
           <form method="dialog"><button className="button secondary">{t('กลับ')}</button></form>
           <button className="button" type="button" onClick={() => {

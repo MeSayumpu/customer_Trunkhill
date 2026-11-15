@@ -4,12 +4,12 @@ import { CustomerIcon } from './customer-icon'
 
 import Link from './pending-ui'
 import { useRef, useState } from 'react'
-import { statuses } from '../lib/pricing'
+import { statuses, roomExtraGuests } from '../lib/pricing'
+import { roomGuestText } from './room-guest-picker'
 import { isRentalStay } from '../lib/rentals'
 import { displayDate } from './booking-pickers'
 import { RentalPicker } from './rental-picker'
 import { CampLoader } from './camp-loader'
-import { BookingSteps } from './booking-steps'
 import { wholeCampCode } from '../lib/whole-camp'
 import { rescheduleLimit } from '../lib/booking-dates'
 import { useConfirm } from './confirm-dialog'
@@ -34,7 +34,7 @@ function RemoveAction({row,disabled,onRemove}) {
 export function BookingReview({
   ready, loading, availabilityError, selected, nights, pricing, arrival, departure,
   guestSummary, bookingBusy, bookingError, receipt, book, select, gear, onRetry,
-  settings, confirmRentals, hosts, rentalLines, combined, rentalsByLock, wholeCamp, wholeCampError, freeUnits, amendment = null,
+  settings, confirmRentals, hosts, rentalLines, combined, rentalsByLock, wholeCamp, wholeCampError, freeUnits, plotGuests, amendment = null,
 }) {
   const {t,msg,money} = useI18n()
   const confirm = useConfirm()
@@ -97,11 +97,10 @@ export function BookingReview({
   const plotLines = row => pricing?.plotBreakdown?.get(row.code)?.lines ?? []
   const plotLineLabel = (row,line) => {
     const adults = pricing.plotBreakdown.get(row.code).adults
-    return <>{t('ผู้ใหญ่ {n} คน × {price}/คน × {nights} คืน',{n:adults,price:money(line.price),nights:line.nights})}
+    return <>{t(pricing.seniorsAsAdults ? 'ผู้สูงอายุ {n} คน × {price}/คน × {nights} คืน' : 'ผู้ใหญ่ {n} คน × {price}/คน × {nights} คืน',{n:adults,price:money(line.price),nights:line.nights})}
       <small className="review-cost-rule"> · {t(adults === 1 ? 'ราคาผู้ใหญ่ 1 คนต่อล็อก' : 'ราคาผู้ใหญ่ 2 คนขึ้นไปต่อล็อก')}</small></>
   }
   return <section className="review-page" aria-labelledby="review-title">
-    {!amendment&&<BookingSteps current={2}/>}
     <header className="review-heading">
       <h1 id="review-title">{amendment ? t('ตรวจสอบการแก้ไข') : t('ตรวจสอบการจอง')}</h1>
       <div className="review-badges">
@@ -138,6 +137,8 @@ export function BookingReview({
                 rentalDialog.current.scrollTop = 0
               }}>{t('+ เช่าอุปกรณ์เพิ่ม')}</button>}
           </div>
+          {/* Trunkbox: how many guests the room price covers and the most it takes, on a row of its own under the heading. */}
+          {row.kind === 'room' && row.room_base_guests != null && <p className="muted small review-room-limits">{t('ผู้เข้าพักปกติ {base} คน · รองรับสูงสุด {max} คน',{base:row.room_base_guests,max:row.room_max_guests})}</p>}
           {/* Person pricing: one line per rate, so the guest sees how many adults the plot is billed for and at what price. */}
           {/* When the nights have different rates, each rate gets its own line above the plot total. */}
           {plotLines(row).length > 1 && plotLines(row).map(line => <div className="review-cost review-cost-detail" key={line.price}>
@@ -150,6 +151,14 @@ export function BookingReview({
               : t('{price} / คืน',{price:money(row.price)})}{!plotLines(row).length && <> × {nightsLabel}</>}</ReviewCostLabel>
             <strong>{money(row.kind === 'plot' ? (pricing?.plotAmounts.get(row.code) ?? 0) : row.price * row.quantity * nights)}</strong>
           </div>
+          {/* Trunkbox: who stays in the room, and the charge for adults and seniors beyond the guests its price covers. */}
+          {row.kind === 'room' && row.guests && <>
+            {roomExtraGuests(row) > 0 && <div className="review-cost review-cost-detail">
+              <ReviewCostLabel stay>{t('ผู้เข้าพักเพิ่ม {n} คน × {price}/คน × {nights} คืน',{n:roomExtraGuests(row),price:money(row.room_extra_guest_price),nights})}</ReviewCostLabel>
+              <strong>{money(roomExtraGuests(row) * row.room_extra_guest_price * nights)}</strong>
+            </div>}
+            <p className="small muted">{t('ผู้เข้าพัก')}: {roomGuestText(row.guests,t)}</p>
+          </>}
           {row.code === wholeCampCode && freeUnits != null && <p className="small muted">{t('ค่าไฟฟรี {n} หน่วยต่อกลุ่ม',{n:freeUnits})}</p>}
           {rentalLines.filter(line => line.host === row.code).map(line => {
             const rental = gear.find(item => item.code === line.code)
@@ -166,10 +175,21 @@ export function BookingReview({
             <RemoveAction row={row} disabled={bookingBusy} onRemove={removeRow}/>
           </div>
         </article>)}
+        {/* Guests who stay on the plots without charge get their own 0-baht lines, so every guest type is accounted for. */}
+        {personPricing && plotCount > 0 && plotGuests && <>
+          {plotGuests.seniors > 0 && !pricing?.seniorsAsAdults && <div className="review-cost review-free-guests">
+            <ReviewCostLabel stay>{t('ราคาผู้สูงอายุ {n} คน',{n:plotGuests.seniors})}</ReviewCostLabel><strong>{money(0)}</strong>
+          </div>}
+          {plotGuests.children > 0 && <div className="review-cost review-free-guests">
+            <ReviewCostLabel stay>{t('ราคาเด็ก {n} คน',{n:plotGuests.children})}</ReviewCostLabel><strong>{money(0)}</strong>
+          </div>}
+        </>}
         {personPricing && plotCount > 0 && <div className="review-cost review-lodging-subtotal">
           <span>{t('รวมค่าลานตามจำนวนคน')}</span>
           <span>{money(pricing?.plotTotal ?? 0)}</span>
         </div>}
+        {/* Seniors with no adult are billed as adults; say so where the plot charges are shown. */}
+        {pricing?.seniorsAsAdults && <p className="small muted review-senior-note" role="note">* {t('กรณีผู้สูงอายุเข้าพักโดยไม่มีผู้ใหญ่ จะคิดราคาผู้สูงอายุตามราคาผู้ใหญ่')}</p>}
 
         {rentals.map(row => <article key={row.code} className="review-line stack">
           <h3>{t(row.name)} × {row.quantity}</h3>
@@ -206,7 +226,9 @@ export function BookingReview({
             {pricing?.discount > 0 && <div className="review-cost"><span>{t('ส่วนลดค่าเช่าเต็นท์')}</span><span>−{money(pricing.discount)}</span></div>}
           </div>
           <div className="review-cost review-total"><strong>{amendment ? t('ยอดประมาณตามราคาปัจจุบัน') : t('รวมค่าเข้าพักทั้งหมด')}</strong><strong>{money(receipt?.total ?? total)}</strong></div>
-          <p className="small">{t('เลื่อนหรือแก้ไขได้รวม {n} ครั้ง โดยต้องเลื่อนล่วงหน้าอย่างน้อย {days} วันก่อนวันเข้าพักเดิม',{n:limit,days:amendment?.noticeDays??settings?.reschedule_notice_days??3})}</p>
+          {/* The chosen nights fall in a no-reschedule period set by the admin: say so before the guest confirms. */}
+          {!amendment && settings?.reschedule_blackout && <p className="review-senior-note review-blackout-note" role="note"><strong>{settings.reschedule_blackout.label}</strong>{t('จองแล้วเลื่อนไม่ได้')}</p>}
+          <p className="small" hidden={!amendment && !!settings?.reschedule_blackout}>{t('เลื่อนหรือแก้ไขได้รวม {n} ครั้ง โดยต้องเลื่อนล่วงหน้าอย่างน้อย {days} วันก่อนวันเข้าพักเดิม',{n:limit,days:amendment?.noticeDays??settings?.reschedule_notice_days??3})}</p>
           <button type="button" className="button secondary" onClick={()=>{setView('items');window.scrollTo({top:0,behavior:'smooth'})}}>{t('← กลับไปดูรายการที่จอง')}</button>
           {receipt ? <div className="notice" role="status"><strong>{t('บันทึกคำขอแล้ว')}</strong><br/>{t('รหัสจอง')} <code>{receipt.id}</code><br/>{t(statuses[receipt.status])}</div>
             : <button className="button" disabled={!ready || !selected.length || bookingBusy || !!wholeCampError}>

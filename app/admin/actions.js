@@ -72,6 +72,12 @@ export async function unlockPhone(data) {
   redirect(adminUrl('blockedPhones',{saved:'unlocked',q:phone}))
 }
 
+export async function saveSlipCheck(data) {
+  await requireAdmin()
+  await database().execute('UPDATE settings SET slip_duplicate_check=? WHERE id=1',[data.get('slipDuplicateCheck') === 'on' ? 1 : 0])
+  redirect(adminUrl('payment',{saved:'payment'}))
+}
+
 export async function savePaymentConfig(data) {
   await requireAdmin()
   const recipient = String(data.get('recipient') || '').trim()
@@ -103,6 +109,24 @@ export async function saveBookingPolicy(data) {
   const limit=numberField(data,'rescheduleLimit')
   if(!integer(days,0,365)||!integer(limit,0,255))redirect(adminUrl('bookingPolicy',{error:'invalid'}))
   await database().execute('UPDATE settings SET reschedule_notice_days=?,reschedule_limit=? WHERE id=1',[days,limit])
+  redirect(adminUrl('bookingPolicy',{saved:'policy'}))
+}
+
+export async function addRescheduleBlackout(data) {
+  await requireAdmin()
+  const label = String(data.get('label') || '').trim()
+  const start = String(data.get('start') || '')
+  const end = String(data.get('end') || '')
+  if (!label || label.length > 120 || !isCalendarDate(start) || !isCalendarDate(end) || end < start) redirect(adminUrl('bookingPolicy',{error:'invalid'}))
+  await database().execute('INSERT INTO reschedule_blackouts (label,start_date,end_date) VALUES (?,?,?)',[label,start,end])
+  redirect(adminUrl('bookingPolicy',{saved:'policy'}))
+}
+
+export async function deleteRescheduleBlackout(data) {
+  await requireAdmin()
+  const id = Number(data.get('id'))
+  if (!integer(id,1,4294967295)) redirect(adminUrl('bookingPolicy',{error:'invalid'}))
+  await database().execute('DELETE FROM reschedule_blackouts WHERE id=?',[id])
   redirect(adminUrl('bookingPolicy',{saved:'policy'}))
 }
 
@@ -162,7 +186,7 @@ export async function saveTentDiscount(data) {
     )
     if (rows.length !== codes.length) return false
     await connection.execute(
-      `UPDATE inventory SET tent_discount_per_guest=?,tent_discount_guest_limit=? WHERE kind='gear' AND is_tent=TRUE AND code IN (${placeholders})`,
+      `UPDATE inventory SET tent_discount_per_guest=?,tent_discount_guest_limit=?,tent_discount_tiers=NULL WHERE kind='gear' AND is_tent=TRUE AND code IN (${placeholders})`,
       [discount,guestLimit,...codes],
     )
     return true
@@ -255,8 +279,17 @@ export async function saveInventory(data) {
   const detail = String(data.get('detail')).trim()
   const price = Number(data.get('price'))
   const stock = kind === 'gear' ? Number(data.get('stock')) : 1
-  const discount = numberField(data, 'tentDiscount') ?? 0
-  const discountGuestLimit = numberField(data, 'tentDiscountGuestLimit') ?? 0
+  // Discount steps [[adults, rate], …]; the single-rate columns keep the largest step for older code paths.
+  let discountTiers = []
+  try { discountTiers = JSON.parse(data.get('tentDiscountTiers') || '[]') } catch { discountTiers = null }
+  const tiersValid = Array.isArray(discountTiers) && discountTiers.length <= 10 &&
+    discountTiers.every(tier => Array.isArray(tier) && tier.length === 2 && integer(tier[0],1,100) && integer(tier[1],1,100000)) &&
+    new Set((discountTiers || []).map(tier => tier[0])).size === discountTiers.length
+  if (tiersValid) discountTiers.sort((a,b) => a[0] - b[0])
+  const [discountGuestLimit,discount] = (tiersValid && discountTiers.at(-1)) || [0,0]
+  // Rooms: guests the price covers, the most adults + seniors the room takes, and the nightly charge per extra one.
+  const roomGuests = kind === 'room' ? ['roomBaseGuests','roomMaxGuests','roomExtraGuestPrice'].map(name => numberField(data, name)) : [2,4,150]
+  const roomGuestsValid = integer(roomGuests[0],1,20) && integer(roomGuests[1],roomGuests[0],20) && integer(roomGuests[2],0,100000)
   const active = data.has('active')
   const allowedZones = { plot: (await campZones()).filter(z=>z!=='BOX'), room: ['BOX'], gear: ['GEAR'] }
   const section = Object.hasOwn(inventorySections,kind) ? inventorySections[kind] : 'plots'
@@ -276,7 +309,7 @@ export async function saveInventory(data) {
   if (!codePattern.test(code) || code === wholeCampCode || (original && original !== code) ||
       !Object.hasOwn(allowedZones, kind) || !allowedZones[kind].includes(zone) ||
       !name || name.length > 120 || detail.length > 240 || !integer(price, 0, 100000) || !integer(stock, 0, 1000) ||
-      !integer(discount, 0, 100000) || !integer(discountGuestLimit, 0, 100)) {
+      !tiersValid || !roomGuestsValid) {
     redirect(adminUrl(section, { ...filters, error:'invalid' }))
   }
 
@@ -305,12 +338,12 @@ export async function saveInventory(data) {
         plotFeatures = all ? null : JSON.stringify(picked)
       }
       const tent = kind === 'gear' && (data.has('rentalType') ? data.get('rentalType') === 'tents' : current ? isTent(current) : tab === 'tents')
-      const discountValues = tent ? [discount,discountGuestLimit] : [null,null]
+      const discountValues = tent ? [discount,discountGuestLimit,discountTiers.length ? JSON.stringify(discountTiers) : null] : [null,null,null]
       if (!current && !original) {
         await connection.execute(
-          `INSERT INTO inventory (code,kind,zone,name,detail,price,stock,active,is_tent,tent_discount_per_guest,tent_discount_guest_limit,plot_features)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-          [code,kind,zone,name,detail,price,stock,active,tent,...discountValues,plotFeatures],
+          `INSERT INTO inventory (code,kind,zone,name,detail,price,stock,active,is_tent,tent_discount_per_guest,tent_discount_guest_limit,tent_discount_tiers,plot_features,room_base_guests,room_max_guests,room_extra_guest_price)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+          [code,kind,zone,name,detail,price,stock,active,tent,...discountValues,plotFeatures,...roomGuests],
         )
       } else {
         if (!current || !original || current.kind !== kind) return {error:'invalid'}
@@ -321,8 +354,8 @@ export async function saveInventory(data) {
            ) nightly`, [code])
         if (stock < Number(peak)) return {error:'stock'}
         await connection.execute(
-          `UPDATE inventory SET zone=?,name=?,detail=?,price=?,stock=?,active=?,is_tent=?,tent_discount_per_guest=?,tent_discount_guest_limit=?,plot_features=? WHERE code=?`,
-          [zone,name,detail,price,stock,active,tent,...discountValues,plotFeatures,code],
+          `UPDATE inventory SET zone=?,name=?,detail=?,price=?,stock=?,active=?,is_tent=?,tent_discount_per_guest=?,tent_discount_guest_limit=?,tent_discount_tiers=?,plot_features=?,room_base_guests=?,room_max_guests=?,room_extra_guest_price=? WHERE code=?`,
+          [zone,name,detail,price,stock,active,tent,...discountValues,plotFeatures,...roomGuests,code],
         )
       }
       if (photo) {

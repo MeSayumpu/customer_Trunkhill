@@ -1,7 +1,9 @@
 'use client'
 import { CustomerIcon } from '../customer-icon'
+import { roomGuestText } from '../room-guest-picker'
 
 import { BookingEditor } from './booking-editor'
+import { PageHero } from '../page-hero'
 import { RescheduleHistory } from './reschedule-history'
 
 import { useEffect, useState } from 'react'
@@ -39,7 +41,7 @@ function BookingSummary({booking}) {
       <h3>{t('ล็อก ห้องพัก และอุปกรณ์')}</h3>
       <ul className="booking-summary-lines" role="list">
         {booking.lines.map(line => <li key={line.code}>
-          <div><strong>{t(line.name)} × {line.quantity}</strong><small>{t('รหัส {code}',{code:line.code})}{line.zone ? ' · ' + t('โซน {zone}',{zone:line.zone}) : ''}</small>
+          <div><strong>{t(line.name)} × {line.quantity}</strong><small>{t('รหัส {code}',{code:line.code})}{line.zone ? ' · ' + t('โซน {zone}',{zone:line.zone}) : ''}{line.room_adults != null ? ' · ' + roomGuestText({adults:line.room_adults,seniors:line.room_seniors,children:line.room_children},t) : ''}</small>
             <small>{booking.rentalLines.filter(rental => rental.code === line.code)
               .map(rental => t(rental.host) + ' × ' + rental.quantity).join(' · ')}</small>
           </div>
@@ -77,9 +79,12 @@ export function BookingManagement() {
   return <div className="camp-home customer-compact booking-management">
     {busy&&<PendingScreen label="กำลังค้นหาการจอง…"/>}
     <CampHeader onCampInfo={menuActions.onCampInfo} onZoneDetails={menuActions.onZoneDetails} lookup/>
+    <PageHero aria-labelledby="manage-booking-title"><div className="booking-hero-copy">
+      <h1 id="manage-booking-title">{t('ตรวจสอบการจอง')}</h1>
+      {!booking&&<p>{t('กรอกรหัสการจองและเบอร์โทรเพื่อดูรายละเอียดทั้งหมด')}</p>}
+    </div></PageHero>
     <main className={'camp-shell stack manage-booking'+(booking?'':' manage-booking-search')}>
       {!booking&&<form onSubmit={search} className="panel stack booking-lookup">
-        <div className="booking-lookup-intro"><CustomerIcon name="search"/><h1>{t('ตรวจสอบการจอง')}</h1><p>{t('กรอกรหัสการจองและเบอร์โทรเพื่อดูรายละเอียดทั้งหมด')}</p></div>
         <div className="booking-lookup-fields">
           <label>{t('รหัสการจอง')}<input name="id" required maxLength={64} autoCapitalize="characters" spellCheck={false} disabled={busy}/></label>
           <label>{t('เบอร์โทรผู้จอง')}<input name="phone" type="tel" autoComplete="tel" required maxLength={24} disabled={busy}/></label>

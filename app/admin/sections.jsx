@@ -9,7 +9,7 @@ import { database } from '../../lib/db'
 import { money } from '../../lib/pricing'
 import { wholeCampCode, wholeCampName, wholeCampTiers } from '../../lib/whole-camp'
 import { WholeCampRateFields } from './whole-camp-rate-fields'
-import { saveInventory, savePaymentConfig, saveSettings, saveWholeCampRates } from './actions'
+import { saveInventory, savePaymentConfig, saveSettings, saveSlipCheck, saveWholeCampRates } from './actions'
 import { TentDiscountForm } from './tent-discount-form'
 import { isTent } from '../../lib/rentals'
 import { adminSections, adminUrl, inventoryKinds } from './navigation'
@@ -17,6 +17,8 @@ import { AdminDialog } from './admin-dialog'
 import { RoomPhotosField } from './room-photos-field'
 import { PlotFeaturesField } from './plot-features-field'
 import { GearOrderForm } from './gear-order-form'
+import { TentDiscountTiersField } from './tent-discount-tiers-field'
+import { tentDiscountTiers } from '../../lib/pricing'
 import { normalizeZoneFeatures, plotFeatureSelection } from '../../lib/zone-features'
 
 const pageSize = 30
@@ -90,16 +92,14 @@ async function InventoryForm({ row = {}, kind, q, zone, tab, closeUrl }) {
     {kind !== 'gear' && <PlotFeaturesField zones={zoneFeatures} room={kind === 'room'}
       zone={kind === 'room' ? 'BOX' : row.zone || zone || zones.plot[0]} originalZone={row.zone}
       selection={plotFeatureSelection(row.plot_features)} mediaUrl={adminUrl('zoneMedia',kind === 'room' ? {zone:'BOX'} : {})}/>}
-    {tent && <fieldset className="inventory-edit-group inventory-edit-discount">
-      <legend>ส่วนลดเต็นท์รุ่นนี้</legend>
-      <label>ส่วนลด (บาท/ผู้ใหญ่/คืน)
-        <input name="tentDiscount" type="number" min="0" max="100000" defaultValue={row.tent_discount_per_guest ?? ''}/>
-      </label>
-      <label>จำนวนผู้ใหญ่สูงสุดที่รับส่วนลดต่อการจอง
-        <input name="tentDiscountGuestLimit" type="number" min="0" max="100" defaultValue={row.tent_discount_guest_limit ?? ''}/>
-      </label>
-      <p className="small muted">ใส่ 0 หรือเว้นว่างช่องใดช่องหนึ่งเพื่อปิดส่วนลดของรุ่นนี้</p>
+    {kind === 'room' && <fieldset className="inventory-edit-group room-guests">
+      <legend>จำนวนผู้เข้าพักและค่าคนเพิ่ม</legend>
+      <p className="small muted">นับเฉพาะผู้ใหญ่และผู้สูงอายุ เด็กเข้าพักฟรีและไม่นับรวม ราคาห้องด้านบนรวมผู้เข้าพักปกติแล้ว</p>
+      <label>จำนวนผู้เข้าพักปกติ (คน)<input name="roomBaseGuests" type="number" min="1" max="20" defaultValue={row.room_base_guests ?? 2} required/></label>
+      <label>รองรับสูงสุด (คน)<input name="roomMaxGuests" type="number" min="1" max="20" defaultValue={row.room_max_guests ?? 4} required/></label>
+      <label>คนที่เกินจากผู้เข้าพักปกติ คิดเพิ่มคนละ (บาท/คืน)<input name="roomExtraGuestPrice" type="number" min="0" max="100000" defaultValue={row.room_extra_guest_price ?? 150} required/></label>
     </fieldset>}
+    {tent && <TentDiscountTiersField tiers={tentDiscountTiers(row)} price={row.price ?? 0}/>}
     {kind === 'room' && <fieldset className="inventory-edit-group inventory-edit-photo">
       <legend>รูปภาพห้อง</legend>
       <RoomPhotosField existing={roomPhotos} roomName={row.name || 'ห้องนี้'}/>
@@ -148,7 +148,7 @@ export async function InventoryList({ section, query }) {
     values.push(position.value)
   }
   const [rows] = await database().execute(
-    `SELECT code,zone,name,detail,price,stock,active,is_tent,tent_discount_per_guest,tent_discount_guest_limit,plot_features,
+    `SELECT code,zone,name,detail,price,stock,active,is_tent,tent_discount_per_guest,tent_discount_guest_limit,tent_discount_tiers,room_base_guests,room_max_guests,room_extra_guest_price,plot_features,
        EXISTS(SELECT 1 FROM inventory_photos p WHERE p.code=inventory.code) AS has_photo
      FROM inventory WHERE ${clauses.join(' AND ')}
      ORDER BY code ${position.backwards ? 'DESC' : 'ASC'} LIMIT ?`,[...values,pageSize+1])
@@ -160,7 +160,7 @@ export async function InventoryList({ section, query }) {
   const adding = query.add === '1'
   const tableLabel = tab === 'tents' ? 'เต็นท์' : adminSections[section]
   const [orderRows] = kind === 'gear' ? await database().execute(
-    'SELECT code,name,active FROM inventory WHERE kind=? AND is_tent=? ORDER BY sort_order,code',['gear',tab === 'tents']) : [[]]
+    'SELECT i.code,i.name,i.active,i.price,i.kind,EXISTS(SELECT 1 FROM inventory_photos p WHERE p.code=i.code) AS has_photo FROM inventory i WHERE i.kind=? AND i.is_tent=? ORDER BY i.sort_order,i.code',['gear',tab === 'tents']) : [[]]
   const [zoneRows] = kind === 'plot' ? await database().query("SELECT z.zone,z.active,(SELECT COUNT(*) FROM inventory i WHERE i.zone=z.zone) AS total FROM zone_details z WHERE z.zone NOT IN ('BOX','GEAR') ORDER BY z.zone") : [[]]
   return <section className="panel stack admin-content">
     {kind === "plot" && <details className="panel zone-create"><summary>จัดการโซน / เพิ่มโซน / เปิด–ปิดการใช้งาน</summary><p>เพิ่มโซน เช่น E แล้วเลือกโซนนี้ตอนเพิ่มล็อก จากนั้นจัดวางล็อกในหน้าจัดการผังลาน</p><ActionForm action={addZone} className="actions"><label>รหัสโซน<input name="zone" placeholder="E" pattern="[A-Za-z][A-Za-z0-9-]{0,11}" maxLength={12} required/></label><button className="button">เพิ่มโซน</button></ActionForm><ZoneStatusList zones={zoneRows}/></details>}
@@ -243,6 +243,7 @@ export async function PricingSettings() {
 
 export async function PaymentSettings() {
   const [[config]] = await database().query('SELECT recipient,bank_name,bank_account FROM payment_config WHERE id=1')
+  const [[{slip_duplicate_check:slipCheck}]] = await database().query('SELECT slip_duplicate_check FROM settings WHERE id=1')
   return <section className="panel stack admin-content">
     <h2>รับชำระค่าจอง</h2>
     <p>แนบ QR สำหรับรับเงินของแคมป์ และระบุชื่อผู้รับที่ลูกค้าจะเห็นในหน้าชำระเงิน</p>
@@ -254,6 +255,13 @@ export async function PaymentSettings() {
       <label>รูป QR รับเงิน<input name="qr" type="file" accept="image/jpeg,image/png,image/webp" required={!config}/>
         <small>JPG, PNG หรือ WebP</small></label>
       <div className="admin-edit-footer"><button className="button"><AdminIcon name="save"/>บันทึก QR รับเงิน</button></div>
+    </ActionForm>
+    <h3>ตรวจสลิปซ้ำ</h3>
+    <p>เมื่อเปิด ระบบจะยกเลิกการจองที่แนบสลิปซ้ำกับรายการอื่น และระงับเบอร์โทรที่ส่งสลิปซ้ำเกิน 3 ครั้ง ปิดได้ชั่วคราวระหว่างทดสอบระบบ เพื่อใช้สลิปเดิมซ้ำได้</p>
+    {!slipCheck && <p className="notice error" role="status">ปิดการตรวจสลิปซ้ำอยู่ ลูกค้าใช้สลิปเดิมจองซ้ำได้ อย่าลืมเปิดกลับก่อนใช้งานจริง</p>}
+    <ActionForm action={saveSlipCheck} className="admin-edit-form">
+      <label className="checkbox"><input type="checkbox" name="slipDuplicateCheck" defaultChecked={!!slipCheck}/> เปิดการตรวจสลิปซ้ำ</label>
+      <div className="admin-edit-footer"><button className="button"><AdminIcon name="save"/>บันทึกการตรวจสลิป</button></div>
     </ActionForm>
   </section>
 }

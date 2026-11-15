@@ -255,6 +255,20 @@
   content:''; position:absolute; inset:auto 0 0; z-index:-1; height:72%; pointer-events:none;
   background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320' preserveAspectRatio='none'%3E%3Cpath fill='%23356a50' fill-opacity='.55' d='M0 214 120 150l110 52 130-92 120 80 120-70 120 60 140-90 120 80 120-50 140 70 120-50 80 30v150H0Z'/%3E%3Cpath fill='%23163c2c' d='M0 262c180-40 300 22 480-14s300 26 480-6 300 22 480-10v88H0Z'/%3E%3Cpath fill='%23f6f2e9' d='M0 300c240-14 480 10 720 2s480-14 720 0v18H0Z'/%3E%3C/svg%3E") bottom / 100% 100% no-repeat;
 }
+/* Uploaded photo/video: sits behind a dark-to-light green filter; the mountain silhouettes give way to the cream edge only. */
+.customer-ui .booking-hero-media { position:absolute; inset:0; z-index:-2; width:100%; height:100%; object-fit:cover; pointer-events:none; }
+.customer-ui .booking-hero.has-media::before {
+  content:''; position:absolute; inset:0; z-index:-1; pointer-events:none;
+  background:linear-gradient(180deg,rgba(17,46,33,.94) 0%,rgba(29,70,52,.78) 50%,rgba(43,90,66,.5) 100%);
+}
+.customer-ui .booking-hero.has-media::after {
+  height:24px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 24' preserveAspectRatio='none'%3E%3Cpath fill='%23f6f2e9' d='M0 6c240-14 480 10 720 2s480-14 720 0v18H0Z'/%3E%3C/svg%3E");
+}
+@media (prefers-reduced-motion:reduce) { .customer-ui video.booking-hero-media { display:none; } }
+/* Pages whose content does not overlap the band (review, payment, check booking): shorter band, content sits right under it. */
+.customer-ui .booking-hero:not(:has(+ .booking-layout)) { padding-bottom:clamp(32px,4vw,42px); }
+.customer-ui .booking-hero + :is(.flow-shell,.payment-shell,.manage-booking) { padding-top:clamp(6px,1.2vw,14px); }
 .customer-ui .booking-hero-inner { display:grid; justify-items:center; gap:clamp(18px,3vw,28px); text-align:center; }
 .customer-ui .booking-hero-copy { display:grid; justify-items:center; gap:8px; max-width:46rem; }
 .customer-ui .booking-hero h1 { color:#fffaf0; text-wrap:balance; }
@@ -543,6 +557,18 @@
 .customer-ui .room-choice[data-booked] { opacity:.6; cursor:not-allowed; }
 .customer-ui .room-choice-text { display:grid; gap:2px; min-width:0; }
 .customer-ui .room-choice-text strong { font-size:1rem; }
+/* Yellow note on the review page: seniors billed as adults when no adult comes along. */
+.customer-ui .review-senior-note { margin:0; padding:10px 14px; border:1px solid #ecd27a; border-radius:12px; background:#fff3bf; color:#5c4700; font-weight:600; }
+/* No-reschedule period: the period name on one line, the rule in lighter text under it. */
+.customer-ui .review-blackout-note { display:grid; gap:2px; font-size:.9rem; font-weight:500; }
+.customer-ui .review-blackout-note strong { font-size:.95rem; }
+.customer-ui .room-choice-item { display:grid; gap:6px; }
+.customer-ui .room-choice-price { color:var(--c-forest); font-weight:600; }
+/* Guests entered for a picked room, with a way back into its picker. */
+.customer-ui .room-choice-guests { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; padding:8px 12px; border:1px dashed var(--c-line); border-radius:12px; font-size:.9rem; }
+.customer-ui .room-choice-guests > span { display:inline-flex; align-items:center; gap:8px; }
+.customer-ui .room-guest-picker .guest-counter output { min-width:2ch; text-align:center; font-weight:700; }
+.customer-ui .room-guest-picker .guest-rate small { display:block; color:var(--c-forest); }
 .customer-ui .status-pill { padding:4px 10px; border-radius:999px; font-size:.78rem; font-weight:700; white-space:nowrap; }
 .customer-ui .status-pill.available { background:#e7f4ec; color:#1f6b43; }
 .customer-ui .status-pill.selected { background:var(--c-forest); color:#fff; }
@@ -730,6 +756,7 @@
 .customer-ui .review-line-icon .tent-glyph { width:32px; }
 .customer-ui .review-line-title { flex:1; min-width:0; }
 .customer-ui .rental-open { margin-inline-start:auto; }
+.customer-ui .review-room-limits { margin:0; }
 .customer-ui .review-cost { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; font-size:.92rem; }
 .customer-ui .review-cost > span:first-child { min-width:0; overflow-wrap:anywhere; }
 .customer-ui .review-cost strong { flex-shrink:0; white-space:nowrap; }
@@ -776,7 +803,6 @@
 
 /* ---------- Payment ---------- */
 .customer-ui .payment-shell { width:min(1120px,calc(100% - 2 * var(--gutter))); padding-block:24px 40px; }
-.customer-ui .payment-shell > .booking-steps { margin-bottom:12px; }
 .customer-ui .payment-title { margin:8px 0 18px; text-align:center; }
 .customer-ui .payment-grid { display:grid; gap:20px; align-items:start; }
 @media (min-width:900px) { .customer-ui .payment-grid { grid-template-columns:minmax(300px,.85fr) minmax(0,1.15fr); } }
@@ -817,11 +843,8 @@
 
 /* ---------- Booking lookup & editor ---------- */
 .customer-ui .manage-booking { display:grid; gap:16px; width:min(760px,calc(100% - 2 * var(--gutter))); padding-block:28px 40px; }
-.customer-ui .manage-booking-search { align-content:center; width:min(480px,calc(100% - 2 * var(--gutter))); min-height:60dvh; }
+.customer-ui .manage-booking-search { align-content:start; width:min(480px,calc(100% - 2 * var(--gutter))); padding-top:clamp(16px,3vw,28px); }
 .customer-ui .booking-lookup { display:grid; gap:20px; padding:clamp(20px,4vw,32px); box-shadow:var(--shadow); }
-.customer-ui .booking-lookup-intro { display:grid; justify-items:center; gap:8px; text-align:center; }
-.customer-ui .booking-lookup-intro > .customer-icon { box-sizing:border-box; width:58px; height:58px; padding:15px; border-radius:18px; background:var(--c-forest-50); color:var(--c-forest); }
-.customer-ui .booking-lookup-intro p { color:var(--c-muted); }
 .customer-ui .booking-lookup-fields { display:grid; gap:14px; }
 .customer-ui .booking-lookup .button { min-height:50px; }
 .customer-ui .booking-summary .section-head h2 { display:flex; align-items:center; gap:8px; }
@@ -854,9 +877,9 @@
   .customer-ui *,.customer-ui *::before,.customer-ui *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; scroll-behavior:auto !important; }
 }
 @media print {
-  .customer-ui :is(.site-header,.camp-dock,.site-footer) { display:none; }
+  .customer-ui :is(.site-header,.camp-dock,.site-footer,.booking-hero) { display:none; }
   .customer-ui .payment-receipt { box-shadow:none; }
-  .customer-ui .payment-receipt .button,.customer-ui .payment-shell > .booking-steps { display:none; }
+  .customer-ui .payment-receipt .button { display:none; }
 }
 
 /* ---------- Language switch ---------- */

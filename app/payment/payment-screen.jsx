@@ -1,6 +1,7 @@
 'use client'
 
 import {prepareUploads} from '../upload-files'
+import { roomGuestText } from '../room-guest-picker'
 import Link, { PendingScreen } from '../pending-ui'
 import { useEffect, useState, useRef } from 'react'
 import {bookingReceiptFile,canShareReceipt,downloadReceiptFile} from '../booking-receipt-image'
@@ -9,6 +10,7 @@ import { PagedItems } from '../paged-items'
 import { CampLoader } from '../camp-loader'
 import { CampHeader, MobileCampMenu, useCampDetails } from '../camp-navigation'
 import { BookingSteps } from '../booking-steps'
+import { PageHero } from '../page-hero'
 import { CustomerIcon } from '../customer-icon'
 import { useConfirm } from '../confirm-dialog'
 import { useI18n } from '../i18n'
@@ -163,8 +165,8 @@ export function PaymentScreen({id}) {
   return <div className="camp-home customer-compact payment-home">
     {busy && <PendingScreen label="กำลังส่งและตรวจสลิปซ้ำ…"/>}
     <CampHeader page="flow" onCampInfo={menuActions.onCampInfo} onZoneDetails={menuActions.onZoneDetails}/>
+    <PageHero aria-label={t('ขั้นตอนการจอง')}><BookingSteps current={done ? 4 : 3}/></PageHero>
     <main className="camp-shell payment-shell">
-      <BookingSteps current={done ? 4 : 3}/>
       {!booking && <section className="panel stack payment-receipt">
         <h1>{t('ชำระเงิน')}</h1>
         {error ? <p role="alert">{msg(error)}</p> : <CampLoader label={t('กำลังโหลดข้อมูลการจอง…')}/>}
@@ -199,7 +201,8 @@ export function PaymentScreen({id}) {
             <p>{t('ผู้ใหญ่')} {booking.adults} · {t('เด็ก')} {booking.children} · {t('ผู้สูงอายุ')} {booking.seniors}</p>
             <h3>{t('สรุปค่าใช้จ่าย')}</h3>
             <PagedItems items={booking.items} size={3} label={t('รายการค่าใช้จ่าย')}>{page => page.map((item,index) =>
-              <div className="review-cost" key={index}><span>{t(item.name)} × {item.quantity}</span><span>{money(item.amount)}</span></div>)}</PagedItems>
+              <div className="review-cost" key={index}><span>{t(item.name)} × {item.quantity}
+                {item.room_adults != null && <small className="review-cost-rule"> · {roomGuestText({adults:item.room_adults,seniors:item.room_seniors,children:item.room_children},t)}</small>}</span><span>{money(item.amount)}</span></div>)}</PagedItems>
             {/* Same subtotals as the review step, so the guest can follow how the total was reached. */}
             {subtotals.plot > 0 && <div className="review-cost review-lodging-subtotal"><span>{t(wholeCampBooking ? 'รวมค่าเหมาลาน' : booking.pricing_mode === 'person' ? 'รวมค่าลานตามจำนวนคน' : 'รวมค่าลาน')}</span><span>{money(subtotals.plot)}</span></div>}
             {subtotals.room > 0 && <div className="review-cost"><span>{t('ค่าห้องพัก')}</span><span>{money(subtotals.room)}</span></div>}

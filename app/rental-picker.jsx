@@ -26,7 +26,8 @@ const photos = {
   'AIR-CONDITIONER': [614, 492],
 }
 
-function RentalPhoto({ row }) {
+// Also used by the admin's order preview, so it must not depend on the customer page's context.
+export function RentalPhoto({ row }) {
   if (row.has_photo) return <img className="rental-photo rental-uploaded-photo" src={'/admin/inventory-photo/' + row.code}
     alt="" width="66" height="40" loading="lazy"/>
   const photo = photos[row.code]

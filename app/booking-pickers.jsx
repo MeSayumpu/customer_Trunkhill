@@ -115,10 +115,13 @@ export function GuestPicker({ guests, setGuests, settings, rates = [], dialog, w
   function adjust(key, amount) {
     setGuests(previous => ({ ...previous, [key]: Math.max(0, Math.min(guestMax, previous[key] + amount)) }))
   }
+  // Plots: seniors are free only when an adult comes along; children need an adult or a senior with them.
+  const seniorsPay = !wholeCamp && guests.adults === 0 && guests.seniors > 0
+  const childrenAlone = !wholeCamp && guests.adults + guests.seniors === 0 && guests.children > 0
   return <div className="stack picker-content">
     <h2 id="guest-title">{t('เลือกจำนวนผู้เข้าพัก')}</h2>
     {guestTypes.map(([key, label, detail]) => <div className="guest-row" key={key}>
-      <div className="guest-description"><div className="guest-type-label"><strong>{t(label)}</strong>{key !== 'adults' && <span className="free-guest-badge">{t('ฟรี')}</span>}</div><small>{t(detail)}</small></div>
+      <div className="guest-description"><div className="guest-type-label"><strong>{t(label)}</strong>{key !== 'adults' && !(key === 'seniors' && seniorsPay) && <span className="free-guest-badge">{t('ฟรี')}</span>}</div><small>{t(detail)}</small></div>
       <div className="guest-counter">
         <button aria-label={t('ลดจำนวน{label}',{label:t(label)})} disabled={guests[key] === 0} onClick={() => adjust(key, -1)}><CustomerIcon name="minus"/></button>
         <GuestCountInput value={guests[key]} label={t(label)} onChange={number => setGuests(previous => ({...previous,[key]:number}))}/>
@@ -132,6 +135,8 @@ export function GuestPicker({ guests, setGuests, settings, rates = [], dialog, w
         {t('1 คนต่อล็อก {price} / คืน',{price:rateRange('solo_person_price')})}<br/>
         {t('2 คนขึ้นไปต่อล็อก {price} / คน / คืน',{price:rateRange('person_price')})}
       </b> : <b>{settings ? t('คิดราคาตามล็อก') : t('รอตรวจสอบราคา')}</b>}</div>
+    {seniorsPay && <p className="notice" role="note">{t('กรณีผู้สูงอายุเข้าพักโดยไม่มีผู้ใหญ่ จะคิดราคาผู้สูงอายุตามราคาผู้ใหญ่')}</p>}
+    {childrenAlone && <p className="notice error" role="alert">{t('การจองล็อกต้องมีผู้ใหญ่หรือผู้สูงอายุอย่างน้อย 1 คน')}</p>}
     <div className="picker-actions"><button className="button" onClick={() => dialog.current.close()}>{t('เสร็จสิ้น')}</button></div>
   </div>
 }

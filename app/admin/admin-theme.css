@@ -443,9 +443,45 @@
 .admin-ui .plot-features-group label small { color:#66776e; font-weight:400; }
 
 /* ---------- Rental items: display order ---------- */
-.admin-ui .gear-order > summary { cursor:pointer; font-weight:600; }
+.admin-ui .gear-order h3 { margin:0 0 4px; font-size:1rem; }
 .admin-ui .gear-order-list { display:grid; gap:6px; margin:0; padding:0; list-style:none; }
-.admin-ui .gear-order-list li { display:grid; grid-template-columns:2.2em minmax(0,1fr) auto auto; align-items:center; gap:8px; padding:6px 10px; border:1px solid #dbe5df; border-radius:10px; background:#fff; }
+.admin-ui .gear-order-list li { display:grid; grid-template-columns:auto 2.2em minmax(0,1fr) auto auto; align-items:center; gap:8px; padding:6px 10px; border:1px solid #dbe5df; border-radius:10px; background:#fff; cursor:grab; }
 .admin-ui .gear-order-list li[data-inactive] { opacity:.6; }
+.admin-ui .gear-order-list li[data-dragging] { border-color:#1f4a37; background:#eef5f0; opacity:.75; }
+.admin-ui .gear-order-handle { color:#9aa9a1; letter-spacing:-2px; user-select:none; }
 .admin-ui .gear-order-number { color:#66776e; font-variant-numeric:tabular-nums; text-align:center; }
 .admin-ui .gear-order-list .button { min-width:40px; padding:4px 10px; }
+/* Preview of the customer's rental popup, shown before the order is saved. */
+.admin-ui .gear-order-preview { width:min(480px,calc(100% - 16px)); padding:0; }
+.admin-ui .gear-order-preview .admin-dialog-header { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.admin-ui .gear-order-preview .admin-dialog-header h2 { margin:0; font-size:1.05rem; }
+.admin-ui .gear-order-preview-body { padding:14px 16px 16px; background:#f6f3ea; }
+.admin-ui .gear-preview-row { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:12px; padding:10px 12px; border:1px solid #e2ddd0; border-radius:14px; background:#fff; }
+.admin-ui .gear-preview-name { display:grid; min-width:0; font-size:.9rem; }
+.admin-ui .gear-preview-name small { color:#66776e; }
+.admin-ui .gear-preview-counter { display:flex; align-items:center; gap:10px; color:#9aa9a1; }
+.admin-ui .gear-preview-counter i { display:grid; place-items:center; width:30px; height:30px; border:1px solid #dbe5df; border-radius:50%; font-style:normal; }
+.admin-ui .gear-preview-counter b { min-width:1ch; color:#24352c; text-align:center; }
+.admin-ui .gear-preview-row .rental-photo { display:grid; place-items:center; flex:0 0 66px; width:66px; height:30px; overflow:hidden; border-radius:6px; }
+.admin-ui .gear-preview-row .rental-photo-sprite { background-image:url('/rental-reference.png'); background-repeat:no-repeat; background-size:799.68px 454.24px; }
+.admin-ui .gear-preview-row .rental-uploaded-photo { height:40px; object-fit:contain; }
+.admin-ui .gear-preview-row .rental-symbol { color:#6f8a5b; font-size:1.3rem; }
+
+/* ---------- Tent discount steps ---------- */
+.admin-ui .tent-tier-list { display:grid; gap:8px; }
+.admin-ui .tent-tier-row { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto; align-items:end; gap:8px; }
+.admin-ui .tent-tier-add { justify-self:start; }
+.admin-ui .tent-tier-example { padding:10px 12px; border:1px dashed #b9cdbf; border-radius:10px; background:#fff; font-size:.9rem; }
+.admin-ui .tent-tier-example ul { margin:6px 0; padding-left:18px; }
+.admin-ui .tent-tiers > * { grid-column:1 / -1; }
+.admin-ui .room-guests > p { grid-column:1 / -1; }
+/* ---------- No-reschedule periods ---------- */
+.admin-ui .blackout-list { display:grid; gap:6px; margin:0; padding:0; list-style:none; }
+.admin-ui .blackout-list li { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 12px; border:1px solid #dbe5df; border-radius:10px; background:#fff; }
+.admin-ui .blackout-list li[data-past] { opacity:.55; }
+.admin-ui .blackout-list span { display:grid; }
+.admin-ui .blackout-list small { color:#66776e; }
+/* Customer banner preview: same dark-to-light green filter as .booking-hero.has-media */
+.admin-ui .hero-media-preview { position:relative; isolation:isolate; overflow:hidden; display:grid; place-items:center; min-height:150px; border-radius:14px; color:#f6f1e4; font-weight:600; font-size:.9rem; text-align:center; background:linear-gradient(180deg,#1d4634 0%,#245039 60%,#2b5a42 100%); }
+.admin-ui .hero-media-preview :is(img,video) { position:absolute; inset:0; z-index:-2; width:100%; height:100%; object-fit:cover; }
+.admin-ui .hero-media-preview:has(img,video)::before { content:''; position:absolute; inset:0; z-index:-1; background:linear-gradient(180deg,rgba(17,46,33,.94) 0%,rgba(29,70,52,.78) 50%,rgba(43,90,66,.5) 100%); }

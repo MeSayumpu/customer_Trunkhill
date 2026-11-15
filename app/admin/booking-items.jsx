@@ -7,7 +7,7 @@ export const lodgingLine = `(i.kind = 'plot' OR (i.kind = 'room' AND NOT EXISTS 
 
 export async function bookingItems(id) {
   const [items] = await database().execute(
-    `SELECT l.code,l.name,l.quantity,l.amount,i.detail,i.kind,i.is_tent,${lodgingLine} AS lodging
+    `SELECT l.code,l.name,l.quantity,l.amount,l.room_adults,l.room_seniors,l.room_children,i.detail,i.kind,i.is_tent,${lodgingLine} AS lodging
      FROM booking_lines l JOIN inventory i ON i.code=l.code WHERE l.booking=?
      ORDER BY lodging DESC,l.code`,[id])
   const [assignments] = await database().execute(
@@ -30,7 +30,8 @@ export function BookingItemsTable({ items, label }) {
   return <table className="admin-items-table" aria-label={label}>
     <thead><tr><th scope="col">รายการ</th><th scope="col">จำนวน / หน่วย</th><th scope="col">ยอดรายการ</th></tr></thead>
     <tbody>{items.map(item => <tr key={item.code}>
-      <th scope="row">{item.name}{item.hosts.length > 0 && <small>{item.hosts.join(' · ')}</small>}</th>
+      <th scope="row">{item.name}{item.hosts.length > 0 && <small>{item.hosts.join(' · ')}</small>}
+        {item.room_adults != null && <small>ผู้เข้าพัก: ผู้ใหญ่ {item.room_adults} · ผู้สูงอายุ {item.room_seniors} · เด็ก {item.room_children}</small>}</th>
       <td>{item.quantity} {item.kind === "plot" ? "ล็อก" : item.kind === "room" ? "ห้อง" : item.is_tent ? "หลัง" : "ชิ้น"}</td><td><strong>{money(item.amount)}</strong></td>
     </tr>)}
     {!items.length && <tr><td colSpan={3}>ไม่มีรายการ</td></tr>}

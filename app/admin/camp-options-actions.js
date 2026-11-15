@@ -3,9 +3,9 @@ import {redirect} from 'next/navigation'
 import {isAdmin} from '../../lib/auth'
 import {database,transaction} from '../../lib/db'
 import {revalidatePath} from 'next/cache'
-import {facilityCategories} from '../../lib/camp-options'
+import {facilityCategories,heroCategory} from '../../lib/camp-options'
 import {contactChannels,parseCoordinates,validContact,validLink} from '../../lib/camp-contacts'
-import {claimUpload,ensureStorage,lockStorage,StorageError} from '../../lib/storage'
+import {claimUpload,ensureStorage,lockStorage,storageId,StorageError} from '../../lib/storage'
 async function guard(){if(!await isAdmin())redirect('/admin')}
 async function save(key,value){await database().execute('INSERT INTO camp_options(option_key,value_json) VALUES (?,?) ON DUPLICATE KEY UPDATE value_json=VALUES(value_json)',[key,JSON.stringify(value)])}
 const facilityKeys=facilityCategories.map(([key])=>key)
@@ -81,4 +81,37 @@ export async function setZoneActive(zone,active){
   })
   if(result.ok){revalidatePath('/admin');revalidatePath('/');revalidatePath('/booking')}
   return result
+}
+// Banner behind the green band on customer pages: one photo or one video; a new upload replaces the old file.
+const heroUrl=params=>'/admin?'+new URLSearchParams({section:'settings',group:'welcome',...params})
+export async function saveHeroMedia(data){
+  await guard()
+  const value=data.get('media')
+  let saved=false
+  try{
+    saved=await transaction(async db=>{
+      await lockStorage(db)
+      const [[asset]]=await db.execute('SELECT mime FROM storage_assets WHERE id=?',[storageId(value)])
+      const kind=asset?.mime?.startsWith('video/')?'video':'image'
+      const file=await claimUpload(db,value,'admin',kind)
+      await db.execute('DELETE FROM facility_media WHERE category=?',[heroCategory])
+      const [result]=await db.execute('INSERT INTO facility_media(category,mime,content) VALUES (?,?,?)',[heroCategory,file.mime,file.content])
+      await db.execute("INSERT INTO camp_options(option_key,value_json) VALUES ('hero',?) ON DUPLICATE KEY UPDATE value_json=VALUES(value_json)",[JSON.stringify({id:Number(result.insertId),kind})])
+      await ensureStorage(db)
+      return true
+    })
+  }catch(error){
+    if(!(error instanceof StorageError))throw error
+  }
+  if(saved)for(const path of ['/','/review','/payment','/booking'])revalidatePath(path)
+  redirect(heroUrl(saved?{saved:'settings'}:{error:'storage'}))
+}
+export async function removeHeroMedia(){
+  await guard()
+  await transaction(async db=>{
+    await db.execute("DELETE FROM camp_options WHERE option_key='hero'")
+    await db.execute('DELETE FROM facility_media WHERE category=?',[heroCategory])
+  })
+  for(const path of ['/','/review','/payment','/booking'])revalidatePath(path)
+  redirect(heroUrl({saved:'settings'}))
 }
