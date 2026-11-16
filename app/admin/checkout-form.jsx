@@ -3,7 +3,7 @@
 import { AdminIcon } from './admin-icon'
 
 import Link, { ActionForm } from '../pending-ui'
-import { useActionState, useState } from 'react'
+import { useActionState, useEffect, useRef, useState } from 'react'
 import { checkoutChargeField, checkoutChargeFields, checkoutChargeTotals, decimalUnits, electricityCharge, electricityFormulaKey, hasUnallocatedCheckoutCharges, maxUnitsMilli, savedCheckoutCharges } from '../../lib/checkout-pricing'
 import { money } from '../../lib/pricing'
 import { adminUrl } from './navigation'
@@ -39,7 +39,7 @@ function CheckoutTotals({total, electricity, damage, other}) {
   </dl>
 }
 
-export function CheckoutForm({action, booking, lodging, savedFormula, currentFormula, qr, canCharge}) {
+export function CheckoutForm({action, booking, lodging, savedFormula, currentFormula, qr, canCharge, review}) {
   const [saveState, save, saving] = useActionState(action,null)
   const [completeState, complete, completing] = useActionState(action,null)
   const savedCharges = savedCheckoutCharges(booking)
@@ -63,6 +63,16 @@ export function CheckoutForm({action, booking, lodging, savedFormula, currentFor
     charges.lines?.some((line,index) => checkoutChargeFields.some(field => line[field] !== original[index][field]))
   const extra = charges ? charges.electricity + charges.damage + charges.other : 0
   const totals = charges && <CheckoutTotals total={booking.total} {...charges}/>
+  // Two steps: 1 enter and save the charges, 2 take the extra payment and confirm. Step 2 needs the saved amounts,
+  // so it opens only while nothing on step 1 is unsaved; the admin can go back to step 1 at any time before confirming.
+  const [wanted, setWanted] = useState(review && saved ? 2 : 1)
+  const step = wanted === 2 && saved && !dirty ? 2 : 1
+  const steps = useRef(null)
+  const shown = useRef(null)
+  useEffect(() => {
+    if (shown.current !== null ? shown.current !== step : step === 2) steps.current?.scrollIntoView({block:'start'})
+    shown.current = step
+  },[step])
 
   if (booking.completed_at) return <section className="stack checkout-body">
     <p className="notice" role="status">Check-out แล้ว{extra > 0 && ' · ยืนยันรับยอดชำระเพิ่มแล้ว'}</p>
@@ -87,7 +97,15 @@ export function CheckoutForm({action, booking, lodging, savedFormula, currentFor
   </section>
 
   return <div className="stack checkout-body">
-    <ActionForm action={save} className="stack">
+    <ol className="checkout-steps" ref={steps} aria-label="ขั้นตอน Check-out">
+      <li aria-current={step === 1 ? 'step' : undefined} data-done={step === 2 || undefined}>
+        <button type="button" disabled={step === 1 || saving || completing} onClick={() => setWanted(1)}>
+          <span className="checkout-step-number">{step === 2 ? <AdminIcon name="confirmed"/> : 1}</span>
+          <span>กรอกค่าใช้จ่าย</span></button></li>
+      <li aria-current={step === 2 ? 'step' : undefined}>
+        <span className="checkout-step-number">2</span><span>{extra > 0 ? 'รับเงินและยืนยัน' : 'ยืนยัน Check-out'}</span></li>
+    </ol>
+    {step === 1 && <ActionForm action={save} className="stack">
       <input type="hidden" name="version" value={booking.version ?? 0}/>
       <input type="hidden" name="formula" value={electricityFormulaKey(formula)}/>
       <input type="hidden" name="chargeMode" value={keep ? 'keep' : 'edit'}/>
@@ -124,20 +142,29 @@ export function CheckoutForm({action, booking, lodging, savedFormula, currentFor
       <label>หมายเหตุ / รายการค่าใช้จ่าย<textarea name="note" rows={2} maxLength={500} value={note} onChange={e => setNote(e.target.value)}/></label>
       {totals || <p className="muted small">ตรวจสอบจำนวนหน่วยไฟและค่าใช้จ่ายรายล็อก รวมถึงยอดรวมของแต่ละประเภท</p>}
       {saveState?.error && <p className="notice error" role="alert">{saveState.error}</p>}
-      <button className="button" disabled={saving || completing || !charges}>{saving ? 'กำลังบันทึก…' : 'บันทึกยอดค่าใช้จ่าย'}</button>
-    </ActionForm>
-    {saved && !dirty && <section className="stack checkout-settlement">
+      {/* Nothing changed since the last save: go straight on. Otherwise the charges are saved first, then step 2 opens. */}
+      {saved && !dirty
+        ? <button type="button" className="button" disabled={saving || completing} onClick={() => setWanted(2)}>ถัดไป <AdminIcon name="next"/></button>
+        : <button className="button" disabled={saving || completing || !charges}>{saving ? 'กำลังบันทึก…' : <>บันทึกยอด แล้วไปขั้นถัดไป <AdminIcon name="next"/></>}</button>}
+    </ActionForm>}
+    {step === 2 && <section className="stack checkout-settlement">
+      {totals}
+      {booking.note && <p className="checkout-note">หมายเหตุ {booking.note}</p>}
       {extra > 0 && (qr ? <div className="checkout-qr">
         <strong>สแกนพร้อมเพย์เพื่อชำระเพิ่ม {baht(extra)}</strong>
         <img src={qr} width={224} height={224} alt={'QR พร้อมเพย์สำหรับยอด ' + baht(extra)}/>
         <p className="small muted">ตรวจสอบชื่อผู้รับและยอดเงินในแอปธนาคารก่อนโอน</p>
-      </div> : <p className="notice">ตั้งค่าพร้อมเพย์ใน <Link href={adminUrl('checkoutSettings')}>ตั้งค่า Check-out</Link> แล้วกลับมาบันทึกยอดอีกครั้งเพื่อสร้าง QR</p>)}
+      </div> : <p className="notice">ตั้งค่าพร้อมเพย์ใน <Link href={adminUrl('checkoutSettings')}>ตั้งค่า Check-out</Link> แล้วกลับมาเปิดรายการนี้อีกครั้งเพื่อสร้าง QR</p>)}
       <ActionForm action={complete} className="stack">
         <input type="hidden" name="version" value={booking.version}/>
         <input type="hidden" name="intent" value="complete"/>
         {extra > 0 && <label className="checkbox"><input type="checkbox" name="received" required/>ตรวจสอบและได้รับยอดชำระเพิ่ม {baht(extra)} แล้ว</label>}
         {completeState?.error && <p className="notice error" role="alert">{completeState.error}</p>}
-        <button className="button" disabled={saving || completing}>{completing ? 'กำลังยืนยัน…' : 'ยืนยัน Check-out'}</button>
+        <p className="small muted">ยืนยันแล้วจะแก้ไขยอดของรายการนี้ไม่ได้อีก</p>
+        <div className="checkout-step-actions">
+          <button type="button" className="button secondary" disabled={completing} onClick={() => setWanted(1)}><AdminIcon name="back"/> ย้อนกลับไปแก้ไขยอด</button>
+          <button className="button" disabled={saving || completing}>{completing ? 'กำลังยืนยัน…' : 'ยืนยัน Check-out'}</button>
+        </div>
       </ActionForm>
     </section>}
   </div>

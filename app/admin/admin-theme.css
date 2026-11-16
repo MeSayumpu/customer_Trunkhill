@@ -574,5 +574,85 @@
   .admin-ui .booking-list-page .booking-stat strong { font-size:1.05rem; }
   .admin-ui .booking-table tbody tr:not(.admin-expanded-row)>td:is(.bk-code,.bk-status) { background:#f1f6f3; }
 }
+/* Result of a save: a floating message at the top of the screen, wherever the page is scrolled. */
+.admin-ui .admin-toast { position:fixed; inset:auto; top:max(14px,env(safe-area-inset-top)); left:50%; transform:translateX(-50%); z-index:200;
+  display:flex; align-items:center; gap:10px; width:max-content; max-width:min(92vw,520px); margin:0; padding:12px 14px 12px 16px; overflow:visible;
+  border:1px solid #1f6a47; border-radius:12px; background:#1f4d3a; color:#fff; font-size:15px; font-weight:600; line-height:1.4;
+  box-shadow:0 10px 30px #10241b40; cursor:pointer; animation:admin-toast-in .22s ease-out; }
+.admin-ui .admin-toast.error { border-color:#b4232f; background:#9f1d2a; }
+.admin-ui .admin-toast>.admin-icon { flex:none; font-size:18px; }
+.admin-ui .admin-toast>span { min-width:0; overflow-wrap:anywhere; }
+.admin-ui .admin-toast-close { flex:none; display:grid; place-items:center; width:28px; height:28px; margin-left:4px; padding:0; border:0; border-radius:8px;
+  background:#ffffff26; color:inherit; cursor:pointer; }
+@keyframes admin-toast-in { from { opacity:0; transform:translate(-50%,-12px); } to { opacity:1; transform:translate(-50%,0); } }
+@media(prefers-reduced-motion:reduce) { .admin-ui .admin-toast { animation:none; } }
+/* Check-out dialog: the two steps as a bar — the current one filled, a finished one ticked and clickable to go back. */
+.admin-ui .checkout-steps { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:0; padding:0; list-style:none; scroll-margin-top:84px; }
+.admin-ui .checkout-steps li { display:flex; min-width:0; border:1.5px solid #dce5ed; border-radius:10px; background:#f6f8fa; color:#62788b; font-weight:600; }
+.admin-ui .checkout-steps li,.admin-ui .checkout-steps li>button { align-items:center; gap:8px; }
+.admin-ui .checkout-steps li:not(:has(>button)) { padding:9px 12px; }
+.admin-ui .checkout-steps li>button { display:flex; flex:1; min-width:0; padding:9px 12px; border:0; border-radius:inherit; background:none; color:inherit; font:inherit; text-align:left; }
+.admin-ui .checkout-steps li>button:not(:disabled) { cursor:pointer; }
+.admin-ui .checkout-steps li[aria-current] { border-color:#1f4d3a; background:#1f4d3a; color:#fff; }
+.admin-ui .checkout-steps li[data-done] { border-color:#9fcdb4; background:#ecf7f0; color:#1f4d3a; }
+.admin-ui .checkout-step-number { flex:none; display:grid; place-items:center; width:24px; height:24px; border-radius:50%; background:#ffffff; color:#1f4d3a; font-size:13px; font-weight:700; }
+.admin-ui .checkout-steps li:not([aria-current]):not([data-done]) .checkout-step-number { background:#dce5ed; color:#62788b; }
+.admin-ui .checkout-steps li[data-done] .checkout-step-number { background:none; font-size:18px; }
+.admin-ui .checkout-step-actions { display:grid; grid-template-columns:auto minmax(0,1fr); gap:8px; }
+@media(max-width:520px) { .admin-ui .checkout-steps { gap:6px; font-size:13px; }
+  .admin-ui .checkout-steps li:not(:has(>button)),.admin-ui .checkout-steps li>button { padding:8px; gap:6px; }
+  .admin-ui .checkout-step-actions { grid-template-columns:minmax(0,1fr); } .admin-ui .checkout-step-actions .button:last-child { order:-1; } }
+.admin-ui .checkout-table .co-stay,.admin-ui .checkout-table .co-ref { display:none; }
+/* Check-out list. As a table, the gear of a booking is a short plain list: one item per line, cut with … when long.
+   When the list area is narrower than the seven columns need (a phone, or a small window beside the menu), each booking
+   becomes a compact card like the bookings list — plot + status, guest + amount, stay, gear, one button — and the list
+   scrolls with the page instead of inside its own box. */
+.admin-ui .checkout-list { container:checkout / inline-size; }
+.admin-ui .checkout-table td.co-rentals { min-width:190px; }
+.admin-ui .checkout-table .co-rentals ul { padding:0; list-style:none; font-size:13px; line-height:1.5; }
+.admin-ui .checkout-table .co-rentals li { max-width:250px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.admin-ui .checkout-table .co-rentals .co-more { color:#62788b; }
+@container checkout (max-width:900px) {
+  .admin-ui .checkout-table-scroll { max-height:none; overflow:visible; border:0; background:none; }
+  .admin-ui .checkout-table { display:block; min-width:0; width:100%; }
+  .admin-ui .checkout-table thead { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+  .admin-ui .checkout-table tbody { display:grid; gap:10px; padding:0; }
+  .admin-ui .checkout-table tbody tr { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center;
+    grid-template-areas:"lodging status" "guest amount" "stay stay" "rentals rentals" "action action"; padding:0 0 4px;
+    border:1px solid #dce5ed; border-radius:12px; overflow:hidden; background:white; }
+  .admin-ui .checkout-table tbody td { display:block; height:auto; min-width:0; padding:5px 12px; border:0; text-align:left; overflow-wrap:anywhere; white-space:normal; }
+  .admin-ui .checkout-table tbody td[data-label]::before { content:none; }
+  .admin-ui .checkout-table tbody td[colspan] { grid-column:1/-1; }
+  .admin-ui .checkout-table td.co-lodging { grid-area:lodging; font-size:16px; font-weight:700; color:#173b2c; }
+  .admin-ui .checkout-table td.co-status { grid-area:status; text-align:right; }
+  .admin-ui .checkout-table td:is(.co-lodging,.co-status) { align-self:stretch; display:flex; flex-wrap:wrap; align-items:center; gap:2px 8px;
+    padding-top:8px; padding-bottom:8px; background:#f1f6f3; border-bottom:1px solid #e1e9e4; }
+  .admin-ui .checkout-table td.co-status { justify-content:flex-end; }
+  .admin-ui .checkout-table .co-status br { display:none; }
+  .admin-ui .checkout-table td.co-guest { grid-area:guest; padding-top:9px; }
+  .admin-ui .checkout-table .co-guest>strong { font-size:16px; }
+  .admin-ui .checkout-table .co-guest br { display:none; }
+  .admin-ui .checkout-table .co-guest small { display:inline-block; margin-left:8px; white-space:nowrap; }
+  .admin-ui .checkout-table .co-guest .co-ref { display:inline; color:#62788b; }
+  .admin-ui .checkout-table td.co-amount { grid-area:amount; align-self:start; padding-top:9px; text-align:right; font-size:16px; white-space:nowrap; }
+  .admin-ui .checkout-table td.co-date { grid-area:stay; font-size:14px; color:#31465b; }
+  .admin-ui .checkout-table .co-date .co-date-wide { display:none; }
+  .admin-ui .checkout-table .co-date .co-stay { display:inline; }
+  .admin-ui .checkout-table td.co-rentals { grid-area:rentals; min-width:0; font-size:13px; color:#31465b; }
+  .admin-ui .checkout-table td.co-rentals.co-empty { display:none; }
+  .admin-ui .checkout-table .co-rentals ul { display:inline; }
+  .admin-ui .checkout-table .co-rentals ul::before { content:"อุปกรณ์: "; color:#62788b; }
+  .admin-ui .checkout-table .co-rentals li { display:inline; max-width:none; white-space:normal; }
+  .admin-ui .checkout-table .co-rentals li+li:not(.co-more)::before { content:", "; }
+  .admin-ui .checkout-table .co-rentals .co-more::before { content:" "; }
+  .admin-ui .checkout-table td.co-action { grid-area:action; padding-top:6px; padding-bottom:8px; }
+  .admin-ui .checkout-table .co-action .button { width:100%; min-height:40px; }
+}
+@media(max-width:760px) {
+  /* Filters on a phone: two per row, the search box on its own row, so the list starts higher up. */
+  .admin-ui .admin-filters.checkout-filters { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; padding:10px; }
+  .admin-ui .checkout-filters label:nth-of-type(3) { grid-column:1/-1; }
+  .admin-ui .checkout-filters .button { justify-content:center; }
+}
 .admin-ui .booking-note-form textarea { font-family:inherit; line-height:1.5; }
 .admin-ui .admin-dialog>.booking-note-form,.admin-ui .admin-dialog>.booking-time-field { margin-inline:12px; }

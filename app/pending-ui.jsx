@@ -65,7 +65,17 @@ function ActionPending() {
 
 export function ActionForm({children,action,...props}) {
   const [error,setError]=useState('')
-  async function submit(data){setError('');try{await prepareUploads(data)}catch(error){setError(error.message);return}return action(data)}
+  function submit(data){
+    setError('')
+    const fileFields=new Set([...data.entries()].filter(([,value])=>value instanceof File).map(([name])=>name))
+    // Nothing to upload: the action is called at once, still inside the form's own transition, which a useActionState
+    // action needs. Empty file fields are dropped the same way an upload would drop them.
+    if(![...data.values()].some(value=>value instanceof File&&value.size)){
+      for(const name of fileFields){const rest=data.getAll(name).filter(value=>!(value instanceof File));data.delete(name);for(const value of rest)data.append(name,value)}
+      return action(data)
+    }
+    return (async()=>{try{await prepareUploads(data)}catch(error){setError(error.message);return}return action(data)})()
+  }
   return <form {...props} action={submit}>{children}{error&&<p role="alert" className="notice error">{error}</p>}<ActionPending/></form>
 }
 

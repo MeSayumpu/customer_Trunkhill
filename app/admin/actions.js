@@ -305,7 +305,8 @@ export async function saveInventory(data) {
   const allowedZones = { plot: (await campZones()).filter(z=>z!=='BOX'), room: ['BOX'], gear: ['GEAR'] }
   const section = Object.hasOwn(inventorySections,kind) ? inventorySections[kind] : 'plots'
   const tab = data.get('tab')
-  const filters = { q:data.get('q'), zone:data.get('filterZone'), tab:kind === 'gear' && tab === 'tents' ? 'tents' : '' }
+  const listPage = name => { const value = data.get(name); return typeof value === 'string' && /^[A-Z0-9][A-Z0-9-]{0,23}$/.test(value) ? value : '' }
+  const filters = { q:data.get('q'), zone:data.get('filterZone'), tab:kind === 'gear' && tab === 'tents' ? 'tents' : '', after:listPage('after'), before:listPage('before') }
   const file = data.get('photo')
   let photo
   let mime

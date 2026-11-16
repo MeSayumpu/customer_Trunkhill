@@ -12,6 +12,10 @@ import { checkoutCursor, checkoutDetail, checkoutFilters, checkoutPageSize, chec
 import { CheckoutForm, CheckoutSettingsForm } from './checkout-form'
 import { adminUrl } from './navigation'
 
+const shortDate = value => value.split('-').reverse().join('/')
+// Gear lines shown per booking in the list; the rest is counted, and the full list is in the Check-out dialog.
+const rentalsShown = 3
+
 function CheckoutItems({items, nights}) {
   const lodging = items.filter(item => item.lodging)
   const rentals = items.filter(item => !item.lodging)
@@ -43,12 +47,14 @@ function CheckoutItems({items, nights}) {
   </div>
 }
 
-async function CheckoutDialog({booking, query}) {
+async function CheckoutDialog({booking, query, review}) {
   const [items, settings] = await Promise.all([bookingItems(booking.id),checkoutSettings()])
   const formula = electricityFormula(booking,settings)
   const currentFormula = electricityFormula(booking,settings,true)
   const extra = extraCharge(booking)
-  const qr = !booking.completed_at && extra > 0 && booking.promptpay ? await checkoutQr(booking.promptpay,extra) : null
+  // The number saved with the charges, or the one in the settings when it was set after they were saved.
+  const recipient = booking.promptpay || settings.promptpay
+  const qr = !booking.completed_at && extra > 0 && recipient ? await checkoutQr(recipient,extra) : null
   const nights = (Date.parse(booking.departure) - Date.parse(booking.arrival)) / 86400000
   const { promptpay, ...summary } = booking
   return <AdminDialog title="Check-out" closeUrl={adminUrl('checkout',query)}>
@@ -66,7 +72,7 @@ async function CheckoutDialog({booking, query}) {
     <CheckoutForm key={booking.id + ':' + (booking.version ?? 0) + ':' + (booking.completed_at || '')}
       action={saveCheckout.bind(null,booking.id,query)} booking={summary}
       lodging={items.filter(item => item.lodging).map(({code,name}) => ({code,name}))} savedFormula={formula}
-      currentFormula={currentFormula} qr={qr} canCharge={booking.arrival <= today()}/>
+      currentFormula={currentFormula} qr={qr} canCharge={booking.arrival <= today()} review={review}/>
   </AdminDialog>
 }
 
@@ -82,7 +88,7 @@ export async function CheckoutList({query}) {
   const previous = position.before ? more : Boolean(position.after)
   const next = position.before ? Boolean(page.length) : more
   const exportQuery = new URLSearchParams(filters)
-  return <section className="panel stack admin-content">
+  return <section className="panel stack admin-content checkout-list">
     <AdminSearchForm key={exportQuery.toString()} className="admin-filters checkout-filters">
       <input type="hidden" name="section" value="checkout"/>
       <label>วันเช็กอินตั้งแต่<input type="date" name="from" defaultValue={filters.from}/></label>
@@ -95,25 +101,31 @@ export async function CheckoutList({query}) {
       <button className="button"><AdminIcon name="search"/>ค้นหา</button>
       <a className="button secondary" href={'/admin/checkout-export?' + exportQuery}><AdminIcon name="download"/>ส่งออก Excel</a>
     </AdminSearchForm>
-    <div className="admin-table-scroll" tabIndex={0} aria-label="ตารางรายการ Check-out">
+    <div className="admin-table-scroll checkout-table-scroll" tabIndex={0} aria-label="ตารางรายการ Check-out">
       <table className="admin-table checkout-table">
         <thead><tr>{['Check-out','วันที่','ล็อก / ห้อง','อุปกรณ์','ผู้จอง','สถานะ / การชำระเงิน','จำนวนเงิน'].map(label =>
           <th key={label} scope="col">{label}</th>)}</tr></thead>
         <tbody>{page.map(row => {
           const { lodging, rentals } = summaries.get(row.id)
           const extra = extraCharge(row)
+          const nights = (Date.parse(row.departure) - Date.parse(row.arrival)) / 86400000
+          // The co-* classes place each cell in the phone card; on a wide screen the table is unchanged.
           return <tr key={row.id}>
-            <td data-label="จัดการ"><Link className="button secondary" scroll={false} href={adminUrl('checkout',{...current,view:row.id})}
+            <td data-label="จัดการ" className="co-action"><Link className="button secondary" scroll={false} href={adminUrl('checkout',{...current,view:row.id})}
               aria-label={(row.completed_at ? 'ดู Check-out ของ ' : 'เปิด Check-out ของ ') + row.guest}>
               {row.completed_at ? 'ดูรายละเอียด' : 'เปิด Check-out'}</Link></td>
-            <td data-label="วันที่" className="admin-booking-date"><strong>{row.departure}</strong><br/><small>เข้าพัก {row.arrival}</small></td>
-            <td data-label="ล็อก / ห้อง">{lodging.join(', ') || '—'}</td>
-            <td data-label="อุปกรณ์">{rentals.length > 0 ? <ul>{rentals.map((item,index) => <li key={index}>{item}</li>)}</ul> : '—'}</td>
-            <td data-label="ผู้จอง"><strong>{row.guest}</strong><br/><small>{row.phone}</small></td>
-            <td data-label="สถานะ"><span className={'admin-status ' + (row.completed_at ? 'confirmed' : 'pending')}>
+            <td data-label="วันที่" className="admin-booking-date co-date"><span className="co-date-wide"><strong>{row.departure}</strong><br/><small>เข้าพัก {row.arrival}</small></span>
+              <span className="co-stay">ออก <strong>{shortDate(row.departure)}</strong> · เข้าพัก {shortDate(row.arrival)} · {nights} คืน</span></td>
+            <td data-label="ล็อก / ห้อง" className="co-lodging">{lodging.join(', ') || '—'}</td>
+            <td data-label="อุปกรณ์" className={'co-rentals' + (rentals.length ? '' : ' co-empty')}>{rentals.length > 0 ? <ul title={rentals.join('\n')}>
+              {rentals.slice(0,rentalsShown).map((item,index) => <li key={index}>{item}</li>)}
+              {rentals.length > rentalsShown && <li className="co-more">และอีก {rentals.length - rentalsShown} รายการ</li>}</ul> : '—'}</td>
+            <td data-label="ผู้จอง" className="co-guest"><strong>{row.guest}</strong><br/><small className="co-phone">{row.phone === '-' ? '' : row.phone}</small>
+              {row.reference && <small className="co-ref">{row.reference}</small>}</td>
+            <td data-label="สถานะ" className="co-status"><span className={'admin-status ' + (row.completed_at ? 'confirmed' : 'pending')}>
               {row.completed_at ? checkoutStatuses.done : checkoutStatuses.open}</span>
               {extra > 0 && <><br/><small>{row.completed_at ? 'รับยอดเพิ่มแล้ว' : 'รอรับยอดเพิ่ม'}</small></>}</td>
-            <td data-label="จำนวนเงิน" className="admin-amount"><strong>{money(row.total + extra / 100)}</strong>
+            <td data-label="จำนวนเงิน" className="admin-amount co-amount"><strong>{money(row.total + extra / 100)}</strong>
               {extra > 0 && <><br/><small>ยอดเพิ่ม {money(extra / 100)}</small></>}</td>
           </tr>
         })}
@@ -126,7 +138,7 @@ export async function CheckoutList({query}) {
         ? {...filters,before:checkoutCursor(page[0])} : filters)}>← หน้าก่อนหน้า</Link>}
       {next && page.length > 0 && <Link className="button secondary" href={adminUrl('checkout',{...filters,after:checkoutCursor(page.at(-1))})}>หน้าถัดไป →</Link>}
     </nav>}
-    {detail && <CheckoutDialog booking={detail} query={current}/>}
+    {detail && <CheckoutDialog booking={detail} query={current} review={query.saved === 'checkoutDraft'}/>}
   </section>
 }
 

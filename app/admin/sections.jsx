@@ -61,7 +61,7 @@ function Pagination({ section, filters, page, rowCursor }) {
   </nav>
 }
 
-async function InventoryForm({ row = {}, kind, q, zone, tab, closeUrl }) {
+async function InventoryForm({ row = {}, kind, q, zone, tab, closeUrl, position }) {
   const zones={...baseZones,plot:(await campZones()).filter(z=>z!=='BOX')}
   const tent = row.code ? isTent({...row,kind}) : kind === 'gear' && tab === 'tents'
   // Room photos in customer order: main photo first, then the extra photos.
@@ -77,6 +77,8 @@ async function InventoryForm({ row = {}, kind, q, zone, tab, closeUrl }) {
     <input type="hidden" name="kind" value={kind}/>
     <input type="hidden" name="q" value={q}/><input type="hidden" name="filterZone" value={zone}/>
     {tab && <input type="hidden" name="tab" value={tab}/>}
+    {/* The list page being edited, so saving returns to it instead of the first page. */}
+    {position?.value && <input type="hidden" name={position.backwards ? 'before' : 'after'} value={position.value}/>}
     <fieldset className="inventory-edit-group">
       <legend>ข้อมูลรายการ</legend>
       <label>ชื่อ<input name="name" defaultValue={row.name} required maxLength={120}/></label>
@@ -199,7 +201,7 @@ export async function InventoryList({ section, query }) {
     </table></div>
     <Pagination section={section} filters={filters} page={page} rowCursor={row => row.code}/>
     {(adding || editing) && <AdminDialog title={editing ? 'แก้ไข ' + editing.name : 'เพิ่มรายการ' } closeUrl={closeUrl}>
-      <InventoryForm row={editing} {...{kind,q,zone,tab,closeUrl}}/>
+      <InventoryForm row={editing} {...{kind,q,zone,tab,closeUrl,position}}/>
     </AdminDialog>}
   </section>
 }

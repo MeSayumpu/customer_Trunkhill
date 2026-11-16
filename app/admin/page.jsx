@@ -16,6 +16,7 @@ import { Dashboard } from './dashboard'
 import { BlockedPhones } from './blocked-phones'
 import {StoragePanel} from './storage-panel'
 import {BookingBackup} from './booking-backup'
+import { AdminFeedback } from './admin-feedback'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,8 +54,7 @@ export default async function Admin({ searchParams }) {
     </>}>
       <div className="stack admin-content admin-main-content">
         {section!=='storage'&&<StoragePanel compact/>}
-        {query.saved && <p className="notice" role="status">บันทึกแล้ว</p>}
-        {query.error && <p className="notice error" role="alert">{query.error === 'storage' ? 'บันทึกไฟล์ไม่ได้ พื้นที่จัดเก็บไม่เพียงพอหรือไฟล์อัปโหลดหมดอายุ กรุณาตรวจพื้นที่จัดเก็บแล้วเลือกไฟล์ใหม่' : query.error === 'zoneMedia'
+        <AdminFeedback stamp={Date.now()} error={!!query.error} message={!query.error ? (query.saved ? 'บันทึกแล้ว' : '') : query.error === 'storage' ? 'บันทึกไฟล์ไม่ได้ พื้นที่จัดเก็บไม่เพียงพอหรือไฟล์อัปโหลดหมดอายุ กรุณาตรวจพื้นที่จัดเก็บแล้วเลือกไฟล์ใหม่' : query.error === 'zoneMedia'
           ? 'ตรวจสอบประเภทไฟล์ รองรับรูป JPG, PNG, WebP และวิดีโอ MP4, WebM'
           : query.error === 'zoneFeatures' ? 'ตรวจจุดเด่นและสิ่งอำนวยความสะดวก: ทุกรายการต้องมีไอคอนและชื่อ ไม่เกิน 12 รายการต่อกลุ่ม'
           : query.error === 'roomPhotoLimit' ? 'รูปห้องได้สูงสุด 12 รูป กรุณาเลือกไฟล์ให้น้อยลงหรือนำรูปเดิมออก'
@@ -66,7 +66,7 @@ export default async function Admin({ searchParams }) {
           : query.error === 'contacts' ? 'บันทึกช่องทางติดต่อไม่สำเร็จ'
           : query.error === 'location' ? 'บันทึกที่ตั้งไม่สำเร็จ ตรวจพิกัด (เช่น 14.123456, 101.123456) และลิงก์แผนที่ต้องขึ้นต้นด้วย https://'
           : query.error === 'wholeCampRates' ? 'กรอกจำนวนคนสูงสุดให้เพิ่มขึ้นทุกกลุ่ม และระบุราคากับหน่วยไฟฟรีเป็นจำนวนเต็ม'
-          : 'ตรวจสอบข้อมูลที่ระบุอีกครั้ง'}</p>}
+          : 'ตรวจสอบข้อมูลที่ระบุอีกครั้ง'}/>
         {section === 'storage' ? <><StoragePanel/><BookingBackup query={query}/></> : section === 'dashboard' ? <Dashboard query={query}/> :
           section === 'bookings' ? <BookingList query={query}/> :
           section === 'blockedPhones' ? <BlockedPhones query={query}/> :
