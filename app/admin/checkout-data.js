@@ -1,6 +1,7 @@
 import { database } from '../../lib/db'
 import { defaultElectricity } from '../../lib/checkout-pricing'
 import { lodgingLine } from './booking-items'
+import { itemOrder } from '../../lib/rentals'
 import { wholeCampCode } from '../../lib/whole-camp'
 
 export const checkoutPageSize = 30
@@ -101,7 +102,7 @@ export async function checkoutSummaries(rows) {
   const [items] = await database().execute(
     `SELECT l.booking,l.name,l.quantity,${lodgingLine} AS lodging
      FROM booking_lines l JOIN inventory i ON i.code=l.code
-     WHERE l.booking IN (${ids.map(() => '?').join(',')}) ORDER BY l.code`,ids)
+     WHERE l.booking IN (${ids.map(() => '?').join(',')}) ORDER BY ${itemOrder}`,ids)
   const byBooking = new Map(rows.map(row => [row.id,{ lodging:[], rentals:[] }]))
   for (const item of items) {
     byBooking.get(item.booking)[item.lodging ? 'lodging' : 'rentals'].push(

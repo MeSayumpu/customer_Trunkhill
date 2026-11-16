@@ -4,7 +4,7 @@ import Link, { AdminSearchForm } from '../pending-ui'
 import { adminUrl } from './navigation'
 import { AdminIcon } from './admin-icon'
 export function BookingFilters({filters,statuses,sorts}) {
-  const [open,setOpen]=useState(!!(filters.from||filters.to||filters.kind||filters.sort!=='newest'))
+  const [open,setOpen]=useState(!!(filters.from||filters.to||filters.madeFrom||filters.madeTo||filters.kind||filters.sort!=='newest'))
   return <AdminSearchForm className="booking-search">
     <input type="hidden" name="section" value="bookings"/><input type="hidden" name="size" value={filters.size}/>
     <div className="booking-search-main">
@@ -18,12 +18,14 @@ export function BookingFilters({filters,statuses,sorts}) {
       <div className="booking-filter-grid">
         <label>เช็กอินตั้งแต่<input type="date" name="from" defaultValue={filters.from}/></label>
         <label>เช็กอินถึง<input type="date" name="to" defaultValue={filters.to}/></label>
+        <label>วันที่จอง/โอนเงิน ตั้งแต่<input type="date" name="madeFrom" defaultValue={filters.madeFrom}/></label>
+        <label>วันที่จอง/โอนเงิน ถึง<input type="date" name="madeTo" defaultValue={filters.madeTo}/></label>
         <label>ประเภทรายการ<select name="kind" defaultValue={filters.kind}><option value="">ทั้งหมด (ลาน/ห้อง &amp; อุปกรณ์)</option><option value="lodging">มีลาน / ห้องพัก</option><option value="rental">มีอุปกรณ์ / บริการเสริม</option></select></label>
         <label>เรียงลำดับ<select name="sort" defaultValue={filters.sort}>{Object.entries(sorts).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label>
         <Link href={adminUrl('bookings')} className="button secondary">ล้างตัวกรองทั้งหมด</Link>
       </div>
     </div>
-    {filters.from&&filters.to&&filters.from>filters.to&&<p className="notice error">วันที่เริ่มต้องไม่อยู่หลังวันที่สิ้นสุด</p>}
+    {((filters.from&&filters.to&&filters.from>filters.to)||(filters.madeFrom&&filters.madeTo&&filters.madeFrom>filters.madeTo))&&<p className="notice error">วันที่เริ่มต้องไม่อยู่หลังวันที่สิ้นสุด</p>}
   </AdminSearchForm>
 }
 export function BookingPageSize({value}) {

@@ -198,10 +198,11 @@ export default function CampPage({ review: initialReview = false, amendment = nu
   const plotNeedsGrownUp = !wholeCamp && hosts.some(row => row.kind === 'plot') && guests.adults + guests.seniors < 1
   const total = pricing?.total ?? 0
   const maxWholeCampGuests = catalog?.wholeCampTiers.at(-1)?.maxGuests
-  const tooManyGuests = wholeCamp && ready && (guests.adults > maxWholeCampGuests || (guestCount > 0 && !guests.adults))
+  // Whole camp: everyone counts towards the largest group the admin has priced, children and seniors included.
+  const tooManyGuests = wholeCamp && ready && (guestCount > maxWholeCampGuests || (guestCount > 0 && !guests.adults))
   const wholeCampUnavailable = ready && wholeCamp && !catalog.wholeCampAvailable
   const wholeCampError = wholeCampUnavailable ? t('เหมาลานไม่ได้ เพราะมีรายการจองในช่วงวันที่เลือก')
-    : tooManyGuests ? (guests.adults ? t('เหมาลานได้สูงสุดผู้ใหญ่ {n} คน กรุณาปรับจำนวนผู้เข้าพัก',{n:maxWholeCampGuests}) : t('เหมาลานต้องมีผู้ใหญ่อย่างน้อย 1 คน')) : ''
+    : tooManyGuests ? (guests.adults ? t('เหมาลานรับผู้เข้าพักได้สูงสุด {n} คน รวมทุกประเภท กรุณาปรับจำนวนผู้เข้าพัก',{n:maxWholeCampGuests}) : t('เหมาลานต้องมีผู้ใหญ่อย่างน้อย 1 คน')) : ''
   const guestSummary = t('{n} คน',{n:guestCount}) + (guestCount > 0 ? ' · ' +
     guestTypes.filter(([key]) => totalGuests[key]).map(([key,label]) => t(label) + ' ' + totalGuests[key]).join(' / ') : '')
   const selectedNames = selected.map(row => row.name + (row.quantity > 1 ? ' × ' + row.quantity : ''))
@@ -552,7 +553,7 @@ export default function CampPage({ review: initialReview = false, amendment = nu
             onRetry={wholeCampUnavailable ? () => checkDates(arrival,departure,true) : undefined}
             status={wholeCampError || (loading ? t('กำลังตรวจสอบลานว่าง…') : ready ? t('ว่างสำหรับเหมาลานตลอดช่วงที่เลือก') : '')}/> : mode === 'box' ?
             <TrunkboxOption rooms={visible.filter(row=>row.kind==='room')} counts={liveCounts} ready={ready} busy={bookingBusy}
-              roomGuests={roomGuests} onSelect={openRoomGuests} onRemove={toggleOff}/> :
+              roomGuests={roomGuests} onSelect={openRoomGuests} onRemove={toggleOff} text={options.trunkboxText}/> :
             <section className="panel map-panel" aria-labelledby="map-panel-title">
               <header className="map-panel-head">
                 <div>
@@ -598,11 +599,11 @@ export default function CampPage({ review: initialReview = false, amendment = nu
     <dialog ref={guestDialog} className="dialog booking-picker" aria-labelledby="guest-title">
       <form method="dialog" className="dialog-close"><button className="icon-button" aria-label={t('ปิดตัวเลือกผู้เข้าพัก')}><CustomerIcon name="close"/></button></form>
       <GuestPicker guests={guests} setGuests={setGuests} settings={catalog?.settings} rates={ready ? catalog.rates : []}
-        dialog={guestDialog} wholeCamp={wholeCamp} guestInfo={options.guestTypes} guestRate={options.guestRate}/>
+        dialog={guestDialog} wholeCamp={wholeCamp} guestInfo={options.guestTypes} guestRate={options.guestRate} maxTotal={wholeCamp ? maxWholeCampGuests : undefined}/>
     </dialog>
     <dialog ref={roomGuestDialog} className="dialog booking-picker" aria-labelledby="room-guest-title" onClose={() => setRoomPick(null)}>
       {roomPick && allRows.some(row => row.code === roomPick) && <RoomGuestPicker key={roomPick} room={allRows.find(row => row.code === roomPick)}
-        initial={roomGuests[roomPick]} nights={nights} guestInfo={options.guestTypes}
+        initial={roomGuests[roomPick]} guestInfo={options.guestTypes}
         onConfirm={value => confirmRoomGuests(roomPick,value)} onCancel={() => roomGuestDialog.current.close()}/>}
     </dialog>
     <dialog ref={guestWarningDialog} className="dialog confirm-dialog tone-warning camp-guest-warning" aria-labelledby="camp-guest-warning"

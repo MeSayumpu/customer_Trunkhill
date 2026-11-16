@@ -6,6 +6,7 @@ import {revalidatePath} from 'next/cache'
 import {facilityCategories,heroCategory} from '../../lib/camp-options'
 import {guestRateLineMax,guestRateLinesMax,guestTypeKeys,guestTypeTextMax,normalizeGuestRate} from '../../lib/guest-types'
 import {contactChannels,parseCoordinates,validContact,validLink} from '../../lib/camp-contacts'
+import {trunkboxTextMax} from '../../lib/trunkbox-text'
 import {claimUpload,ensureStorage,lockStorage,storageId,StorageError} from '../../lib/storage'
 async function guard(){if(!await isAdmin())redirect('/admin')}
 async function save(key,value){await database().execute('INSERT INTO camp_options(option_key,value_json) VALUES (?,?) ON DUPLICATE KEY UPDATE value_json=VALUES(value_json)',[key,JSON.stringify(value)])}
@@ -39,6 +40,13 @@ export async function saveRescheduleNote(data){
   const th=String(data.get('th')||'').trim(),en=String(data.get('en')||'').trim()
   if(th.length>600||en.length>600)redirect('/admin?section=settings&group=policy&error=invalid')
   await save('rescheduleNote',{th,en});redirect('/admin?section=settings&group=policy&saved=settings')
+}
+// Texts of the Trunkbox tab on the booking page; blank = the built-in wording.
+export async function saveTrunkboxText(data){
+  await guard()
+  const values=Object.fromEntries(['intro','introEn','price','priceEn'].map(key=>[key,String(data.get(key)||'').trim()]))
+  if(Object.values(values).some(text=>text.length>trunkboxTextMax))redirect('/admin?section=rooms&error=invalid')
+  await save('trunkboxText',values);revalidatePath('/');redirect('/admin?section=rooms&saved=settings')
 }
 export async function saveFacilities(data){
   await guard();const values=Object.fromEntries(facilityKeys.map(key=>[key,String(data.get(key)||'').trim()]))

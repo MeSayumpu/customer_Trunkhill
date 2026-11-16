@@ -497,3 +497,17 @@
 .admin-ui .check-row { display:flex; align-items:flex-start; gap:8px; }
 .admin-ui .check-row input { width:auto; margin-top:4px; }
 @media (max-width:640px) { .admin-ui .guest-rate-line-row { grid-template-columns:1fr auto; } .admin-ui .guest-rate-line-row label { grid-column:1 / -1; } }
+
+/* Reschedule history: only what changed, old value struck through and new value highlighted. */
+.admin-ui .reschedule-changes { display:grid; gap:8px; margin:0; }
+.admin-ui .reschedule-changes > div { display:grid; gap:2px; }
+.admin-ui .reschedule-changes dt { font-size:.8em; font-weight:700; opacity:.7; }
+.admin-ui .reschedule-changes dd { margin:0; overflow-wrap:anywhere; }
+.admin-ui .reschedule-changes del { color:#9a3b33; }
+.admin-ui .reschedule-changes ins { text-decoration:none; font-weight:700; color:#1f6b45; }
+
+/* Storage page: backup download and slip purge. */
+.admin-ui .booking-backup .checkbox-row { display:flex; align-items:flex-start; gap:8px; font-weight:600; }
+.admin-ui .booking-backup .checkbox-row input { width:auto; margin-top:3px; }
+.admin-ui .booking-backup ul { margin:0; padding-left:1.2em; list-style:disc; display:grid; gap:2px; }
+.admin-ui .booking-backup .button.danger { background:#b3261e; border-color:#b3261e; color:#fff; }

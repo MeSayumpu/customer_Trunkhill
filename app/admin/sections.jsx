@@ -1,6 +1,7 @@
 import {campZones} from '../../lib/camp-options'
 import {addZone} from './camp-options-actions'
 import {ZoneStatusList} from './zone-status-list'
+import {TrunkboxTextSettings} from './trunkbox-text-settings'
 import { MediaUpload } from './media-upload'
 
 import { AdminIcon } from './admin-icon'
@@ -164,6 +165,7 @@ export async function InventoryList({ section, query }) {
   const [zoneRows] = kind === 'plot' ? await database().query("SELECT z.zone,z.active,(SELECT COUNT(*) FROM inventory i WHERE i.zone=z.zone) AS total FROM zone_details z WHERE z.zone NOT IN ('BOX','GEAR') ORDER BY z.zone") : [[]]
   return <section className="panel stack admin-content">
     {kind === "plot" && <details className="panel zone-create"><summary>จัดการโซน / เพิ่มโซน / เปิด–ปิดการใช้งาน</summary><p>เพิ่มโซน เช่น E แล้วเลือกโซนนี้ตอนเพิ่มล็อก จากนั้นจัดวางล็อกในหน้าจัดการผังลาน</p><ActionForm action={addZone} className="actions"><label>รหัสโซน<input name="zone" placeholder="E" pattern="[A-Za-z][A-Za-z0-9-]{0,11}" maxLength={12} required/></label><button className="button">เพิ่มโซน</button></ActionForm><ZoneStatusList zones={zoneRows}/></details>}
+    {kind === 'room' && <TrunkboxTextSettings/>}
     {tab && <nav className="admin-filter-tabs" aria-label="ประเภทอุปกรณ์ให้เช่า">
       {[['equipment','อุปกรณ์'],['tents','เต็นท์']].map(([type,label]) =>
         <Link key={type} href={adminUrl(section,{q,tab:type})} aria-current={tab === type ? 'page' : undefined}>{label}</Link>)}

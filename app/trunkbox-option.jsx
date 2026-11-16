@@ -8,6 +8,7 @@ import { PhotoGallery } from './photo-stage'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { zoneFeatureIcon } from '../lib/zone-features'
 import { roomGuestText } from './room-guest-picker'
+import { trunkboxText } from '../lib/trunkbox-text'
 
 // Main photo first, then the room's extra photos in the admin's order.
 const roomPhotos = (room,t) => [
@@ -15,7 +16,8 @@ const roomPhotos = (room,t) => [
   ...String(room.gallery || '').split(',').filter(Boolean).map(id => '/api/inventory-gallery/' + id),
 ].map((src,index) => ({src,alt:t('{name} รูปที่ {n}',{name:t(room.name),n:index + 1})}))
 
-export function TrunkboxOption({rooms,counts,ready,busy,roomGuests = {},onSelect,onRemove}) {
+// text = the admin's wording for the intro and the price line (camp option "trunkboxText").
+export function TrunkboxOption({rooms,counts,ready,busy,roomGuests = {},onSelect,onRemove,text}) {
   const {t,lang,money} = useI18n()
   const [detailCode,setDetailCode] = useState(null)
   const detail = rooms.find(room=>room.code===detailCode) ?? rooms[0]
@@ -24,7 +26,7 @@ export function TrunkboxOption({rooms,counts,ready,busy,roomGuests = {},onSelect
     <div className="panel stack">
       <header className="option-head">
         <span className="option-head-icon" aria-hidden="true"><CustomerIcon name="cabin"/></span>
-        <div><h2 id="trunkbox-title">Trunkbox</h2><p className="muted small">{t('ห้องพักพร้อมนอน เลือกห้องแล้วเพิ่มอุปกรณ์ได้ในขั้นสรุปการจอง')}</p></div>
+        <div><h2 id="trunkbox-title">Trunkbox</h2><p className="muted small">{trunkboxText(text,'intro',lang,t)}</p></div>
       </header>
       {!ready ? <CampLoader label={t('กำลังตรวจสอบห้องว่าง…')}/> : rooms.length ? <div className="room-choice-list">
         {rooms.map(room=>{
@@ -37,7 +39,7 @@ export function TrunkboxOption({rooms,counts,ready,busy,roomGuests = {},onSelect
               <input type="checkbox" checked={checked} disabled={busy || (!available && !checked)}
                 onChange={event=>event.target.checked ? onSelect(room.code) : onRemove(room.code)}/>
               <span className="room-choice-text"><strong>{t(room.name)}</strong><small>{t(room.detail)}</small>
-                <small className="room-choice-price">{t('{price} / คืน · รวม {base} คน · เพิ่มคนละ {extra} · สูงสุด {max} คน',
+                <small className="room-choice-price">{trunkboxText(text,'price',lang,t,
                   {price:money(room.price),base:room.room_base_guests,extra:money(room.room_extra_guest_price),max:room.room_max_guests})}</small></span>
               <span className={'status-pill ' + (checked ? 'selected' : available ? 'available' : 'booked')}>{t(checked ? 'เลือกอยู่' : available ? 'ว่าง' : 'จองแล้ว')}</span>
             </label>

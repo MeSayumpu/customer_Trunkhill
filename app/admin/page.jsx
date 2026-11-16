@@ -15,6 +15,7 @@ import { CheckoutList } from './checkout'
 import { Dashboard } from './dashboard'
 import { BlockedPhones } from './blocked-phones'
 import {StoragePanel} from './storage-panel'
+import {BookingBackup} from './booking-backup'
 
 export const dynamic = 'force-dynamic'
 
@@ -66,7 +67,7 @@ export default async function Admin({ searchParams }) {
           : query.error === 'location' ? 'บันทึกที่ตั้งไม่สำเร็จ ตรวจพิกัด (เช่น 14.123456, 101.123456) และลิงก์แผนที่ต้องขึ้นต้นด้วย https://'
           : query.error === 'wholeCampRates' ? 'กรอกจำนวนคนสูงสุดให้เพิ่มขึ้นทุกกลุ่ม และระบุราคากับหน่วยไฟฟรีเป็นจำนวนเต็ม'
           : 'ตรวจสอบข้อมูลที่ระบุอีกครั้ง'}</p>}
-        {section === 'storage' ? <StoragePanel/> : section === 'dashboard' ? <Dashboard query={query}/> :
+        {section === 'storage' ? <><StoragePanel/><BookingBackup query={query}/></> : section === 'dashboard' ? <Dashboard query={query}/> :
           section === 'bookings' ? <BookingList query={query}/> :
           section === 'blockedPhones' ? <BlockedPhones query={query}/> :
           section === 'settings' ? <CampSettings query={query}/> :

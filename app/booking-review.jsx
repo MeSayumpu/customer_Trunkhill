@@ -165,7 +165,8 @@ export function BookingReview({
           {/* Trunkbox: who stays in the room, and the charge for adults and seniors beyond the guests its price covers. */}
           {row.kind === 'room' && row.guests && <>
             {roomExtraTypes(row).map(([type,count]) => <div className="review-cost review-cost-detail" key={type}>
-              <ReviewCostLabel stay>{t('ผู้เข้าพักเพิ่ม {type} {n} คน × {price}/คน × {nights} คืน',{type:t(type),n:count,price:money(row.room_extra_guest_price),nights})}</ReviewCostLabel>
+              <ReviewCostLabel stay>{t('ผู้เข้าพักเพิ่ม {type} {n} คน × {price}/คน × {nights} คืน',{type:t(type),n:count,price:money(row.room_extra_guest_price),nights})}
+                <small className="review-extra-note">{t('เฉพาะค่าเข้าพื้นที่ ไม่มีอุปกรณ์การนอน')}</small></ReviewCostLabel>
               <strong>{money(count * row.room_extra_guest_price * nights)}</strong>
             </div>)}
             {/* Children in the room are never charged; their own 0-baht line says so. */}

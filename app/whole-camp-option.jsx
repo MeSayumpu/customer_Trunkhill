@@ -10,7 +10,7 @@ export function WholeCampOption({ tiers, status, available, onRetry }) {
     <header className="option-head">
       <span className="option-head-icon" aria-hidden="true"><CustomerIcon name="tents"/></span>
       <div><h2 id="whole-camp-title">{t('เหมาลาน')}</h2>
-        <p className="small muted">{maxGuests ? t('จองลานแบบส่วนตัวสำหรับผู้ใหญ่ 1–{n} คน เด็กและผู้สูงอายุฟรี ต้องว่างครบทุกคืนที่เลือก',{n:maxGuests}) : t('จองลานแบบส่วนตัว ต้องว่างครบทุกคืนที่เลือก')}</p></div>
+        <p className="small muted">{maxGuests ? t('จองลานแบบส่วนตัวสำหรับผู้เข้าพักรวม 1–{n} คน เด็กและผู้สูงอายุฟรี ต้องว่างครบทุกคืนที่เลือก',{n:maxGuests}) : t('จองลานแบบส่วนตัว ต้องว่างครบทุกคืนที่เลือก')}</p></div>
     </header>
     {status && <p className={'notice' + (available ? ' success' : ' error')} role="status"><CustomerIcon name={available ? 'check' : 'warning'}/>{status}</p>}
     {onRetry && <div><button type="button" className="button secondary" onClick={onRetry}>{t('ตรวจสอบอีกครั้ง')}</button></div>}

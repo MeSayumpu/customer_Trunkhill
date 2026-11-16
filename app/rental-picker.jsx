@@ -82,7 +82,7 @@ export function RentalPicker({ dialog, rows, draft, setDraft, onConfirm, hostNam
       <form method="dialog"><button className="icon-button" aria-label={t('ปิดโดยไม่บันทึก')}><CustomerIcon name="close"/></button></form>
     </header>
     <div className="customer-switch" aria-label={t('ประเภทอุปกรณ์')}>
-      <button type="button" aria-pressed={view === 'stay'} onClick={() => selectView('stay')}>{t('เต็นท์')}</button>
+      <button type="button" aria-pressed={view === 'stay'} onClick={() => selectView('stay')}>{t('เต็นท์/ทาร์ป')}</button>
       <button type="button" aria-pressed={view === 'gear'} onClick={() => selectView('gear')}>{t('อุปกรณ์')}</button>
     </div>
     <div className="rental-columns">

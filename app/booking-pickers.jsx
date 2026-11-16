@@ -88,7 +88,7 @@ export function DatePicker({ dialog, arrival, departure, today, onConfirm, fixed
 const guestMax = 100
 
 // Typed guest count: digits only, no leading zero, 1–100. Clearing the field means none (0).
-function GuestCountInput({value,label,onChange}) {
+function GuestCountInput({value,label,onChange,max = guestMax}) {
   const {t} = useI18n()
   const [draft,setDraft] = useState(null)
   const shown = draft ?? String(value)
@@ -97,7 +97,7 @@ function GuestCountInput({value,label,onChange}) {
     onFocus={event => event.currentTarget.select()}
     onChange={event => {
       const digits = event.target.value.replace(/[^0-9]/g,'').replace(/^0+/,'').slice(0,3)
-      const number = Math.min(guestMax,Number(digits || 0))
+      const number = Math.min(guestMax,max,Number(digits || 0))
       setDraft(digits ? String(number) : '')
       onChange(number)
     }}
@@ -105,8 +105,11 @@ function GuestCountInput({value,label,onChange}) {
     onBlur={() => setDraft(null)}/>
 }
 
-export function GuestPicker({ guests, setGuests, settings, rates = [], dialog, wholeCamp = false, guestInfo, guestRate }) {
+// maxTotal (whole-camp bookings): adults + children + seniors together may not exceed it.
+export function GuestPicker({ guests, setGuests, settings, rates = [], dialog, wholeCamp = false, guestInfo, guestRate, maxTotal }) {
   const {t,money,lang} = useI18n()
+  const totalCount = guests.adults + guests.children + guests.seniors
+  const room = key => maxTotal > 0 ? Math.max(0,maxTotal - (totalCount - guests[key])) : guestMax
   const info = normalizeGuestTypes(guestInfo)
   const detail = key => guestTypeText(info[key],'detail',lang,t)
   const note = key => guestTypeText(info[key],'note',lang,t)
@@ -122,7 +125,7 @@ export function GuestPicker({ guests, setGuests, settings, rates = [], dialog, w
     return low === high ? money(low) : money(low) + '–' + money(high)
   }
   function adjust(key, amount) {
-    setGuests(previous => ({ ...previous, [key]: Math.max(0, Math.min(guestMax, previous[key] + amount)) }))
+    setGuests(previous => ({ ...previous, [key]: Math.max(0, Math.min(guestMax, amount > 0 ? Math.max(previous[key],room(key)) : guestMax, previous[key] + amount)) }))
   }
   // Plots: seniors are free only when an adult comes along; children need an adult or a senior with them.
   const seniorsPay = !wholeCamp && guests.adults === 0 && guests.seniors > 0
@@ -136,8 +139,8 @@ export function GuestPicker({ guests, setGuests, settings, rates = [], dialog, w
         {free(key) && note(key) && <small className="guest-type-note"><span className="free-guest-mark">*</span> {note(key)}</small>}</div>
       <div className="guest-counter">
         <button aria-label={t('ลดจำนวน{label}',{label:t(label)})} disabled={guests[key] === 0} onClick={() => adjust(key, -1)}><CustomerIcon name="minus"/></button>
-        <GuestCountInput value={guests[key]} label={t(label)} onChange={number => setGuests(previous => ({...previous,[key]:number}))}/>
-        <button aria-label={t('เพิ่มจำนวน{label}',{label:t(label)})} disabled={guests[key] >= guestMax} onClick={() => adjust(key, 1)}><CustomerIcon name="plus"/></button>
+        <GuestCountInput value={guests[key]} label={t(label)} max={room(key)} onChange={number => setGuests(previous => ({...previous,[key]:number}))}/>
+        <button aria-label={t('เพิ่มจำนวน{label}',{label:t(label)})} disabled={guests[key] >= Math.min(guestMax,room(key))} onClick={() => adjust(key, 1)}><CustomerIcon name="plus"/></button>
         <span>{t('คน')}</span>
       </div>
     </div>)}
@@ -147,6 +150,7 @@ export function GuestPicker({ guests, setGuests, settings, rates = [], dialog, w
         {t('1 คนต่อล็อก {price} / คืน',{price:rateRange('solo_person_price')})}<br/>
         {t('2 คนขึ้นไปต่อล็อก {price} / คน / คืน',{price:rateRange('person_price')})}
       </b> : <b>{settings ? t('คิดราคาตามล็อก') : t('รอตรวจสอบราคา')}</b>)}
+      {maxTotal > 0 && <b>{t('เหมาลานรับผู้เข้าพักได้สูงสุด {n} คน รวมผู้ใหญ่ เด็ก และผู้สูงอายุ',{n:maxTotal})}</b>}
       {ownLines.map((line,index) => <b className="guest-rate-line" key={index}>{lang === 'en' && line.en ? line.en : t(line.th)}</b>)}</div>
     {seniorsPay && <p className="notice" role="note">{t('กรณีผู้สูงอายุเข้าพักโดยไม่มีผู้ใหญ่ จะคิดราคาผู้สูงอายุตามราคาผู้ใหญ่')}</p>}
     {childrenAlone && <p className="notice error" role="alert">{t('การจองล็อกต้องมีผู้ใหญ่หรือผู้สูงอายุอย่างน้อย 1 คน')}</p>}

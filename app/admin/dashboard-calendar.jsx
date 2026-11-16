@@ -6,6 +6,8 @@ import { shiftDate } from '../../lib/booking-dates'
 import { AdminIcon } from './admin-icon'
 
 const dateLabel=new Intl.DateTimeFormat('th-TH-u-ca-gregory',{day:'numeric',month:'short',timeZone:'UTC'})
+// Short day name for the column heads, e.g. "จ." for Monday.
+const dayNames=['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.']
 const statusLabel={pending:'รอตรวจสอบ',confirmed:'ยืนยันแล้ว',staying:'อยู่ในช่วงเข้าพัก',done:'Check-out แล้ว'}
 export function DashboardCalendar({inventory,rows,closures,filters,current}) {
   const [expanded,setExpanded]=useState([])
@@ -29,7 +31,7 @@ export function DashboardCalendar({inventory,rows,closures,filters,current}) {
       <nav className="actions" aria-label="รูปแบบปฏิทิน">{[['month','เดือน'],['week','สัปดาห์'],['day','วัน']].map(([mode,label])=><Link key={mode} className={'button'+(mode===filters.mode?'':' secondary')} aria-current={mode===filters.mode?'true':undefined} href={url({mode})} scroll={false}>{label}</Link>)}</nav>
     </div>
     <p className="small muted">คลิกชื่อโซนเพื่อดูรายล็อก · ตัวเลขคือจำนวนที่จอง / จำนวนทั้งหมดต่อคืน · กดชื่อผู้จองเพื่อจัดการรายการ</p>
-    <div className="dashboard-calendar-scroll" tabIndex={0} role="region" aria-label="ตารางการจองแยกโซน"><table className="dashboard-calendar-table"><thead><tr><th scope="col">โซน / ล็อก</th>{dates.map(day=><th key={day} scope="col" data-today={day===current}><time dateTime={day}>{dateLabel.format(new Date(day))}</time></th>)}</tr></thead>
+    <div className="dashboard-calendar-scroll" tabIndex={0} role="region" aria-label="ตารางการจองแยกโซน"><table className="dashboard-calendar-table"><thead><tr><th scope="col">โซน / ล็อก</th>{dates.map(day=><th key={day} scope="col" data-today={day===current}><time dateTime={day}>{dayNames[new Date(day).getUTCDay()]} {dateLabel.format(new Date(day))}</time></th>)}</tr></thead>
       <tbody>{zones.map(zone=>{const items=inventory.filter(i=>i.zone===zone),open=expanded.includes(zone);return <ZoneRows key={zone} {...{zone,items,open,dates,indexed,closed,current}} toggle={()=>setExpanded(open?expanded.filter(z=>z!==zone):[...expanded,zone])}/>})}</tbody></table>
       {!inventory.length&&<p className="dashboard-empty">ยังไม่มีล็อกหรือห้องพัก</p>}
     </div>

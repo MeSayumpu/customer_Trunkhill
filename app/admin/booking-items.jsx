@@ -1,5 +1,6 @@
 import { database } from '../../lib/db'
 import { money } from '../../lib/pricing'
+import { itemOrder } from '../../lib/rentals'
 
 export const lodgingLine = `(i.kind = 'plot' OR (i.kind = 'room' AND NOT EXISTS (
   SELECT 1 FROM booking_rentals attached WHERE attached.booking = l.booking AND attached.code = l.code
@@ -9,7 +10,7 @@ export async function bookingItems(id) {
   const [items] = await database().execute(
     `SELECT l.code,l.name,l.quantity,l.amount,l.room_adults,l.room_seniors,l.room_children,i.detail,i.kind,i.is_tent,${lodgingLine} AS lodging
      FROM booking_lines l JOIN inventory i ON i.code=l.code WHERE l.booking=?
-     ORDER BY lodging DESC,l.code`,[id])
+     ORDER BY lodging DESC,${itemOrder}`,[id])
   const [assignments] = await database().execute(
     `SELECT r.code,r.host AS host_code,h.name AS host,r.quantity FROM booking_rentals r
      JOIN booking_lines h ON h.booking=r.booking AND h.code=r.host

@@ -1,4 +1,5 @@
 import { SlipDialog } from './slip-dialog'
+import { slipArchivedMime } from './booking-backup-data'
 import { Fragment } from 'react'
 import Link, { AdminSearchForm } from '../pending-ui'
 import { database } from '../../lib/db'
@@ -90,6 +91,8 @@ export async function BookingList({query}) {
       <dl className="admin-booking-detail"><div><dt>รหัสจอง</dt><dd><code>{detail.reference||detail.id}</code></dd></div><div><dt>ผู้จอง</dt><dd>{detail.guest}</dd></div><div><dt>เบอร์โทร</dt><dd>{detail.phone}</dd></div><div><dt>วันเข้าพัก – วันออก</dt><dd>{detail.arrival} → {detail.departure}</dd></div><div><dt>สถานะ</dt><dd><Status row={detail}/></dd></div><div><dt>จำนวนครั้งที่เลื่อน</dt><dd>{detail.reschedule_count}/{policy.reschedule_limit} ครั้ง</dd></div></dl>
       <RescheduleHistory history={expansions.get(detail.id).history}/>
       {!!detail.has_slip&&<SlipDialog id={detail.id} mime={detail.slip_mime}/>}
+      {/* Slip sent but its image was removed after a backup (storage page, step 2). */}
+      {detail.slip_mime===slipArchivedMime&&<p className="notice">รูปสลิปของรายการนี้ถูกลบออกจากระบบหลังสำรองข้อมูลแล้ว เปิดดูได้จากไฟล์สำรองในโฟลเดอร์ slips ชื่อไฟล์ {detail.reference||detail.id}</p>}
       {/* Right above the slip, so the admin can compare it with the time printed on the slip. */}
       <p className="booking-time-field"><span>วันที่จอง (วันที่โอนเงิน)</span><strong>{thaiDateTime(detail.created_at)}</strong></p>
       {detail.slip_mime?.startsWith('image/')&&<img loading="lazy" decoding="async" className="admin-slip-preview" src={'/admin/slip/'+detail.id} alt="สลิปการโอนของรายการนี้"/>}

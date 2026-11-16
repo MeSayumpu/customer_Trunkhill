@@ -1,6 +1,5 @@
 'use client'
 import { CustomerIcon } from '../customer-icon'
-import { roomGuestText } from '../room-guest-picker'
 
 import { BookingEditor } from './booking-editor'
 import { PageHero } from '../page-hero'
@@ -23,6 +22,8 @@ function BookingSummary({booking}) {
   const {t,money,locale} = useI18n()
   const status = booking.status === 'cancelled' ? 'ยกเลิกแล้ว' : booking.checked_out ? 'Check-out แล้ว' : booking.status === 'pending' && booking.payment_required
     ? (booking.payment_submitted ? 'รอตรวจสอบการชำระเงิน' : 'รอชำระเงิน') : statuses[booking.status]
+  // Lines arrive as plots, rooms, then rentals in the rental menu's order (itemOrder in lib/rentals).
+  const lines = booking.lines
   const guests = guestTypes.map(([key,label]) => t(label) + ' ' + booking[key]).join(' · ')
   return <section className="panel stack booking-summary" aria-labelledby="booking-summary-title">
     <div className="section-head"><h2 id="booking-summary-title"><CustomerIcon name="receipt"/> {t('รายละเอียดการจอง')}</h2><div className="actions">
@@ -40,11 +41,8 @@ function BookingSummary({booking}) {
     <div>
       <h3>{t('ล็อก ห้องพัก และอุปกรณ์')}</h3>
       <ul className="booking-summary-lines" role="list">
-        {booking.lines.map(line => <li key={line.code}>
-          <div><strong>{t(line.name)} × {line.quantity}</strong><small>{t('รหัส {code}',{code:line.code})}{line.zone ? ' · ' + t('โซน {zone}',{zone:line.zone}) : ''}{line.room_adults != null ? ' · ' + roomGuestText({adults:line.room_adults,seniors:line.room_seniors,children:line.room_children},t) : ''}</small>
-            <small>{booking.rentalLines.filter(rental => rental.code === line.code)
-              .map(rental => t(rental.host) + ' × ' + rental.quantity).join(' · ')}</small>
-          </div>
+        {lines.map(line => <li key={line.code}>
+          <div><strong>{t(line.name)} × {line.quantity}</strong></div>
           <span>{money(line.amount)}</span>
         </li>)}
       </ul>
