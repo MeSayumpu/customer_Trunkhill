@@ -55,7 +55,7 @@ export async function bookingStats(filters) {
 }
 export async function bookingRows(filters,offset=0,limit=filters.size) {
   const {sql,values}=where(filters)
-  const [rows]=await database().execute(`SELECT b.id,br.reference,b.guest,b.phone,b.arrival,b.departure,b.total,b.tent_discount,b.reschedule_count,b.created_at,
+  const [rows]=await database().execute(`SELECT b.id,br.reference,b.guest,b.phone,b.arrival,b.departure,b.total,b.tent_discount,b.reschedule_count,b.created_at,b.admin_note,
     ${effectiveStatus} AS status,p.submitted_at,p.mime AS slip_mime,(p.booking IS NOT NULL) AS payment_required,(p.slip IS NOT NULL) AS has_slip,
     EXISTS (SELECT 1 FROM booking_checkouts c WHERE c.booking=b.id AND c.completed_at IS NOT NULL) AS checked_out,
     (SELECT COUNT(*) FROM booking_lines l WHERE l.booking=b.id) AS item_count,

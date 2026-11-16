@@ -3,8 +3,9 @@ import { useState } from 'react'
 import Link, { AdminSearchForm } from '../pending-ui'
 import { adminUrl } from './navigation'
 import { AdminIcon } from './admin-icon'
-export function BookingFilters({filters,statuses,sorts}) {
-  const [open,setOpen]=useState(!!(filters.from||filters.to||filters.madeFrom||filters.madeTo||filters.kind||filters.sort!=='newest'))
+// The extra filters start open only when the admin has set one; the default check-in range alone keeps them folded.
+export function BookingFilters({filters,statuses,sorts,open:picked=false}) {
+  const [open,setOpen]=useState(!!(picked||filters.madeFrom||filters.madeTo||filters.kind||filters.sort!=='newest'))
   return <AdminSearchForm className="booking-search">
     <input type="hidden" name="section" value="bookings"/><input type="hidden" name="size" value={filters.size}/>
     <div className="booking-search-main">

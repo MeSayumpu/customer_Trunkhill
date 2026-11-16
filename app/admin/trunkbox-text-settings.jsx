@@ -9,7 +9,7 @@ export async function TrunkboxTextSettings() {
   const saved = (await campOptions()).trunkboxText ?? {}
   const value = key => typeof saved[key] === 'string' ? saved[key] : ''
   return <details className="panel zone-create"><summary>ข้อความในหน้าจอง Trunkbox</summary>
-    <p>เว้นว่างเพื่อใช้ข้อความเดิมของระบบ ช่อง English เว้นว่างได้ ระบบจะใช้คำแปลของข้อความไทย</p>
+    <p>เว้นว่างเพื่อใช้ข้อความเดิมของระบบ ถ้าแก้ข้อความไทย ควรกรอกช่อง English ด้วย เพราะถ้าเว้นว่าง หน้าภาษาอังกฤษจะแสดงข้อความอังกฤษเดิมของระบบ</p>
     <ActionForm action={saveTrunkboxText} className="stack">
       <label>คำอธิบายใต้หัวข้อ Trunkbox<input name="intro" maxLength={trunkboxTextMax} defaultValue={value('intro')} placeholder={trunkboxTextDefaults.intro}/></label>
       <label>คำอธิบายใต้หัวข้อ (English)<input name="introEn" lang="en" maxLength={trunkboxTextMax} defaultValue={value('introEn')}/></label>

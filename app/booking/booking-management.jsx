@@ -74,7 +74,7 @@ export function BookingManagement() {
   const remaining=booking?Math.max(0,(booking.reschedule_limit??rescheduleLimit)-booking.reschedule_count):0
   // Admin's own description (settings → reschedule terms) or the built-in one; {days} and {n} are filled in either way.
   const noteParams={days:booking?.reschedule_notice_days,n:booking?.reschedule_limit??rescheduleLimit}
-  const customNote=(lang==='en'&&rescheduleNote?.en?.trim())||rescheduleNote?.th?.trim()
+  const customNote=lang==='en'?rescheduleNote?.en?.trim():rescheduleNote?.th?.trim()
   const noteLines=(customNote?customNote.replace(/\{(days|n)\}/g,(_,key)=>noteParams[key]):t(rescheduleNoteDefault,noteParams)).split('\n').filter(line=>line.trim())
   const saved=value=>{setBooking(value);setEditing(false);setMessage('บันทึกการแก้ไขแล้ว ใช้สิทธิ์ 1 ครั้ง')}
   if(editing&&booking)return <BookingEditor booking={booking} phone={phone} onClose={()=>setEditing(false)} onSaved={saved}/>

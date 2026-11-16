@@ -23,12 +23,12 @@ function csv(values) {
 }
 
 async function* files(from,to,signal) {
-  const bookings = ['﻿' + csv(['รหัสจอง','รหัสระบบ','ผู้จอง','เบอร์โทร','เช็กอิน','เช็กเอาต์','ผู้ใหญ่','เด็ก','ผู้สูงอายุ','ยอดรวม','ส่วนลดเต็นท์','สถานะ','Check-out แล้ว','จำนวนครั้งที่เลื่อน','วันเวลาที่จอง (เวลาไทย)','วันเวลาที่ส่งสลิป (เวลาไทย)','ไฟล์สลิป'])]
+  const bookings = ['﻿' + csv(['รหัสจอง','รหัสระบบ','ผู้จอง','เบอร์โทร','เช็กอิน','เช็กเอาต์','ผู้ใหญ่','เด็ก','ผู้สูงอายุ','ยอดรวม','ส่วนลดเต็นท์','สถานะ','Check-out แล้ว','จำนวนครั้งที่เลื่อน','วันเวลาที่จอง (เวลาไทย)','วันเวลาที่ส่งสลิป (เวลาไทย)','ไฟล์สลิป','หมายเหตุแอดมิน'])]
   const items = ['﻿' + csv(['รหัสจอง','รหัสรายการ','ชื่อรายการ','จำนวน','ยอดรายการ'])]
   let last = '', slips = 0, missing = 0
   while (!signal.aborted) {
     const [rows] = await database().execute(
-      `SELECT b.id,br.reference,b.guest,b.phone,b.arrival,b.departure,b.adults,b.children,b.seniors,b.total,b.tent_discount,b.reschedule_count,
+      `SELECT b.id,br.reference,b.guest,b.phone,b.arrival,b.departure,b.adults,b.children,b.seniors,b.total,b.tent_discount,b.reschedule_count,b.admin_note,
          DATE_ADD(b.created_at,INTERVAL 7 HOUR) AS made_at,DATE_ADD(p.submitted_at,INTERVAL 7 HOUR) AS slip_at,
          ${effectiveStatus} AS status,p.mime,(p.slip IS NOT NULL) AS has_slip,
          EXISTS (SELECT 1 FROM booking_checkouts c WHERE c.booking=b.id AND c.completed_at IS NOT NULL) AS checked_out
@@ -55,7 +55,7 @@ async function* files(from,to,signal) {
         } else { slipName = 'ไม่พบไฟล์'; missing++ }
       } else if (row.mime === slipArchivedMime) slipName = 'ลบออกจากระบบแล้ว ดูในไฟล์สำรองก่อนหน้า'
       bookings.push(csv([name,row.id,row.guest,"'" + row.phone,row.arrival,row.departure,row.adults,row.children,row.seniors,row.total,row.tent_discount,
-        row.status === 'pending' && row.slip_at ? 'รอตรวจสลิป' : statuses[row.status],row.checked_out ? 'ใช่' : 'ไม่',row.reschedule_count,row.made_at,row.slip_at ?? '',slipName]))
+        row.status === 'pending' && row.slip_at ? 'รอตรวจสลิป' : statuses[row.status],row.checked_out ? 'ใช่' : 'ไม่',row.reschedule_count,row.made_at,row.slip_at ?? '',slipName,row.admin_note ?? '']))
     }
   }
   yield { name:'bookings.csv', content:bookings.join('') }

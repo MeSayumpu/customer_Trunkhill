@@ -63,6 +63,17 @@ export async function changeStatus(data) {
     ...Object.fromEntries(['from','to','kind','sort','size','page'].map(key=>[key,data.get(key)])) }))
 }
 
+// Free-text note on a booking, for the admin only (deposits taken, special requests, old-system remarks).
+export async function saveBookingNote(data) {
+  await requireAdmin()
+  const id = data.get('id')
+  const note = String(data.get('note') || '').replace(/\r\n?/g,'\n').trim()
+  if (typeof id !== 'string' || !/^[A-F0-9]{20}$/.test(id) || note.length > 1000) redirect('/admin?section=bookings&error=invalid')
+  await database().execute('UPDATE bookings SET admin_note=? WHERE id=?',[note || null,id])
+  redirect(adminUrl('bookings',{ saved:'note', view:id, q:data.get('q'), status:data.get('filterStatus'),
+    ...Object.fromEntries(['from','to','madeFrom','madeTo','kind','sort','size','page','expand'].map(key=>[key,data.get(key)])) }))
+}
+
 export async function unlockPhone(data) {
   await requireAdmin()
   const phone=String(data.get('phone')||'')

@@ -30,7 +30,7 @@ export async function BookingPolicy(){
   <p>แสดงใต้บรรทัด “ใช้สิทธิ์แล้ว … ครั้ง · เหลือ … ครั้ง” หลังลูกค้าค้นหาการจอง ขึ้นบรรทัดใหม่ได้ พิมพ์ {'{days}'} แทนจำนวนวันล่วงหน้า และ {'{n}'} แทนจำนวนครั้งที่เลื่อนได้ เว้นว่างเพื่อใช้ข้อความเดิมของระบบ</p>
   <ActionForm action={saveRescheduleNote} className="stack">
    <label>ภาษาไทย<textarea name="th" rows={3} maxLength={600} defaultValue={note.th} placeholder={rescheduleNoteDefault}/></label>
-   <label>English<textarea name="en" lang="en" rows={3} maxLength={600} defaultValue={note.en} placeholder="เว้นว่างเพื่อใช้ข้อความภาษาไทย"/></label>
+   <label>English<textarea name="en" lang="en" rows={3} maxLength={600} defaultValue={note.en} placeholder="เว้นว่างเพื่อใช้ข้อความอังกฤษเดิมของระบบ"/></label>
    <div className="actions"><button className="button"><AdminIcon name="save"/>บันทึกคำอธิบาย</button></div>
   </ActionForm>
   <h3>ช่วงวันที่ห้ามเลื่อนการจอง</h3>

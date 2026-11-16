@@ -39,6 +39,8 @@ async function initBase() {
     ['booking_lines','room_children','TINYINT UNSIGNED NULL'],
   ])
   await ensureColumns([['settings','slip_duplicate_check','BOOLEAN NOT NULL DEFAULT TRUE']])
+  // Free-text note the admin keeps on a booking (deposits taken, requests…); customers never see it.
+  await ensureColumns([['bookings','admin_note','VARCHAR(1000) NULL']])
   await ensureColumns([['payment_config','bank_name','VARCHAR(120) NULL'],['payment_config','bank_account','VARCHAR(20) NULL']])
   const [[galleryCaption]] = await connection.execute(
     "SELECT 1 FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='zone_details' AND column_name='gallery_caption'",

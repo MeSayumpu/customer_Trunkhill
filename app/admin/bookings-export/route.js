@@ -10,12 +10,12 @@ function csv(values) {
 }
 async function* rows(filters,total,signal) {
   const encoder=new TextEncoder()
-  yield encoder.encode('\uFEFF'+csv(['รหัสจอง','ผู้จอง','เบอร์โทร','เช็กอิน','เช็กเอาต์','ยอดรวม','สถานะ','จำนวนครั้งที่เลื่อน','วันที่สร้างรายการ']))
+  yield encoder.encode('\uFEFF'+csv(['รหัสจอง','ผู้จอง','เบอร์โทร','เช็กอิน','เช็กเอาต์','ยอดรวม','สถานะ','จำนวนครั้งที่เลื่อน','วันที่สร้างรายการ','หมายเหตุแอดมิน']))
   for(let offset=0;offset<total && !signal.aborted;offset+=500) {
     const page=await bookingRows(filters,offset,500)
     if(!page.length) return
     yield encoder.encode(page.map(row=>csv([row.reference||row.id,row.guest,"'"+row.phone,row.arrival,row.departure,row.total,
-      row.status==='pending' && row.submitted_at?'รอตรวจสลิป':statuses[row.status],row.reschedule_count,row.created_at])).join(''))
+      row.status==='pending' && row.submitted_at?'รอตรวจสลิป':statuses[row.status],row.reschedule_count,row.created_at,row.admin_note??''])).join(''))
   }
 }
 export async function GET(request) {
