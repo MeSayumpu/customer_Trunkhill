@@ -171,7 +171,10 @@ export function BookingReview({
             </div>)}
             {/* Children in the room are never charged; their own 0-baht line says so. */}
             {row.guests.children > 0 && <div className="review-cost review-cost-detail">
-              <ReviewCostLabel stay>{t('เด็ก {n} คน',{n:row.guests.children})}</ReviewCostLabel>
+              {/* Children beyond the guests the room price covers get the same note: they come without bedding too. */}
+              <ReviewCostLabel stay>{t('เด็ก {n} คน',{n:row.guests.children})}
+                {row.guests.adults + row.guests.seniors + row.guests.children > (row.room_base_guests ?? 2) &&
+                  <small className="review-extra-note">{t('เฉพาะค่าเข้าพื้นที่ ไม่มีอุปกรณ์การนอน')}</small>}</ReviewCostLabel>
               <strong>{money(0)}</strong>
             </div>}
           </>}

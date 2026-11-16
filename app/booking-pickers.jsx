@@ -152,7 +152,6 @@ export function GuestPicker({ guests, setGuests, settings, rates = [], dialog, w
       </b> : <b>{settings ? t('คิดราคาตามล็อก') : t('รอตรวจสอบราคา')}</b>)}
       {maxTotal > 0 && <b>{t('เหมาลานรับผู้เข้าพักได้สูงสุด {n} คน รวมผู้ใหญ่ เด็ก และผู้สูงอายุ',{n:maxTotal})}</b>}
       {ownLines.map((line,index) => <b className="guest-rate-line" key={index}>{lang === 'en' && line.en ? line.en : t(line.th)}</b>)}</div>
-    {seniorsPay && <p className="notice" role="note">{t('กรณีผู้สูงอายุเข้าพักโดยไม่มีผู้ใหญ่ จะคิดราคาผู้สูงอายุตามราคาผู้ใหญ่')}</p>}
     {childrenAlone && <p className="notice error" role="alert">{t('การจองล็อกต้องมีผู้ใหญ่หรือผู้สูงอายุอย่างน้อย 1 คน')}</p>}
     <div className="picker-actions"><button className="button" onClick={() => dialog.current.close()}>{t('เสร็จสิ้น')}</button></div>
   </div>
