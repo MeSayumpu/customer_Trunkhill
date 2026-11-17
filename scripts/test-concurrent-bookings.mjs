@@ -3,6 +3,9 @@
 //   node --env-file=.env.local scripts/test-concurrent-bookings.mjs --keep     also leave three paid bookings for tonight
 //                                                                              (to walk through approve / check-in / check-out)
 //   node --env-file=.env.local scripts/test-concurrent-bookings.mjs --cleanup  delete everything earlier runs left behind
+//   node scripts/test-concurrent-bookings.mjs --remote [--keep]                 a hosted server whose database cannot be reached:
+//                                                                              the same races, checked through the site's own
+//                                                                              answers; nothing is deleted (clean up with SQL)
 // TEST_BASE (default http://127.0.0.1:3001) is the server; TEST_NIGHT (default: 8 days from today) is the first of the three
 // empty nights it books. Every booking it makes has a guest name starting with LOADTEST and a phone starting with 0999.
 import assert from 'node:assert/strict'
@@ -12,7 +15,8 @@ import { createConnection } from 'mysql2/promise'
 import { stayPricing } from '../lib/pricing.js'
 
 const base = process.env.TEST_BASE || 'http://127.0.0.1:3001'
-const db = await createConnection({ uri:process.env.DATABASE_URL, dateStrings:true })
+const remote = process.argv.includes('--remote')
+const db = remote ? null : await createConnection({ uri:process.env.DATABASE_URL, dateStrings:true })
 const day = (from, add) => new Date(Date.parse(from) + add * 864e5).toISOString().slice(0,10)
 const today = new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Bangkok'}).format(new Date())
 const firstNight = process.env.TEST_NIGHT || day(today,8)
@@ -22,6 +26,7 @@ const results = []
 const check = (name, ok, detail = '') => { results.push({name,ok,detail}); console.log((ok ? '  ok   ' : '  FAIL ') + name + (detail ? ' — ' + detail : '')) }
 
 async function cleanup() {
+  if (remote) return 0
   const [rows] = await db.query("SELECT id FROM bookings WHERE guest LIKE 'LOADTEST%' AND phone LIKE '0999%'")
   const ids = rows.map(row => row.id)
   if (ids.length) {
@@ -35,8 +40,8 @@ async function cleanup() {
 }
 
 if (process.argv.includes('--cleanup')) {
-  console.log('deleted', await cleanup(), 'test bookings')
-  await db.end()
+  console.log(remote ? 'a remote run is cleaned up with SQL, not from here' : 'deleted ' + await cleanup() + ' test bookings')
+  await db?.end()
   process.exit(0)
 }
 
@@ -87,12 +92,19 @@ async function pay(person, bytes = slipFile()) {
 }
 const cancel = async person => { const response = await fetch(`${base}/api/payment?id=${person.id}`,{ method:'DELETE', headers:auth(person) })
   return { status:response.status, data:await response.json().catch(() => ({})) } }
-const held = async (night, codes) => { const [rows] = await db.query('SELECT code,SUM(quantity) AS n FROM allocations WHERE night=? AND code IN (?) GROUP BY code',[night,codes])
+// How many of each item are held on a night: from the database, or on a remote run from what the site still offers.
+const held = async (night, codes) => {
+  if (remote) { const inventory = (await catalogOf(night)).inventory
+    return new Map(codes.map(code => { const row = inventory.find(item => item.code === code); return [code,Number(row.stock) - Number(row.available)] })) }
+  const [rows] = await db.query('SELECT code,SUM(quantity) AS n FROM allocations WHERE night=? AND code IN (?) GROUP BY code',[night,codes])
   return new Map(rows.map(row => [row.code,Number(row.n)])) }
+const paymentOf = async person => { const response = await fetch(`${base}/api/payment?id=${person.id}`,{ headers:auth(person) })
+  return { status:response.status, data:await response.json().catch(() => ({})) } }
 const mine = async () => { const [[row]] = await db.query('SELECT COUNT(*) AS n FROM bookings WHERE guest LIKE ?',[`LOADTEST ${run} %`]); return Number(row.n) }
 
 // Whole-database rules that must hold no matter what the phases above did.
 async function invariants(label) {
+  if (remote) return console.log('  (database rules are checked with SQL on a remote run)')
   const count = async sql => Number((await db.query(sql))[0][0].n)
   check(`${label}: nothing is held beyond its stock`,await count(`SELECT COUNT(*) AS n FROM (SELECT a.code FROM allocations a JOIN inventory i ON i.code=a.code
     JOIN bookings b ON b.id=a.booking WHERE b.guest LIKE 'LOADTEST%' OR a.night>='${firstNight}' GROUP BY a.code,a.night,i.stock HAVING SUM(a.quantity)>i.stock) x`) === 0)
@@ -112,8 +124,10 @@ try {
   const leftover = await cleanup()
   if (leftover) console.log('removed', leftover, 'bookings left by an earlier run')
   const nights = [firstNight,day(firstNight,1),day(firstNight,2)]
-  const [[busy]] = await db.query('SELECT COUNT(*) AS n FROM allocations WHERE night IN (?)',[nights])
-  assert.equal(Number(busy.n),0,`nights ${nights.join(', ')} must be empty — set TEST_NIGHT to three free nights`)
+  if (remote) for (const night of nights) assert.ok((await catalogOf(night)).inventory.every(row => row.kind === 'gear' ? Number(row.available) === Number(row.stock) : !row.active || Number(row.available) > 0),
+    `night ${night} must be empty — set TEST_NIGHT to three free nights`)
+  else { const [[busy]] = await db.query('SELECT COUNT(*) AS n FROM allocations WHERE night IN (?)',[nights])
+    assert.equal(Number(busy.n),0,`nights ${nights.join(', ')} must be empty — set TEST_NIGHT to three free nights`) }
   const catalog = await catalogOf(nights[0])
   const plots = catalog.inventory.filter(row => row.kind === 'plot' && row.code !== 'WHOLE-CAMP' && row.active && Number(row.available) > 0).map(row => row.code)
   const gear = catalog.inventory.filter(row => row.kind === 'gear' && !row.is_tent && row.active && Number(row.stock) > 0).sort((a,b) => a.stock - b.stock)[0]
@@ -135,7 +149,7 @@ try {
   check(`the scarce item was not oversold`,gearWon <= Number(gear.stock),`${gearWon} of ${gear.stock}`)
   const heldA = await held(nights[0],[...plots,gear.code])
   check('the database holds exactly what the winners booked',plots.every(code => (heldA.get(code) || 0) === (winnersPerPlot.get(code) || 0)) && (heldA.get(gear.code) || 0) === gearWon)
-  check('refused requests left no booking behind',await mine() === won.length,`${won.length} bookings`)
+  if (!remote) check('refused requests left no booking behind',await mine() === won.length,`${won.length} bookings`)
   check('a refusal names what was not available',doneA.filter(row => row.status === 409).every(row => Array.isArray(row.data.unavailable) && row.data.unavailable.length > 0))
 
   console.log('\nB. The same request sent five times at once (double taps, retries)')
@@ -143,8 +157,9 @@ try {
   const repeat = customer(twoNights,nights[1],{ items:[{code:plots[0],quantity:1}] })
   const doneB = await Promise.all(Array.from({length:5},() => reserve(repeat)))
   check('all five answers are the same booking',doneB.every(row => row.status === 200 && row.id === doneB[0].id),statuses(doneB))
-  const [[sameKey]] = await db.query('SELECT COUNT(*) AS n FROM bookings WHERE request_key=?',[repeat.payload.requestKey])
-  check('only one booking was stored',Number(sameKey.n) === 1)
+  if (remote) check('the plot is held once',(await held(nights[1],[plots[0]])).get(plots[0]) === 1)
+  else { const [[sameKey]] = await db.query('SELECT COUNT(*) AS n FROM bookings WHERE request_key=?',[repeat.payload.requestKey])
+    check('only one booking was stored',Number(sameKey.n) === 1) }
   const reused = await reserve(repeat,{ ...repeat.payload, guest:repeat.payload.guest + ' changed' })
   check('reusing the request key with other details is refused',reused.status === 409,String(reused.status))
 
@@ -186,16 +201,28 @@ try {
   const races = await Promise.all(racers.flatMap(person => [pay(person),cancel(person)]))
   // A cancelled unpaid booking is deleted outright, so the losing payment may find nothing (404) or a closed upload (409).
   check('cancel racing a payment never errors',races.every(row => [200,404,409].includes(row.status)),statuses(races))
+  if (remote) {
+    const ends = await Promise.all(racers.map(paymentOf))
+    const survivors = racers.filter((person, index) => ends[index].status === 200 && ends[index].data.status === 'pending' && ends[index].data.submitted)
+    const stillHeld = await held(nights[0],racers.map(person => person.payload.items[0].code))
+    check('each raced booking ended either removed with nothing held, or paid and still held',
+      ends.every(row => row.status === 404 || (row.status === 200 && row.data.submitted)) &&
+      racers.every(person => (stillHeld.get(person.payload.items[0].code) || 0) === (survivors.includes(person) ? 1 : 0)),
+      `${racers.length - survivors.length} removed, ${survivors.length} paid`)
+  } else {
   const [raceRows] = await db.query(`SELECT b.status,p.submitted_at IS NOT NULL AS submitted,(SELECT COUNT(*) FROM allocations a WHERE a.booking=b.id) AS held
     FROM bookings b JOIN booking_payments p ON p.booking=b.id WHERE b.id IN (?)`,[racers.map(person => person.id)])
   const [[raceHeld]] = await db.query('SELECT COUNT(*) AS n FROM allocations a LEFT JOIN bookings b ON b.id=a.booking WHERE a.booking IN (?) AND b.id IS NULL',[racers.map(person => person.id)])
   check('each raced booking ended either removed with nothing held, or paid and still held',Number(raceHeld.n) === 0 && raceRows.every(row =>
     row.status === 'cancelled' ? Number(row.held) === 0 : row.status === 'pending' && Number(row.submitted) === 1 && Number(row.held) > 0),
     `${racers.length - raceRows.length} removed, ${raceRows.filter(row => row.status === 'cancelled').length} cancelled, ${raceRows.filter(row => row.status === 'pending').length} paid`)
+  }
   const freed = second && sharedResults[1].data.status === 'cancelled' ? second : first
   const again = await reserve(customer(catalog,nights[0],{ items:[{code:freed.payload.items[0].code,quantity:1}] }))
   check('a plot released by a refused slip can be booked again',again.status === 200,String(again.status))
 
+  if (remote) console.log('\nF. Payment time runs out — skipped on a remote run (it needs the clock moved in the database)')
+  else {
   console.log('\nF. Payment time runs out')
   const late = won.slice(33,36)
   await db.query('UPDATE booking_payments SET expires_at=UTC_TIMESTAMP() - INTERVAL 1 MINUTE WHERE booking IN (?)',[late.map(person => person.id)])
@@ -206,6 +233,7 @@ try {
   check('an unpaid booking past its time is removed and its plot can be booked',retake.status === 200,String(retake.status))
   const [[gone]] = await db.query('SELECT COUNT(*) AS n FROM bookings WHERE id IN (?)',[late.map(person => person.id)])
   check('the timed-out bookings are gone from the database',Number(gone.n) === 0,`${gone.n} left`)
+  }
 
   await invariants('after all phases')
 
@@ -220,16 +248,19 @@ try {
     }
     console.log('  kept: ' + keepers.map(person => `${person.id} (${person.payload.items.map(item => item.code).join('+')}, ${person.payload.guest})`).join(' · '))
     const ids = keepers.map(person => person.id)
+    if (!remote) {
     const [rows] = await db.query("SELECT id FROM bookings WHERE guest LIKE 'LOADTEST%' AND id NOT IN (?)",[ids.length ? ids : ['']])
     for (const table of ['allocations','booking_rentals','booking_lines','payment_file_claims']) if (rows.length) await db.query(`DELETE FROM ${table} WHERE booking IN (?)`,[rows.map(row => row.id)])
     if (rows.length) await db.query('DELETE FROM bookings WHERE id IN (?)',[rows.map(row => row.id)])
-  } else console.log('\ndeleted', await cleanup(), 'test bookings')
+    }
+  } else if (!remote) console.log('\ndeleted', await cleanup(), 'test bookings')
+  if (remote) console.log('\nremote run: the LOADTEST bookings stay on the server until they are deleted with SQL')
 } catch (error) {
   console.error('\nstopped:',error.message)
   results.push({name:'run completed',ok:false,detail:error.message})
   if (!process.argv.includes('--keep')) await cleanup().catch(() => {})
 } finally {
-  await db.end()
+  await db?.end()
 }
 const failed = results.filter(row => !row.ok)
 console.log(`\n${results.length - failed.length} of ${results.length} checks passed` + (failed.length ? ' — FAILED: ' + failed.map(row => row.name).join('; ') : ''))

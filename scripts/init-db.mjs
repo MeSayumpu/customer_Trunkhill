@@ -103,6 +103,8 @@ async function initCheckout() {
     ['bookings', 'bookings_status_created', 'status, created_at, id'],
     ['bookings', 'bookings_phone', 'phone'],
     ['bookings', 'bookings_guest', 'guest'],
+    // The admin's booking list and dashboard filter by arrival date; without this they read every booking ever made.
+    ['bookings', 'bookings_arrival', 'arrival, id'],
   )
   await ensureIndexes(indexes)
 }
