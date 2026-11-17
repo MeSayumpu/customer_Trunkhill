@@ -33,10 +33,15 @@ export function checkoutPosition(query) {
 
 export const checkoutCursor = row => row.departure + '|' + row.id
 const checkoutColumns = `b.id,(SELECT reference FROM booking_references WHERE booking=b.id) AS reference,b.arrival,b.departure,b.guest,b.phone,b.total,
-  ci.added_amount AS checkin_amount,ci.checked_in_at,ci.booked_adults,ci.booked_children,ci.booked_seniors,c.guest_amount,
+  ci.added_amount AS checkin_amount,ci.checked_in_at,ci.booked_adults,ci.booked_children,ci.booked_seniors,c.guest_amount,c.free_guests,
   c.version,c.units_milli,c.electricity_rate,c.free_units_per_guest,c.electricity_amount,c.damage_amount,c.other_amount,c.note,c.promptpay,c.completed_at`
 
+// paying_guests: who paid the entry fee in the booking as it was made — its adults, or its seniors when no adult came
+// (children are free). After check-in the booking row holds the actual guests, so the booked counts come from the check-in.
 export const checkoutOccupancy = `b.adults + b.children + b.seniors AS guest_count,
+  COALESCE((SELECT CASE WHEN booked.booked_adults > 0 THEN booked.booked_adults WHEN booked.booked_seniors > 0 THEN booked.booked_seniors
+      ELSE booked.booked_adults + booked.booked_children + booked.booked_seniors END FROM booking_checkins booked WHERE booked.booking=b.id),
+    CASE WHEN b.adults > 0 THEN b.adults WHEN b.seniors > 0 THEN b.seniors ELSE b.adults + b.children + b.seniors END) AS paying_guests,
   b.whole_camp_free_units,
   EXISTS (SELECT 1 FROM booking_lines l WHERE l.booking=b.id AND l.code='${wholeCampCode}') AS whole_camp,
   (SELECT COALESCE(SUM(l.quantity),0) FROM booking_lines l JOIN inventory i ON i.code=l.code

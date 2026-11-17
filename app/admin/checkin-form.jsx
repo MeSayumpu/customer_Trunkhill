@@ -39,7 +39,7 @@ export function CheckinForm({action, booking, gear, nights, added, canCheckin, c
             <input name={key} type="number" min="0" max={guestMax} step="1" inputMode="numeric" required value={guests[key]}
               onChange={event => setGuests(previous => ({ ...previous, [key]:event.target.value }))}/></label>)}
         </div>
-        <p className="small muted">ใช้คิดหน่วยไฟฟรีตอน Check-out · ไม่เปลี่ยนยอดค่าจอง</p>
+        <p className="small muted">บันทึกจำนวนคนที่มาจริง · ไม่เปลี่ยนยอดค่าจองและหน่วยไฟฟรี (แก้จำนวนคนที่ได้หน่วยฟรีได้ตอน Check-out)</p>
       </fieldset>
       <fieldset className="checkout-item checkout-charge-group stack">
         <legend>เพิ่มอุปกรณ์ให้เช่า</legend>

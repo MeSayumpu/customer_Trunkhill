@@ -671,6 +671,9 @@
 .admin-ui .checkin-stepper .button { width:38px; min-width:38px; min-height:38px; padding:0; font-size:18px; line-height:1; justify-content:center; }
 .admin-ui .checkin-stepper output { min-width:26px; text-align:center; font-weight:700; font-variant-numeric:tabular-nums; }
 .admin-ui .checkout-inputs.checkin-guests { grid-template-columns:repeat(3,minmax(0,1fr)); }
+/* The number of guests inside the free-unit formula line, editable in place. */
+.admin-ui input.checkout-free-guests { display:inline-block; width:64px; min-height:34px; margin:0 2px; padding:2px 6px; text-align:center;
+  font-size:15px; font-weight:700; color:var(--text,#1c2b36); vertical-align:middle; }
 .admin-ui .checkin-done { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px 12px; }
 .admin-ui .checkin-due { display:inline-block; margin-left:6px; padding:2px 9px; border-radius:999px; background:#e7f0ff; color:#1d4f91; font-size:12px; font-weight:600; white-space:nowrap; }
 .admin-ui .checkin-due.late { background:#ffe7e3; color:#a3261a; }

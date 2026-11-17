@@ -37,6 +37,9 @@ export async function saveCheckout(id, query, _state, form) {
   const guestAmount = decimalUnits(String(form.get('guestAmount') ?? '').trim() || '0',2,maxExtraSatang)
   if (!finishing && (guests.includes(null) || guests[0] + guests[1] + guests[2] < 1)) return { error:'ระบุจำนวนผู้เข้าพักอย่างน้อย 1 คน' }
   if (!finishing && guestAmount === null) return { error:'ค่าผู้เข้าพักเพิ่มไม่ถูกต้อง' }
+  // Guests the free electricity is shared between; the form starts it at the booking's paying guests.
+  const freeGuests = /^\d{1,3}$/.test(String(form.get('freeGuests') ?? '').trim()) ? Number(form.get('freeGuests')) : null
+  if (!finishing && freeGuests === null) return { error:'ระบุจำนวนคนที่ได้หน่วยไฟฟรีเป็นตัวเลข' }
 
   const error = await transaction(async connection => {
     const [[booking]] = await connection.execute(
@@ -56,11 +59,10 @@ export async function saveCheckout(id, query, _state, form) {
     }
 
     const codes = await checkoutLodgingCodes(connection,id)
-    booking.guest_count = guests[0] + guests[1] + guests[2]
     const keep = form.get('chargeMode') === 'keep'
     if (keep && !hasUnallocatedCheckoutCharges(checkout,codes.length)) return 'กรุณาเปิดรายการใหม่เพื่อตรวจสอบยอด'
     const settings = await checkoutSettings(connection)
-    const formula = electricityFormula({ ...booking,...checkout },settings,!keep && form.get('useCurrentFormula') === 'on')
+    const formula = electricityFormula({ ...booking,...checkout,free_guests:freeGuests },settings,!keep && form.get('useCurrentFormula') === 'on')
     if (electricityFormulaKey(formula) !== form.get('formula')) return 'สูตรค่าไฟเปลี่ยนแล้ว กรุณาเปิดรายการใหม่เพื่อตรวจสอบยอด'
     const charges = keep ? savedCheckoutCharges(checkout) : checkoutChargeTotals((codes.length ? codes : ['']).map(code =>
       Object.fromEntries(checkoutChargeFields.map(field => [field,form.get(checkoutChargeField(field,code))]))),formula)
@@ -70,12 +72,12 @@ export async function saveCheckout(id, query, _state, form) {
       ? JSON.stringify(Object.fromEntries(codes.map((code,index) => [code,charges.lines[index]]))) : null
     const recipient = checkout?.promptpay ?? settings.promptpay
     await connection.execute(
-      `INSERT INTO booking_checkouts (booking,units_milli,electricity_rate,free_units_per_guest,electricity_amount,damage_amount,other_amount,lodging_charges,note,promptpay,guest_amount)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE units_milli=VALUES(units_milli),electricity_rate=VALUES(electricity_rate),guest_amount=VALUES(guest_amount),
+      `INSERT INTO booking_checkouts (booking,units_milli,electricity_rate,free_units_per_guest,electricity_amount,damage_amount,other_amount,lodging_charges,note,promptpay,guest_amount,free_guests)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE units_milli=VALUES(units_milli),electricity_rate=VALUES(electricity_rate),guest_amount=VALUES(guest_amount),free_guests=VALUES(free_guests),
        free_units_per_guest=VALUES(free_units_per_guest),electricity_amount=VALUES(electricity_amount),
        damage_amount=VALUES(damage_amount),other_amount=VALUES(other_amount),lodging_charges=VALUES(lodging_charges),
        note=VALUES(note),promptpay=VALUES(promptpay),version=version+1`,
-      [id,units,formula.rate,formula.freePerGuest,electricity,damage,other,lodgingCharges,note,recipient,guestAmount])
+      [id,units,formula.rate,formula.freePerGuest,electricity,damage,other,lodgingCharges,note,recipient,guestAmount,freeGuests])
     await connection.execute('UPDATE bookings SET adults=?,children=?,seniors=? WHERE id=?',[...guests,id])
     return null
   })

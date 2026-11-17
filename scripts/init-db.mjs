@@ -91,6 +91,8 @@ async function initCheckout() {
     ['booking_checkouts','lodging_charges','TEXT NULL'],
     // Charge the admin types in for guests who came on top of the booking (satang).
     ['booking_checkouts','guest_amount','INT UNSIGNED NOT NULL DEFAULT 0'],
+    // Guests the free electricity is worked out for, when the admin set it at check-out (NULL = the booking's paying guests).
+    ['booking_checkouts','free_guests','SMALLINT UNSIGNED NULL'],
   ])
   const indexes = [['bookings', 'bookings_status_departure', 'status, departure, id']]
   if (!checkoutOnly) indexes.push(

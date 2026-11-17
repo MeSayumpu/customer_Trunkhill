@@ -19,11 +19,16 @@ const chargeInputs = [
 const lodgingLabel = ({code,name}) => name === code ? code : code + ' · ' + name
 const guestFields = [['adults','ผู้ใหญ่'],['children','เด็ก'],['seniors','ผู้สูงอายุ']]
 
-function ElectricityBreakdown({formula, usage}) {
+// guests (the text being typed) + onGuests make the number of guests in the formula editable in place;
+// the value is sent by the form's hidden freeGuests field, so this input has no name.
+function ElectricityBreakdown({formula, usage, guests, onGuests}) {
   return <div className="small muted">
     <p>หน่วยฟรี {unitFormat.format(usage.freeUnits)} หน่วย {formula.fixedFreeUnits != null
       ? 'ต่อกลุ่มที่เหมาลาน'
-      : `(${unitFormat.format(formula.freePerGuest / 1000)} หน่วยต่อคน × ${formula.guests} คน ÷ ${formula.locks} ล็อก)`}</p>
+      : <>({unitFormat.format(formula.freePerGuest / 1000)} หน่วยต่อคน × {guests === undefined ? formula.guests
+        : <input className="checkout-free-guests" type="number" min="0" max="500" step="1" inputMode="numeric" required
+            aria-label="จำนวนคนที่ได้หน่วยไฟฟรี" title="แก้จำนวนคนที่ได้หน่วยไฟฟรี" value={guests}
+            onChange={event => onGuests(event.target.value)}/>} คน ÷ {formula.locks} ล็อก)</>}</p>
     <p>คิดเงิน {unitFormat.format(usage.billableUnits)} หน่วย{formula.rate !== null && ` × ${baht(formula.rate)}/หน่วย`}</p>
   </div>
 }
@@ -61,17 +66,23 @@ export function CheckoutForm({action, booking, lodging, savedFormula, currentFor
   const guestNumbers = guestFields.map(([key]) => /^\d{1,3}$/.test(guests[key].trim()) ? Number(guests[key]) : null)
   const guestCount = guestNumbers.includes(null) ? null : guestNumbers.reduce((sum,count) => sum + count,0)
   const guestSatang = booking.completed_at ? booking.guest_amount ?? 0 : decimalUnits(guestAmount.trim() || '0',2,maxExtraSatang)
-  const guestsValid = guestCount > 0 && guestSatang !== null
-  const guestsChanged = guestFields.some(([key],index) => guestNumbers[index] !== booking[key]) || guestSatang !== (booking.guest_amount ?? 0)
-  // Free electricity follows the guest count being entered (a whole-camp stay has its own fixed allowance).
-  const withGuests = base => !booking.completed_at && guestCount > 0 && base.fixedFreeUnits == null ? { ...base, guests:guestCount } : base
+  // Guests the free electricity is shared between. It starts at the booking's paying guests (or what was saved) and is
+  // the admin's to change; changing the actual guests above does not move it.
+  const [freeGuests, setFreeGuests] = useState(String(savedFormula.guests))
+  const freeCount = /^\d{1,3}$/.test(freeGuests.trim()) ? Number(freeGuests) : null
+  const guestsValid = guestCount > 0 && guestSatang !== null && freeCount !== null
+  const guestsChanged = guestFields.some(([key],index) => guestNumbers[index] !== booking[key]) || guestSatang !== (booking.guest_amount ?? 0) ||
+    freeCount !== savedFormula.guests
+  // A whole-camp stay has its own fixed allowance, so the number does not apply to it.
+  const withFreeGuests = base => !booking.completed_at && freeCount !== null && base.fixedFreeUnits == null ? { ...base, guests:freeCount } : base
+  const freeEditable = savedFormula.fixedFreeUnits == null
   const [useCurrentFormula, setUseCurrentFormula] = useState(false)
   const [allocate, setAllocate] = useState(false)
   const unallocated = hasUnallocatedCheckoutCharges(booking,lodging.length)
   const keep = unallocated && !allocate
   const formulaChanged = electricityFormulaKey(savedFormula) !== electricityFormulaKey(currentFormula)
   const useCurrent = !keep && formulaChanged && useCurrentFormula
-  const formula = withGuests(useCurrent ? currentFormula : savedFormula)
+  const formula = withFreeGuests(useCurrent ? currentFormula : savedFormula)
   const charges = booking.completed_at ? savedCharges : !guestsValid ? null : keep ? savedCharges : checkoutChargeTotals(entries,formula)
   const saved = Boolean(booking.version)
   const dirty = useCurrent || (unallocated && allocate) || !charges || guestsChanged || note.trim() !== (booking.note ?? '') ||
@@ -149,7 +160,10 @@ export function CheckoutForm({action, booking, lodging, savedFormula, currentFor
         <label>ค่าผู้เข้าพักเพิ่ม (บาท)
           <input name="guestAmount" type="number" min="0" max="999999.99" step="0.01" inputMode="decimal" value={guestAmount}
             onChange={event => setGuestAmount(event.target.value)}/></label>
-        <p className="small muted">จำนวนคนใช้คิดหน่วยไฟฟรี · ค่าผู้เข้าพักเพิ่มกรอกเองตามที่ตกลงกับลูกค้า ระบบไม่คำนวณให้</p>
+        <p className="small muted">ค่าผู้เข้าพักเพิ่มกรอกเองตามที่ตกลงกับลูกค้า ระบบไม่คำนวณให้</p>
+        {/* One number for the whole booking; it is edited inside the free-unit formula under the electricity units below. */}
+        <input type="hidden" name="freeGuests" value={freeGuests}/>
+        {freeEditable && <p className="small muted">หน่วยไฟฟรีเริ่มต้นคิดจากคนที่เสียค่าเข้าตามการจอง · ผู้เข้าพักที่เพิ่มมาระบบไม่บวกให้ แก้จำนวนคนได้ในบรรทัดสูตร “หน่วยฟรี” ใต้ช่องจำนวนไฟที่ใช้</p>}
       </fieldset>
       {!keep && sites.map((site,index) => {
         const units = decimalUnits(entries[index].units || '0',3,maxUnitsMilli)
@@ -166,7 +180,7 @@ export function CheckoutForm({action, booking, lodging, savedFormula, currentFor
             </label>)}
           </div>
           {usage && <>
-            <ElectricityBreakdown formula={formula} usage={usage}/>
+            <ElectricityBreakdown formula={formula} usage={usage} guests={freeEditable ? freeGuests : undefined} onGuests={setFreeGuests}/>
             <div className="checkout-line"><span>ค่าไฟ</span><strong>{baht(usage.amount)}</strong></div>
           </>}
         </fieldset>
