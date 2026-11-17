@@ -215,7 +215,10 @@ export default function CampPage({ review: initialReview = false, amendment = nu
     if (ready && !amendment) sessionStorage.setItem(draftKey, JSON.stringify({ arrival, departure, guests, counts, zone, rentalsByLock, wholeCamp, roomGuests }))
   }, [ready, arrival, departure, guests, counts, zone, rentalsByLock, wholeCamp])
 
-  useEffect(()=>{setEditQuote(previous => previous === null ? previous : null)},[arrival,departure,guests,counts,rentalsByLock,wholeCamp,editGuest,catalog])
+  // A quote is only valid for the selection it was worked out for. Nothing is scheduled when there is no quote: an
+  // update here on every change kept re-rendering the page while the saved selection was still being restored after a
+  // reload (each of those renders made a new counts object, which ran this effect again), and the page never got ready.
+  useEffect(()=>{if(editQuote!==null)setEditQuote(null)},[arrival,departure,guests,counts,rentalsByLock,wholeCamp,editGuest,catalog])
 
   function confirmClear(title) {
     return confirm({
@@ -292,6 +295,13 @@ export default function CampPage({ review: initialReview = false, amendment = nu
   }
 
   function selectPlot(row, quantity) {
+    // A Trunkbox room tapped on the map goes through the room's own steps (who stays in it first), exactly as on the
+    // Trunkbox tab, and the page stays on the map. A room already rented with a plot is left alone.
+    if (row.kind === 'room') {
+      if (liveCounts[row.code]) return toggleOff(row.code)
+      if (!combined[row.code]) openRoomGuests(row.code)
+      return
+    }
     if (!quantity) return toggleOff(row.code)
     if (tabs.some(([id]) => id === row.zone)) setZone(row.zone)
     select(row.code, quantity)
@@ -512,6 +522,14 @@ export default function CampPage({ review: initialReview = false, amendment = nu
   const welcomeTitle = catalog?.settings.welcome_title_enabled !== 0 && welcomeText(catalog?.settings.welcome_title,catalog?.settings.welcome_title_en,'เลือกวันพัก แล้วเลือกมุมโปรดของคุณ')
   const welcomeSubtitle = catalog?.settings.welcome_subtitle_enabled !== 0 && welcomeText(catalog?.settings.welcome_subtitle,catalog?.settings.welcome_subtitle_en,'วันเข้าพัก · จำนวนคน · ล็อกหรือห้องพัก')
   const mapProps = { rows:visible, counts, ready, busy:bookingBusy, onSelect:selectPlot, mapVersion:catalog?.settings.map_version }
+  // The map also shows the Trunkbox rooms the admin has drawn on it. A room counts as picked once its guests are set
+  // (as on the Trunkbox tab) or when it is rented together with a plot.
+  const mapRows = allRows.filter(row => row.kind === 'plot' || (!wholeCamp && row.kind === 'room'))
+  const mapCounts = { ...counts }
+  for (const row of allRows) if (row.kind === 'room') {
+    if (combined[row.code]) mapCounts[row.code] = combined[row.code]
+    else delete mapCounts[row.code]
+  }
 
   return <div className={'camp-home' + (review ? ' flow-page' : ' camp-front')}>
     {(bookingBusy || navigating) && <PendingScreen label={bookingBusy ? t('กำลังบันทึกการจอง…') : undefined}/>}
@@ -609,7 +627,7 @@ export default function CampPage({ review: initialReview = false, amendment = nu
               </header>
               {ready && catalog.wholeCampBooked && <p className="notice error" role="status">{t('ช่วงวันที่เลือกมีผู้เหมาลานแล้ว กรุณาเลือกวันใหม่')}</p>}
               <div className="map-panel-body" aria-busy={loading || undefined}>
-                {hasMap ? <TentMap {...mapProps} onExpand={() => setMapOpen(true)}/>
+                {hasMap ? <TentMap {...mapProps} rows={mapRows} counts={mapCounts} onExpand={() => setMapOpen(true)}/>
                   : !ready ? <p className="empty">{t('เลือกวันเข้าพักเพื่อดูรายการว่าง')}</p>
                   : visible.length ? <TentList {...mapProps}/>
                   : <p className="empty">{t('โซนนี้ยังไม่มีรายการเปิดให้จอง')}</p>}
@@ -668,7 +686,7 @@ export default function CampPage({ review: initialReview = false, amendment = nu
     </dialog>
 
     {mapOpen && <MapDialog onClose={() => setMapOpen(false)}>
-      <TentMap {...mapProps} large rows={allRows.filter(row => row.kind === 'plot')}/>
+      <TentMap {...mapProps} large rows={mapRows} counts={mapCounts}/>
     </MapDialog>}
     {dialogs}
     <UnavailableDialog rows={unavailable?.rows ?? null} onBack={chooseAgain}/>

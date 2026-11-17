@@ -140,7 +140,9 @@ export function TentMap({rows, counts, ready, busy, onSelect, mapVersion, zone, 
     return { row, ...geometry, status, dimmed:!!zone && zone !== row.zone && status !== 'selected' }
   }).filter(Boolean),[rows,counts,ready,mapVersion,zone])
 
-  const openCount = plots.filter(plot => plot.status === 'available').length
+  // The "free plots" figures count plots only; Trunkbox rooms drawn on the map are extra markers.
+  const campPlots = plots.filter(plot => plot.row.kind !== 'room')
+  const openCount = campPlots.filter(plot => plot.status === 'available').length
 
   // On phones the map starts zoomed in, so bring the bookable plots into view instead of the empty left edge.
   useEffect(() => {
@@ -271,15 +273,18 @@ export function TentMap({rows, counts, ready, busy, onSelect, mapVersion, zone, 
             const selected = status === 'selected'
             const canSelect = !busy && ready && status !== 'booked'
             const activate = () => onSelect(row, selected ? 0 : 1)
-            const title = row.code + ' · ' + t(statusLabels[status]) + (row.detail ? ' · ' + row.detail : '')
+            // A Trunkbox room is tagged with its name (TB01) and stands a cabin instead of a tent.
+            const room = row.kind === 'room'
+            const tag = room ? t(row.name) : row.code
+            const title = tag + ' · ' + t(statusLabels[status]) + (row.detail ? ' · ' + row.detail : '')
             // Only taken plots (picked by this guest or already booked) stand a tent; a free plot is its outline and code tag, to keep the map calm.
             const pitched = selected || status === 'booked'
-            return <div className="tent-plot" key={row.code} data-status={status} data-dimmed={dimmed || undefined}>
+            return <div className="tent-plot" key={row.code} data-status={status} data-kind={room ? 'room' : undefined} data-dimmed={dimmed || undefined}>
               {pitched && <span className="tent-shadow" style={{left:x + '%',top:y + '%',width:size * 1.15 + '%'}} aria-hidden="true"/>}
               <button type="button" className="tent" style={{left:x + '%',top:y + '%',width:size + '%'}}
                 aria-pressed={selected} aria-label={title} title={title} disabled={!canSelect} onClick={activate}>
-                {pitched && <TentGlyph status={status}/>}
-                <span className="tent-code">{row.code}</span>
+                {pitched && (room ? <span className="tent-cabin" aria-hidden="true"><CustomerIcon name="cabin"/></span> : <TentGlyph status={status}/>)}
+                <span className="tent-code">{tag}</span>
                 {selected && <span className="tent-check" aria-hidden="true"><CustomerIcon name="tick"/></span>}
               </button>
             </div>
@@ -290,7 +295,7 @@ export function TentMap({rows, counts, ready, busy, onSelect, mapVersion, zone, 
     </div>
     </div>
     <p className="tent-map-hint">
-      <CustomerIcon name="tent"/>{ready ? t('แตะล็อกเพื่อเลือก · ว่าง {open} จาก {n} ล็อก',{open:openCount,n:plots.length}) : t('กำลังตรวจสอบล็อกว่าง…')}
+      <CustomerIcon name="tent"/>{ready ? t('แตะล็อกเพื่อเลือก · ว่าง {open} จาก {n} ล็อก',{open:openCount,n:campPlots.length}) : t('กำลังตรวจสอบล็อกว่าง…')}
     </p>
   </div>
 }

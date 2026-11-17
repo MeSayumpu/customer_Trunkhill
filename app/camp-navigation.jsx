@@ -89,8 +89,8 @@ export function CampHeader({onCampInfo,onZoneDetails,lookup = false,page}) {
     <nav className="site-nav" aria-label={t('ข้อมูลการจอง')}>
       <Link className="nav-link" href="/" aria-current={page === 'home' ? 'page' : page === 'flow' ? 'location' : undefined}><CustomerIcon name="tent"/><span>{t('จองลาน')}</span></Link>
       {onZoneDetails && <button type="button" className="nav-link" aria-haspopup="dialog" onClick={onZoneDetails}><CustomerIcon name="map"/><span>{t('รายละเอียดล็อก')}</span></button>}
-      <Link className="nav-link" href="/booking" aria-current={lookup ? 'page' : undefined}><CustomerIcon name="search"/><span>{t('ตรวจสอบการจอง')}</span></Link>
       <button type="button" className="nav-link" aria-haspopup="dialog" aria-label={t('ข้อมูลทั่วไปและสิ่งอำนวยความสะดวก')} onClick={onCampInfo}><CustomerIcon name="info"/><span>{t('สิ่งอำนวยความสะดวก')}</span></button>
+      <Link className="nav-link" href="/booking" aria-current={lookup ? 'page' : undefined}><CustomerIcon name="search"/><span>{t('ตรวจสอบการจอง')}</span></Link>
     </nav>
     <LanguageSwitch className="header-language"/>
     <button type="button" className="button header-call" aria-haspopup="dialog" aria-label={t('ข้อมูลการติดต่อ')} onClick={() => setContactOpen(true)}>
@@ -108,8 +108,8 @@ export function MobileCampMenu({page,onZoneDetails,onCampInfo,summary}) {
     <nav className="camp-dock-nav" aria-label={t('เมนูลูกค้า')}>
       <Link href="/" aria-current={bookingCurrent}><CustomerIcon name="tent"/><span>{t('จองลาน')}</span></Link>
       <button type="button" onClick={onZoneDetails} aria-haspopup="dialog"><CustomerIcon name="map"/><span>{t('รายละเอียดล็อก')}</span></button>
-      <Link href="/booking" aria-current={page === 'lookup' ? 'page' : undefined}><CustomerIcon name="search"/><span>{t('ตรวจสอบการจอง')}</span></Link>
       <button type="button" onClick={onCampInfo} aria-haspopup="dialog" aria-label={t('ข้อมูลทั่วไปและสิ่งอำนวยความสะดวก')}><CustomerIcon name="info"/><span>{t('สิ่งอำนวยความสะดวก')}</span></button>
+      <Link href="/booking" aria-current={page === 'lookup' ? 'page' : undefined}><CustomerIcon name="search"/><span>{t('ตรวจสอบการจอง')}</span></Link>
     </nav>
   </div>
 }

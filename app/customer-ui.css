@@ -492,6 +492,13 @@
 }
 .customer-ui .tent-plot[data-status=selected] .tent-code { background:var(--c-forest-900); color:#fff; }
 .customer-ui .tent-plot[data-status=booked] .tent-code { background:#5b201b; color:#fff; }
+/* Trunkbox room on the map: a cabin badge instead of the tent, in the same status colours. */
+.customer-ui .tent-cabin {
+  position:absolute; left:50%; bottom:34%; transform:translateX(-50%); display:grid; place-items:center;
+  width:62%; aspect-ratio:1; border:2px solid #fff; border-radius:28%; background:#43996a; color:#fff;
+  font-size:max(11px,34cqw); box-shadow:0 2px 4px rgba(0,0,0,.3);
+}
+.customer-ui .tent-plot[data-status=booked] .tent-cabin { background:#da7268; }
 .customer-ui .tent-check {
   position:absolute; top:-8%; right:-6%; display:grid; place-items:center; width:max(16px,32cqw); aspect-ratio:1;
   border:2px solid #fff; border-radius:50%; background:var(--c-sun); color:#3b2a05; font-size:max(9px,17cqw);
