@@ -276,7 +276,7 @@ export function TentMap({rows, counts, ready, busy, onSelect, mapVersion, zone, 
             // A Trunkbox room is tagged with its name (TB01) and stands a cabin instead of a tent.
             const room = row.kind === 'room'
             const tag = room ? t(row.name) : row.code
-            const title = tag + ' · ' + t(statusLabels[status]) + (row.detail ? ' · ' + row.detail : '')
+            const title = tag + ' · ' + t(statusLabels[status]) + (row.detail ? ' · ' + t(row.detail) : '')
             // Only taken plots (picked by this guest or already booked) stand a tent; a free plot is its outline and code tag, to keep the map calm.
             const pitched = selected || status === 'booked'
             return <div className="tent-plot" key={row.code} data-status={status} data-kind={room ? 'room' : undefined} data-dimmed={dimmed || undefined}>

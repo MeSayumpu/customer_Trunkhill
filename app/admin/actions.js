@@ -4,6 +4,7 @@ import {campZones} from '../../lib/camp-options'
 import { redirect } from 'next/navigation'
 import { authenticate, clearSession, isAdmin, isStaff, setManagerPassword } from '../../lib/auth'
 import { database, transaction } from '../../lib/db'
+import { saveAdminTranslations } from '../../lib/admin-translations'
 import {claimUpload,lockStorage,ensureStorage,storageId,StorageError} from '../../lib/storage'
 import { codePattern, integer } from '../../lib/camp'
 import { adminUrl, inventorySections } from './navigation'
@@ -112,6 +113,7 @@ export async function savePaymentConfig(data) {
       (bankAccount && !/^\d{6,20}$/.test(bankAccount))) {
     redirect(adminUrl('payment',{error:'invalid'}))
   }
+  await saveAdminTranslations([[recipient,String(data.get('recipientEn') || '').slice(0,120)],[bankName,String(data.get('bankNameEn') || '').slice(0,120)]])
   if (!storageId(file)) {
     const [result] = await database().execute('UPDATE payment_config SET recipient=?,bank_name=?,bank_account=? WHERE id=1',[recipient,bankName || null,bankAccount || null])
     redirect(adminUrl('payment',result.affectedRows ? {saved:'payment'} : {error:'invalid'}))
@@ -319,7 +321,7 @@ export async function saveInventory(data) {
   const section = Object.hasOwn(inventorySections,kind) ? inventorySections[kind] : 'plots'
   const tab = data.get('tab')
   const listPage = name => { const value = data.get(name); return typeof value === 'string' && /^[A-Z0-9][A-Z0-9-]{0,23}$/.test(value) ? value : '' }
-  const filters = { q:data.get('q'), zone:data.get('filterZone'), tab:kind === 'gear' && tab === 'tents' ? 'tents' : '', after:listPage('after'), before:listPage('before') }
+  const filters = { q:data.get('q'), zone:data.get('filterZone'), tab:kind === 'gear' && ['tents','equipment'].includes(tab) ? tab : '', after:listPage('after'), before:listPage('before') }
   const file = data.get('photo')
   let photo
   let mime
@@ -398,5 +400,6 @@ export async function saveInventory(data) {
     if (error.code !== 'ER_DUP_ENTRY') throw error
     result = {error:'invalid'}
   }
+  if (result.saved) await saveAdminTranslations([[name,String(data.get('nameEn') || '').slice(0,120)],[detail,String(data.get('detailEn') || '').slice(0,240)]])
   redirect(adminUrl(section,{...filters,...result}))
 }

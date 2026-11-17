@@ -1,6 +1,7 @@
 import {campOptions,facilityCategories} from '../../lib/camp-options'
 import {contactChannels} from '../../lib/camp-contacts'
 import {database} from '../../lib/db'
+import {adminTranslations} from '../../lib/admin-translations'
 import {ActionForm} from '../pending-ui'
 import {SocialIcon} from '../social-icon'
 import {saveBookingWindow,saveContacts,saveFacilities,saveGuestRate,saveGuestTypes,saveLocation} from './camp-options-actions'
@@ -39,6 +40,9 @@ export async function BookingWindowSettings(){
 }
 export async function FacilitiesSettings(){
   const {facilities}=await campOptions()
+  const translations=await adminTranslations()
+  // The English page of each category: the entry for that category's Thai text.
+  const english=Object.fromEntries(facilityCategories.map(([key])=>[key,translations[facilities[key]]||'']))
   const [images]=await database().query('SELECT id,category FROM facility_media ORDER BY id')
   return <section className="panel stack facilities-settings"><h2>ข้อมูลทั่วไปและสิ่งอำนวยความสะดวก</h2>
     <p>แสดงในหน้าจองลาน หมวดที่เว้นว่างจะแสดงข้อความให้ติดต่อแคมป์ ใช้แถบเครื่องมือจัดรูปแบบข้อความหรือแนบรูป แล้วดูผลที่ช่องพรีวิวด้านข้าง</p>
@@ -47,13 +51,14 @@ export async function FacilitiesSettings(){
       <p>ขึ้นบรรทัดด้วย <code># หัวข้อ</code>, <code>## หัวข้อรอง</code>, <code>- รายการ</code>, <code>1. รายการ</code>, <code>&gt; หมายเหตุ</code> หรือ <code>---</code> สำหรับเส้นคั่น เว้นบรรทัดว่างเพื่อขึ้นย่อหน้าใหม่</p>
     </details>
     <ActionForm action={saveFacilities} className="stack">
-      <FacilitiesEditor categories={facilityCategories} facilities={facilities} images={images.map(({id,category})=>({id:Number(id),category}))}/>
+      <FacilitiesEditor categories={facilityCategories} facilities={facilities} english={english} images={images.map(({id,category})=>({id:Number(id),category}))}/>
       <button className="button"><AdminIcon name="save"/>บันทึกข้อมูลทั่วไป</button>
     </ActionForm>
   </section>
 }
 export async function ContactsSettings({query}){
   const {contacts,location}=await campOptions()
+  const translations=await adminTranslations()
   const fields=String(query?.fields||'').split(',').filter(Boolean)
   const invalid=new Set(query?.error==='contacts'?fields:[])
   return <><section className="panel stack contact-settings"><h2>ช่องทางติดต่อที่พัก</h2>
@@ -74,7 +79,7 @@ export async function ContactsSettings({query}){
   <section className="panel stack contact-settings" id="camp-location"><h2>ที่ตั้งแคมป์ (แผนที่)</h2>
     <p>แสดงแผนที่ ปุ่มเปิด Google Maps และปุ่มนำทาง ในหน้าต่าง “ข้อมูลการติดต่อ” และ “ข้อมูลแคมป์”</p>
     <ActionForm action={saveLocation} className="stack">
-      <LocationFields initial={location} invalid={query?.error==='location'?fields:[]}/>
+      <LocationFields initial={location} addressEn={translations[location.address]||''} invalid={query?.error==='location'?fields:[]}/>
       <button className="button"><AdminIcon name="save"/>บันทึกที่ตั้ง</button>
     </ActionForm>
   </section></>

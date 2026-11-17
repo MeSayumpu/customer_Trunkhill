@@ -54,7 +54,8 @@ export async function dashboardData(filters, current) {
       GROUP BY a.night`,[from > shiftDate(to,-29) ? from : shiftDate(to,-29),to]),
     db.execute(`SELECT i.kind,i.is_tent,COALESCE(SUM(l.amount),0) AS amount FROM booking_lines l JOIN inventory i ON i.code=l.code
       JOIN bookings b ON b.id=l.booking WHERE b.status='confirmed' AND b.arrival BETWEEN ? AND ? GROUP BY i.kind,i.is_tent`,range),
-    db.execute(`SELECT COALESCE(SUM(c.electricity_amount),0) AS electricity,COALESCE(SUM(c.damage_amount+c.other_amount),0) AS other
+    db.execute(`SELECT COALESCE(SUM(c.electricity_amount),0) AS electricity,COALESCE(SUM(c.damage_amount+c.other_amount),0) AS other,
+      COALESCE(SUM(c.guest_amount),0) AS guest,COALESCE(SUM(c.discount_amount),0) AS discount
       FROM booking_checkouts c JOIN bookings b ON b.id=c.booking WHERE b.status='confirmed' AND c.completed_at IS NOT NULL AND b.arrival BETWEEN ? AND ?`,range),
     db.execute(`SELECT b.arrival AS day,COUNT(*) AS bookings,SUM(b.total) AS amount FROM bookings b
       WHERE b.status='confirmed' AND b.arrival BETWEEN ? AND ? GROUP BY b.arrival ORDER BY b.arrival DESC`,range),

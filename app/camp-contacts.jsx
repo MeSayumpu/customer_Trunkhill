@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { contactChannels, contactHref, isLink, locationLinks } from '../lib/camp-contacts'
-import { SocialIcon } from './social-icon'
+import { GoogleMapsIcon, SocialIcon } from './social-icon'
 import { CustomerIcon } from './customer-icon'
 import { useCampOptions } from './use-camp-options'
 import { useI18n } from './i18n'
@@ -103,12 +103,12 @@ export function CampLocation({location, headingLevel = 3}) {
     <div className="camp-location-map">
       <iframe title={t('แผนที่ที่ตั้ง Trunkhill Campfield')} src={links.embed} loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen/>
     </div>
-    {location.address && <button type="button" className="camp-location-address" onClick={() => copy('address', location.address)}>
-      <span>{location.address}</span>
+    {location.address && <button type="button" className="camp-location-address" onClick={() => copy('address', t(location.address))}>
+      <span>{t(location.address)}</span>
       <small data-done={copied === 'address' || undefined}><CustomerIcon name={copied === 'address' ? 'tick' : 'copy'}/>{copied === 'address' ? t('คัดลอกแล้ว') : t('แตะเพื่อคัดลอกที่อยู่')}</small>
     </button>}
     <div className="camp-location-actions">
-      <a className="button secondary" href={links.open} target="_blank" rel="noopener noreferrer"><CustomerIcon name="map"/>{t('เปิดใน Google Maps')}</a>
+      <a className="button secondary" href={links.open} target="_blank" rel="noopener noreferrer"><GoogleMapsIcon/>{t('เปิดใน Google Maps')}</a>
       <a className="button" href={links.directions} target="_blank" rel="noopener noreferrer"><CustomerIcon name="directions"/>{t('นำทาง')}</a>
     </div>
   </section>

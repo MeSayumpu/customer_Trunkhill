@@ -23,6 +23,7 @@ import { WholeCampOption } from './whole-camp-option'
 import { TrunkboxOption } from './trunkbox-option'
 import { useConfirm } from './confirm-dialog'
 import { UnavailableDialog } from './unavailable-dialog'
+import { GoogleMapsIcon } from './social-icon'
 import { useI18n } from './i18n'
 import { ContactList } from './camp-contacts'
 import { locationLinks } from '../lib/camp-contacts'
@@ -465,7 +466,7 @@ export default function CampPage({ review: initialReview = false, amendment = nu
         </span>
         <span className="summary-item-text">
           <strong>{t(row.name)}</strong>
-          <small>{row.code === wholeCampCode ? t('ทั้งลานตลอดช่วงที่เลือก') : row.detail || campZoneLabel(row.zone)}</small>
+          <small>{row.code === wholeCampCode ? t('ทั้งลานตลอดช่วงที่เลือก') : t(row.detail) || campZoneLabel(row.zone)}</small>
           {plotFeatureChips(row)}
           {attached.length > 0 && <small className="summary-item-extra">+ {attached.map(line => (allRows.find(item => item.code === line.code)?.name || line.code) + ' × ' + line.quantity).join(', ')}</small>}
         </span>
@@ -649,7 +650,7 @@ export default function CampPage({ review: initialReview = false, amendment = nu
       <span className="site-footer-brand"><img src="/camp-logo-transparent.webp" alt="" width="58" height="37"/>Trunkhill Campfield</span>
       <div className="actions"><ContactList contacts={options.contacts} compact/>
         {locationLinks(options.location) && <a className="site-footer-map" href={locationLinks(options.location).directions} target="_blank" rel="noopener noreferrer"
-          aria-label={t('นำทางไปแคมป์')} title={t('นำทางไปแคมป์')}><img src="/map-directions.webp" alt="" width="36" height="36"/></a>}</div>
+          aria-label={t('นำทางไปแคมป์')} title={t('นำทางไปแคมป์')}><GoogleMapsIcon/></a>}</div>
     </div></footer>
 
     <MobileCampMenu page={review ? 'flow' : 'home'} summary={!review && dockSummary} {...menuActions}/>

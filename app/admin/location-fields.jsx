@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { locationLinks, parseCoordinates } from '../../lib/camp-contacts'
 
 // Address + coordinates with a live Google Maps preview of what customers will see.
-export function LocationFields({initial,invalid = []}) {
+export function LocationFields({initial,addressEn = '',invalid = []}) {
   const [address,setAddress] = useState(initial.address)
   const [coords,setCoords] = useState(initial.coords)
   const [mapUrl,setMapUrl] = useState(initial.mapUrl)
@@ -13,8 +13,10 @@ export function LocationFields({initial,invalid = []}) {
   const badCoords = coords.trim() && !point
   return <div className="location-editor">
     <div className="location-fields">
-      <label>ที่อยู่ / คำอธิบายเส้นทาง<textarea name="address" rows="3" maxLength={300} value={address} onChange={event => setAddress(event.target.value)}
+      <div className="text-pair"><label>ที่อยู่ / คำอธิบายเส้นทาง<textarea name="address" rows="3" maxLength={300} value={address} onChange={event => setAddress(event.target.value)}
         placeholder="เช่น 99 หมู่ 5 ต.หมูสี อ.ปากช่อง จ.นครราชสีมา 30130"/></label>
+        <label className="english-field">ที่อยู่ (English)<textarea name="addressEn" lang="en" rows="3" maxLength={300} defaultValue={addressEn}
+          placeholder="เว้นว่างได้ · หน้าภาษาอังกฤษจะแสดงข้อความไทย"/></label></div>
       <label data-invalid={badCoords || invalid.includes('coords') || undefined}>พิกัดบนแผนที่
         <input name="coords" value={coords} maxLength={500} onChange={event => setCoords(event.target.value)} placeholder="14.123456, 101.123456"
           aria-invalid={badCoords || invalid.includes('coords') || undefined}/>

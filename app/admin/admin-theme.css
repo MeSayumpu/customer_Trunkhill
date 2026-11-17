@@ -424,6 +424,18 @@
 .admin-ui .welcome-pair label { display:grid; gap:4px; font-size:.85rem; font-weight:600; color:#4d6559; }
 .admin-ui .welcome-pair input { width:100%; }
 @media (max-width:760px) { .admin-ui .welcome-pair { grid-template-columns:minmax(0,1fr); } }
+/* A Thai field with its English version beside it (stacked on a phone). Inside a two-column form it takes the full row. */
+.admin-ui .text-pair { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; align-items:start; grid-column:1 / -1; min-width:0; }
+.admin-ui .text-pair>label { display:grid; gap:4px; min-width:0; margin:0; }
+.admin-ui .text-pair input,.admin-ui .text-pair textarea { width:100%; min-width:0; }
+.admin-ui .english-field { color:#4d6559; }
+.admin-ui .english-field input,.admin-ui .english-field textarea { background:#f7faf8; }
+@media (max-width:760px) { .admin-ui .text-pair { grid-template-columns:minmax(0,1fr); gap:8px; } }
+/* Facilities editor: Thai / English switch above the editor. */
+.admin-ui .rich-editor-language { display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; }
+.admin-ui .rich-editor-language button { min-height:36px; padding:5px 14px; border:1px solid #cdd9d2; border-radius:9px; background:#fff; color:#33483d; font:inherit; font-weight:600; cursor:pointer; }
+.admin-ui .rich-editor-language button[aria-pressed=true] { border-color:#1f4a37; background:#1f4a37; color:#fff; }
+.admin-ui .rich-editor-language small { color:#62788b; flex:1 1 220px; }
 
 /* Room photos: one ordered list (photo 1 = main photo), saved with the room form */
 .admin-ui .room-photos-field { display:grid; gap:10px; }
@@ -663,6 +675,13 @@
 /* Check-in: the equipment picker (name and price on the left, − n + on the right), the "checked in" banner with the way
    on to check-out, and the small tag on a card saying the guests are due today or are late. */
 .admin-ui .checkin-gear { display:grid; gap:6px; margin:0; padding:0; list-style:none; }
+.admin-ui .checkin-gear[hidden] { display:none; }
+/* Check-in: the two rental groups as a switch, like the customer's rental picker; the badge counts what is picked there. */
+.admin-ui .checkin-tabs { display:grid; grid-template-columns:1fr 1fr; gap:4px; padding:4px; border:1px solid #d6e0e8; border-radius:12px; background:#f3f6f9; }
+.admin-ui .checkin-tabs button { display:flex; align-items:center; justify-content:center; gap:6px; min-height:40px; padding:6px 10px; border:0; border-radius:9px;
+  background:transparent; color:#3d5568; font:inherit; font-weight:600; cursor:pointer; }
+.admin-ui .checkin-tabs button[aria-pressed=true] { background:#1f6a47; color:#fff; }
+.admin-ui .checkin-tab-count { min-width:22px; padding:0 6px; border-radius:999px; background:#e0892b; color:#fff; font-size:13px; line-height:22px; text-align:center; }
 .admin-ui .checkin-gear li { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 10px; border:1px solid #e3eaf0; border-radius:10px; background:#fff; }
 .admin-ui .checkin-gear li[data-picked] { border-color:#1f6a47; background:#f1f8f4; }
 .admin-ui .checkin-gear li>div:first-child { display:grid; min-width:0; }
@@ -681,6 +700,50 @@
 .admin-ui .checkout-booked-note { display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; margin:0; padding:8px 12px; border:1px solid #b9d2f5;
   border-radius:10px; background:#eaf2ff; color:#17437e; font-size:14px; font-weight:600; }
 .admin-ui .checkout-booked-note strong { font-weight:700; color:#0f3160; }
+/* Check-out dialog: the guests billed on a lock, under its name. */
+.admin-ui .checkout-site-guests { display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; margin:0; color:#17437e; font-size:14px; font-weight:600; }
+/* Check-out dialog: what was booked as one short list — a line per lock, its equipment indented under it. */
+.admin-ui .checkout-booked { display:grid; gap:0; }
+.admin-ui .checkout-booked h3 { margin:0 0 4px; }
+.admin-ui .checkout-booked h3 small { margin-left:6px; color:#62788b; font-size:13px; font-weight:500; }
+.admin-ui .checkout-booked-site { border-top:1px solid #e8eef3; padding:5px 0; }
+.admin-ui .checkout-booked-row { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto; gap:4px 10px; align-items:baseline; min-width:0; }
+.admin-ui .checkout-booked-row>:last-child { text-align:right; white-space:nowrap; }
+.admin-ui .checkout-booked-name { display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 8px; min-width:0; }
+.admin-ui .checkout-booked-name small,.admin-ui .checkout-booked-sub { color:#62788b; font-size:14px; }
+.admin-ui .checkout-booked-sub { padding-left:14px; }
+.admin-ui .checkout-booked-sub strong { color:#22313f; }
+.admin-ui .checkout-booked>.checkout-booked-row { border-top:1px solid #e8eef3; padding:5px 0; }
+.admin-ui .checkout-booked-info { color:#62788b; font-size:14px; }
+/* Check-out dialog: charges as a table, a row per lock (guests, units, electricity worked out, extras). On a phone the
+   header goes and each row becomes a small card with the labels shown above the fields. */
+.admin-ui .checkout-inputs.checkout-guest-row { grid-template-columns:repeat(4,minmax(0,1fr)); }
+.admin-ui .checkout-charges { display:grid; gap:0; min-width:0; }
+.admin-ui .checkout-charges-head,.admin-ui .checkout-charges-row { display:grid; grid-template-columns:minmax(56px,.9fr) repeat(4,minmax(0,1.2fr)); gap:8px; align-items:center; min-width:0; }
+.admin-ui .checkout-charges[data-guests] .checkout-charges-head,.admin-ui .checkout-charges[data-guests] .checkout-charges-row { grid-template-columns:minmax(56px,.9fr) minmax(0,.8fr) repeat(4,minmax(0,1.2fr)); }
+.admin-ui .checkout-charges-head { padding-bottom:4px; color:#62788b; font-size:13px; font-weight:600; line-height:1.25; }
+.admin-ui .checkout-charges-row { padding:6px 0; border-top:1px solid #e8eef3; }
+.admin-ui .checkout-charges-row label { display:block; margin:0; min-width:0; }
+.admin-ui .checkout-charges-row input { width:100%; min-width:0; min-height:38px; padding:4px 8px; }
+.admin-ui .checkout-charges-site { min-width:0; overflow-wrap:anywhere; }
+.admin-ui .checkout-charges-amount { display:grid; line-height:1.25; min-width:0; }
+.admin-ui .checkout-charges-amount small { color:#62788b; font-size:12.5px; }
+.admin-ui .checkout-cell-label { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+.admin-ui .checkout-adjust { display:grid; grid-template-columns:minmax(120px,190px) minmax(0,1fr); gap:10px; align-items:start; }
+.admin-ui .checkout-adjust label { margin:0; }
+.admin-ui .checkout-totals .checkout-discount dd { color:#b3261e; }
+@media (max-width:640px) {
+  .admin-ui .checkout-inputs.checkout-guest-row { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .admin-ui .checkout-charges-head { display:none; }
+  /* Lock name on its own line; then guests, units and the electricity side by side; then the two extras. */
+  .admin-ui .checkout-charges-row,.admin-ui .checkout-charges[data-guests] .checkout-charges-row { grid-template-columns:repeat(6,minmax(0,1fr)); align-items:start; }
+  .admin-ui .checkout-charges-row>* { grid-column:span 3; }
+  .admin-ui .checkout-charges[data-guests] .checkout-charges-row>* { grid-column:span 2; }
+  .admin-ui .checkout-charges[data-guests] .checkout-charges-row>:nth-last-child(-n+2) { grid-column:span 3; }
+  .admin-ui .checkout-charges-row>.checkout-charges-site,.admin-ui .checkout-charges[data-guests] .checkout-charges-row>.checkout-charges-site { grid-column:1 / -1; }
+  .admin-ui .checkout-cell-label { position:static; display:block; width:auto; height:auto; clip:auto; color:#62788b; font-size:13px; font-weight:600; white-space:normal; }
+  .admin-ui .checkout-adjust { grid-template-columns:minmax(0,1fr); }
+}
 /* Check-out dialog: the two steps as a bar — the current one filled, a finished one ticked and clickable to go back. */
 .admin-ui .checkout-steps { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:0; padding:0; list-style:none; scroll-margin-top:84px; }
 .admin-ui .checkout-steps li { display:flex; min-width:0; border:1.5px solid #dce5ed; border-radius:10px; background:#f6f8fa; color:#62788b; font-weight:600; }

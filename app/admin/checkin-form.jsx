@@ -6,6 +6,8 @@ import { money } from '../../lib/pricing'
 import { AdminIcon } from './admin-icon'
 
 const guestFields = [['adults','ผู้ใหญ่'],['children','เด็ก'],['seniors','ผู้สูงอายุ']]
+// Same two groups as the customer's rental picker.
+const gearTabs = [['tent','เต็นท์/ทาร์ป'],['gear','อุปกรณ์']]
 
 // Check-in form: actual guests, extra rental equipment (paid with the check-out bill), a note.
 // The same form stays usable after check-in, until check-out is confirmed, for equipment the guests ask for later.
@@ -17,6 +19,8 @@ export function CheckinForm({action, booking, gear, nights, added, canCheckin, c
   const checkedIn = Boolean(booking.checked_in_at)
   const extra = gear.reduce((sum,item) => sum + item.price * nights * (picked[item.code] || 0),0)
   const change = (code,step,limit) => setPicked(previous => ({ ...previous, [code]:Math.max(0,Math.min(limit,(previous[code] || 0) + step)) }))
+  const groups = { tent:gear.filter(item => item.tent), gear:gear.filter(item => !item.tent) }
+  const [tab, setTab] = useState(groups.tent.length ? 'tent' : 'gear')
 
   if (booking.checked_out) return <section className="stack checkout-body">
     <p className="notice" role="status">Check-out แล้ว · รายการนี้ปิดแล้ว</p>
@@ -44,18 +48,29 @@ export function CheckinForm({action, booking, gear, nights, added, canCheckin, c
       <fieldset className="checkout-item checkout-charge-group stack">
         <legend>เพิ่มอุปกรณ์ให้เช่า</legend>
         <p className="small muted">ราคาตามรายการ × {nights} คืน · เก็บเงินพร้อมบิล Check-out</p>
-        {gear.length ? <ul className="checkin-gear">{gear.map(item => {
-          const quantity = picked[item.code] || 0, limit = Math.min(item.available,itemMax)
-          return <li key={item.code} data-picked={quantity > 0 || undefined}>
-            <div><strong>{item.name}</strong><small>{money(item.price)}/คืน · {item.available > 0 ? `ว่าง ${item.available}` : 'ไม่ว่างในคืนที่พัก'}</small></div>
-            <div className="checkin-stepper">
-              <button type="button" className="button secondary" aria-label={'ลด ' + item.name} disabled={!quantity} onClick={() => change(item.code,-1,limit)}>−</button>
-              <output aria-live="polite">{quantity}</output>
-              <button type="button" className="button secondary" aria-label={'เพิ่ม ' + item.name} disabled={quantity >= limit} onClick={() => change(item.code,1,limit)}>+</button>
-              <input type="hidden" name={'add:' + item.code} value={quantity}/>
-            </div>
-          </li>
-        })}</ul> : <p className="muted">ยังไม่มีอุปกรณ์ให้เช่าที่เปิดใช้งาน</p>}
+        {gear.length ? <>
+          <div className="checkin-tabs" role="group" aria-label="ประเภทอุปกรณ์">
+            {gearTabs.map(([key,label]) => {
+              const count = groups[key].reduce((sum,item) => sum + (picked[item.code] || 0),0)
+              return <button type="button" key={key} aria-pressed={tab === key} onClick={() => setTab(key)}>
+                {label}{count > 0 && <span className="checkin-tab-count" aria-label={'เลือกไว้ ' + count}>{count}</span>}</button>
+            })}
+          </div>
+          {/* Both lists stay in the form (the other one hidden), so what was picked on either tab is sent. */}
+          {gearTabs.map(([key]) => <ul className="checkin-gear" key={key} hidden={tab !== key}>{groups[key].map(item => {
+            const quantity = picked[item.code] || 0, limit = Math.min(item.available,itemMax)
+            return <li key={item.code} data-picked={quantity > 0 || undefined}>
+              <div><strong>{item.name}</strong><small>{money(item.price)}/คืน · {item.available > 0 ? `ว่าง ${item.available}` : 'ไม่ว่างในคืนที่พัก'}</small></div>
+              <div className="checkin-stepper">
+                <button type="button" className="button secondary" aria-label={'ลด ' + item.name} disabled={!quantity} onClick={() => change(item.code,-1,limit)}>−</button>
+                <output aria-live="polite">{quantity}</output>
+                <button type="button" className="button secondary" aria-label={'เพิ่ม ' + item.name} disabled={quantity >= limit} onClick={() => change(item.code,1,limit)}>+</button>
+                <input type="hidden" name={'add:' + item.code} value={quantity}/>
+              </div>
+            </li>
+          })}
+          {!groups[key].length && <li className="muted">ยังไม่มีรายการในหมวดนี้</li>}</ul>)}
+        </> : <p className="muted">ยังไม่มีอุปกรณ์ให้เช่าที่เปิดใช้งาน</p>}
         <div className="checkout-line checkout-item-total"><strong>ยอดอุปกรณ์ที่เพิ่มครั้งนี้</strong><strong>{money(extra)}</strong></div>
       </fieldset>
       {added.length > 0 && <section className="checkout-item stack">

@@ -21,7 +21,7 @@ export function GearOrderForm({items, tab}) {
     return next
   })
   const changed = order.some((item,index) => item.code !== items[index].code)
-  const label = tab === 'tents' ? 'เต็นท์' : 'อุปกรณ์'
+  const label = tab === 'tents' ? 'เต็นท์/ทาร์ป' : 'อุปกรณ์'
   const shown = order.filter(item => item.active)
   return <section className="panel gear-order">
     <h3>จัดลำดับการแสดง{label} ({items.length} รายการ)</h3>

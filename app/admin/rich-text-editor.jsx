@@ -154,15 +154,27 @@ export function RichTextEditor({name, label, defaultValue = '', category, images
   </div>
 }
 
-export function FacilitiesEditor({categories, facilities, images}) {
+// english: {category: the English page}. Each category has a Thai and an English editor; both stay in the form (one
+// hidden), so switching language or category never loses what was typed and one save sends everything.
+export function FacilitiesEditor({categories, facilities, english = {}, images}) {
   const [active,setActive] = useState(categories[0][0])
+  const [language,setLanguage] = useState('th')
   return <div className="stack">
     <div className="rich-editor-tabs" role="tablist" aria-label="หมวดข้อมูลทั่วไป">
       {categories.map(([key,label]) => <button key={key} type="button" role="tab" aria-selected={active === key}
         data-filled={facilities[key] ? true : undefined} onClick={() => setActive(key)}>{label}</button>)}
     </div>
-    {categories.map(([key,label]) => <div key={key} hidden={active !== key}>
-      <RichTextEditor name={key} label={label} category={key} defaultValue={facilities[key] || ''} images={images.filter(image => image.category === key)}/>
-    </div>)}
+    <div className="rich-editor-language" role="group" aria-label="ภาษาของข้อความ">
+      <button type="button" aria-pressed={language === 'th'} onClick={() => setLanguage('th')}>ภาษาไทย</button>
+      <button type="button" lang="en" aria-pressed={language === 'en'} onClick={() => setLanguage('en')}>English</button>
+      <small>{language === 'en' ? 'ข้อความที่ลูกค้าเห็นเมื่อเลือกภาษาอังกฤษ · เว้นว่างได้ ระบบจะแสดงข้อความไทย' : 'ข้อความหลัก · สลับไป English เพื่อใส่คำแปลของหมวดนี้'}</small>
+    </div>
+    {categories.map(([key,label]) => {
+      const categoryImages = images.filter(image => image.category === key)
+      return <div key={key} hidden={active !== key}>
+        <div hidden={language !== 'th'}><RichTextEditor name={key} label={label} category={key} defaultValue={facilities[key] || ''} images={categoryImages}/></div>
+        <div hidden={language !== 'en'} lang="en"><RichTextEditor name={key + 'En'} label={label + ' (English)'} category={key} defaultValue={english[key] || ''} images={categoryImages}/></div>
+      </div>
+    })}
   </div>
 }

@@ -35,7 +35,7 @@ async function CheckinDialog({booking, query}) {
       action={saveCheckin.bind(null,booking.id,query)}
       booking={{ adults:booking.adults, children:booking.children, seniors:booking.seniors, checkin_note:booking.checkin_note,
         checked_in_at:booking.checked_in_at, checked_out:Boolean(booking.checked_out), added_amount:booking.added_amount ?? 0 }}
-      gear={gear.map(({code,name,price,available}) => ({code,name,price,available}))} nights={nights.length}
+      gear={gear.map(({code,name,price,available,is_tent}) => ({code,name,price,available,tent:Boolean(is_tent)}))} nights={nights.length}
       added={added.map(({name,quantity,unit_price,nights,amount}) => ({name,quantity,unit_price,nights,amount}))}
       canCheckin={booking.arrival <= date} checkoutUrl={adminUrl('checkout',{view:booking.id})}
       noteMax={checkinNoteMax} guestMax={checkinGuestMax} itemMax={checkinItemMax}/>

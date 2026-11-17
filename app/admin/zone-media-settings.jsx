@@ -3,6 +3,8 @@ import { MediaUpload } from './media-upload'
 import { AdminIcon } from './admin-icon'
 import Link, { ActionForm, UploadForm } from '../pending-ui'
 import { database } from '../../lib/db'
+import { adminTranslations } from '../../lib/admin-translations'
+import { EnglishField } from './english-field'
 import {campZones} from '../../lib/camp-options'
 import { adminUrl } from './navigation'
 import { removeZoneMedia, saveZoneText } from './zone-media-actions'
@@ -19,6 +21,7 @@ export async function ZoneMediaSettings({query}) {
   const box = query.zone === 'BOX' && zones.includes('BOX')
   const zone = zones.includes(query.zone) ? query.zone : zones.find(code => code !== 'BOX') ?? 'A'
   const details = await getZoneDetails(zone)
+  const english = await adminTranslations()
   const [media] = await database().execute('SELECT id,kind FROM zone_media WHERE zone=? ORDER BY id',[zone])
   const video = media.find(item => item.kind === 'video')
   const photos = media.filter(item => item.kind === 'image')
@@ -37,12 +40,15 @@ export async function ZoneMediaSettings({query}) {
     {box ? <ZoneFeaturesEditor key="featuresBOX" zone="BOX" zoneLabel="Trunkbox" initial={details?.features ?? {highlights:[],facilities:[]}} others={others}/> : <>
     <ActionForm action={saveZoneText} className="admin-edit-form" key={zone}>
       <input type="hidden" name="zone" value={zone}/>
-      <label>รายละเอียดโซน<textarea name="description" rows="4" maxLength={2000} defaultValue={details?.description}/></label>
-      <label>กฎการเข้าพัก<textarea name="rules" rows="4" maxLength={2000} defaultValue={details?.rules}/></label>
-      <label className="zone-caption-field">คำบรรยายภาพบรรยากาศ
+      <div className="text-pair"><label>รายละเอียดโซน<textarea name="description" rows="4" maxLength={2000} defaultValue={details?.description}/></label>
+        <EnglishField name="descriptionEn" label="รายละเอียดโซน (English)" value={english[details?.description]} maxLength={2000} rows="4"/></div>
+      <div className="text-pair"><label>กฎการเข้าพัก<textarea name="rules" rows="4" maxLength={2000} defaultValue={details?.rules}/></label>
+        <EnglishField name="rulesEn" label="กฎการเข้าพัก (English)" value={english[details?.rules]} maxLength={2000} rows="4"/></div>
+      <div className="text-pair"><label className="zone-caption-field">คำบรรยายภาพบรรยากาศ
         <textarea name="galleryCaption" rows="5" maxLength={3000} defaultValue={details?.gallery_caption}/>
         <small>ใช้ข้อความเดียวสำหรับทั้งโซน วางลิงก์ Facebook หรือ TikTok ในข้อความได้</small>
       </label>
+        <EnglishField name="galleryCaptionEn" label="คำบรรยายภาพบรรยากาศ (English)" value={english[details?.gallery_caption]} maxLength={3000} rows="5"/></div>
       <div className="admin-edit-footer"><button className="button"><AdminIcon name="save"/>บันทึกรายละเอียด</button></div>
     </ActionForm>
     <ZoneFeaturesEditor key={'features' + zone} zone={zone} zoneLabel={zoneLabel} initial={details?.features ?? {highlights:[],facilities:[]}} others={others}/>

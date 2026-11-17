@@ -60,6 +60,7 @@
 .customer-ui code { font-family:inherit; font-weight:700; letter-spacing:.03em; }
 .customer-ui a { color:inherit; }
 .customer-ui .customer-icon { flex:none; }
+.customer-ui .google-maps-icon { width:auto; height:1.3em; }
 .customer-ui .eyebrow { display:inline-flex; align-items:center; gap:8px; font-size:.78rem; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--c-moss); }
 .customer-ui .stack { display:grid; gap:16px; align-content:start; }
 .customer-ui .actions { display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
@@ -1038,8 +1039,10 @@
   .customer-ui .camp-location-map { aspect-ratio:4 / 3; }
 }
 /* Directions to the camp: the map symbol alone, a little larger than the contact icons beside it so its drawing reads. */
-.customer-ui .site-footer-map { display:inline-flex; border-radius:50%; transition:transform .15s ease; }
-.customer-ui .site-footer-map img { display:block; width:36px; height:36px; border-radius:50%; }
+/* The Google Maps pin on a white disc, the same size as the contact icons beside it. */
+.customer-ui .site-footer-map { display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:50%;
+  background:#fff; box-shadow:inset 0 0 0 1px rgba(60,80,70,.22); transition:transform .15s ease; }
+.customer-ui .site-footer-map .google-maps-icon { height:22px; }
 .customer-ui .site-footer-map:hover { transform:translateY(-2px); }
 
 /* Phones: the view switch, zoom, rotate and full-screen share one bar above the map instead of covering it,

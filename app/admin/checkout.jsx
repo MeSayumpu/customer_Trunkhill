@@ -3,12 +3,12 @@ import { AdminIcon } from './admin-icon'
 import Link, { AdminSearchForm } from '../pending-ui'
 import { today } from '../../lib/camp'
 import { checkoutDue, electricityFormula, extraCharge } from '../../lib/checkout-pricing'
-import { money } from '../../lib/pricing'
+import { lodgingGuests, money } from '../../lib/pricing'
 import { checkoutQr } from '../../lib/promptpay'
 import { AdminDialog } from './admin-dialog'
 import { bookingItems } from './booking-items'
 import { saveCheckout } from './checkout-actions'
-import { checkoutCursor, checkoutDetail, checkoutFilters, checkoutPageSize, checkoutPosition, checkoutRows, checkoutSettings, checkoutStatuses, checkoutSummaries } from './checkout-data'
+import { checkoutCursor, checkoutDetail, checkoutFilters, checkoutPageSize, checkoutPosition, checkoutRows, checkoutSettings, checkoutStatuses, checkoutSummaries, pricingMode } from './checkout-data'
 import { CheckoutForm, CheckoutSettingsForm } from './checkout-form'
 import { adminUrl } from './navigation'
 
@@ -16,39 +16,56 @@ const shortDate = value => value.split('-').reverse().join('/')
 // Gear lines shown per booking in the list; the rest is counted, and the full list is in the Check-out dialog.
 const rentalsShown = 3
 
-function CheckoutItems({items, nights}) {
+const guestKinds = [['adults','ผู้ใหญ่'],['seniors','ผู้สูงอายุ'],['children','เด็ก']]
+const guestText = counts => guestKinds.filter(([key]) => counts[key] > 0).map(([key,label]) => label + ' ' + counts[key] + ' คน').join(' · ')
+
+// What was booked, one line per lock so the list stays short: its guests (from lodgingGuests, or nothing when guests
+// are not billed per lock), its price, and under it the equipment rented for that lock.
+function CheckoutItems({items, nights, guests}) {
   const lodging = items.filter(item => item.lodging)
   const rentals = items.filter(item => !item.lodging)
   const unassigned = rentals.flatMap(item => {
     const quantity = item.quantity - item.assignments.reduce((sum, assignment) => sum + assignment.quantity,0)
     return quantity > 0 ? [{ ...item, quantity, amount:Math.round(item.amount * quantity / item.quantity) }] : []
   })
-  return <div className="stack checkout-body">
-    {lodging.map(site => {
-      const attached = rentals.flatMap(item => {
-        const assignment = item.assignments.find(row => row.host_code === site.code)
-        if (!assignment) return []
-        return [{ ...item, quantity:assignment.quantity, amount:Math.round(item.amount * assignment.quantity / item.quantity) }]
-      })
-      return <section className="checkout-item stack" key={site.code}>
-        <h3>{site.name}{site.detail && <small>{site.detail}</small>}</h3>
-        <div className="checkout-line"><span>ค่าที่พัก {nights} คืน</span><strong>{money(site.amount)}</strong></div>
-        {attached.length > 0 && <>
-          <strong>อุปกรณ์และบริการที่จอง</strong>
-          {attached.map(item => <div className="checkout-line" key={item.code}><span>{item.name} × {item.quantity}</span><strong>{money(item.amount)}</strong></div>)}
-        </>}
-        <div className="checkout-line checkout-item-total"><strong>รวม</strong><strong>{money(site.amount + attached.reduce((sum,item) => sum + item.amount,0))}</strong></div>
-      </section>
-    })}
-    {unassigned.length > 0 && <section className="checkout-item stack">
-      <h3>อุปกรณ์และบริการอื่น ๆ</h3>
-      {unassigned.map(item => <div className="checkout-line" key={item.code}><span>{item.name} × {item.quantity}</span><strong>{money(item.amount)}</strong></div>)}
-    </section>}
+  const free = guests && guestText(guests.free)
+  return <div className="checkout-body">
+    <section className="checkout-item checkout-booked">
+      <h3>รายการที่จอง <small>{nights} คืน</small></h3>
+      {lodging.map(site => {
+        const attached = rentals.flatMap(item => {
+          const assignment = item.assignments.find(row => row.host_code === site.code)
+          if (!assignment) return []
+          return [{ ...item, quantity:assignment.quantity, amount:Math.round(item.amount * assignment.quantity / item.quantity) }]
+        })
+        return <div className="checkout-booked-site" key={site.code}>
+          <div className="checkout-booked-row">
+            <span className="checkout-booked-name"><strong>{site.name}</strong>{site.detail && site.detail !== site.name && <small>{site.detail}</small>}</span>
+            <span className="checkout-site-guests">{guests?.byCode.has(site.code) && (guestText(guests.byCode.get(site.code)) || 'ไม่มีผู้ที่คิดค่าล็อก')}</span>
+            <strong>{money(site.amount)}</strong>
+          </div>
+          {attached.map(item => <div className="checkout-booked-row checkout-booked-sub" key={item.code}>
+            <span>+ {item.name} × {item.quantity}</span><span/><span>{money(item.amount)}</span></div>)}
+          {attached.length > 0 && <div className="checkout-booked-row checkout-booked-sub">
+            <span>รวม {site.name}</span><span/><strong>{money(site.amount + attached.reduce((sum,item) => sum + item.amount,0))}</strong></div>}
+        </div>
+      })}
+      {free && <div className="checkout-booked-row checkout-booked-info">
+        <span>ไม่คิดค่าล็อก · ไม่นับเป็นหน่วยไฟฟรี</span><span className="checkout-site-guests">{free}</span><span/></div>}
+      {unassigned.length > 0 && <div className="checkout-booked-site">
+        <div className="checkout-booked-row checkout-booked-info"><span>อุปกรณ์และบริการอื่น ๆ</span><span/><span/></div>
+        {unassigned.map(item => <div className="checkout-booked-row checkout-booked-sub" key={item.code}>
+          <span>{item.name} × {item.quantity}</span><span/><span>{money(item.amount)}</span></div>)}
+      </div>}
+    </section>
   </div>
 }
 
 async function CheckoutDialog({booking, query, review}) {
-  const [items, settings] = await Promise.all([bookingItems(booking.id),checkoutSettings()])
+  const [items, settings, mode] = await Promise.all([bookingItems(booking.id),checkoutSettings(),pricingMode()])
+  // Who was billed on each lock in the booking as it was made (the booked counts, not guests added at check-in).
+  const guests = lodgingGuests(items,{ adults:booking.booked_adults ?? booking.adults, seniors:booking.booked_seniors ?? booking.seniors,
+    children:booking.booked_children ?? booking.children },mode)
   const formula = electricityFormula(booking,settings)
   const currentFormula = electricityFormula(booking,settings,true)
   const extra = checkoutDue(booking)
@@ -68,11 +85,11 @@ async function CheckoutDialog({booking, query, review}) {
         <small>ผู้ใหญ่ {booking.adults} · เด็ก {booking.children} · ผู้สูงอายุ {booking.seniors}</small>
       </dd></div>
     </dl>
-    <CheckoutItems items={items} nights={nights}/>
+    <CheckoutItems items={items} nights={nights} guests={guests}/>
     {booking.tent_discount > 0 && <div className="checkout-line checkout-discount-panel"><span>ส่วนลดค่าเช่าเต็นท์</span><strong>−{money(booking.tent_discount)}</strong></div>}
     <CheckoutForm key={booking.id + ':' + (booking.version ?? 0) + ':' + (booking.completed_at || '')}
       action={saveCheckout.bind(null,booking.id,query)} booking={summary}
-      lodging={items.filter(item => item.lodging).map(({code,name}) => ({code,name}))} savedFormula={formula}
+      lodging={items.filter(item => item.lodging).map(({code,name}) => ({code,name,guests:guests?.byCode.get(code)?.paying}))} savedFormula={formula}
       currentFormula={currentFormula} qr={qr} canCharge={booking.arrival <= today()} review={review}/>
   </AdminDialog>
 }

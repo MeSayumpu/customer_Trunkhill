@@ -6,7 +6,9 @@ import { formatMoney, languageCookie, localeOf, translate, translateMessage } fr
 
 const I18nContext = createContext(null)
 
-export function I18nProvider({lang:initial = 'th', children}) {
+// extra: {thai: english} for the texts the admin wrote (lib/admin-translations.js); it is looked up before the built-in
+// dictionary, so t() of an item name, a zone text or a facilities page answers in English when the admin gave one.
+export function I18nProvider({lang:initial = 'th', extra = null, children}) {
   const router = useRouter()
   const [lang,setLangState] = useState(initial)
 
@@ -23,10 +25,10 @@ export function I18nProvider({lang:initial = 'th', children}) {
     lang,
     locale:localeOf(lang),
     setLang,
-    t:(text,params) => translate(lang,text,params),
+    t:(text,params) => lang === 'en' && extra && typeof text === 'string' && Object.hasOwn(extra,text) ? extra[text] : translate(lang,text,params),
     msg:text => translateMessage(lang,text),
     money:amount => formatMoney(lang,amount),
-  }),[lang,setLang])
+  }),[lang,setLang,extra])
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
 }

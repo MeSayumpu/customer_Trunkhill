@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { isAdmin } from '../../lib/auth'
 import { database } from '../../lib/db'
+import { saveAdminTranslations } from '../../lib/admin-translations'
 import {campZones} from '../../lib/camp-options'
 import { adminUrl } from './navigation'
 import { revalidatePath } from 'next/cache'
@@ -19,6 +20,8 @@ export async function saveZoneText(form) {
     typeof caption !== 'string' || caption.length > 3000) redirect(adminUrl('zoneMedia',{error:'invalid'}))
   await database().execute('UPDATE zone_details SET description=?,rules=?,gallery_caption=? WHERE zone=?',
     [description.trim(),rules.trim(),caption.trim(),zone])
+  await saveAdminTranslations([[description,String(form.get('descriptionEn') || '').slice(0,2000)],[rules,String(form.get('rulesEn') || '').slice(0,2000)],
+    [caption,String(form.get('galleryCaptionEn') || '').slice(0,3000)]])
   redirect(adminUrl('zoneMedia',{zone,saved:'zoneMedia'}))
 }
 

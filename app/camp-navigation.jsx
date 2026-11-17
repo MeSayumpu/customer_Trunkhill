@@ -38,7 +38,7 @@ function CampInfoDialog({dialog}) {
     </div>
     {active ? <section className="facility-detail" aria-live="polite">
       <h3>{t(active[1])}</h3>
-      {facilities[category] ? <RichText source={facilities[category]}/> : category==='rules' ? <>
+      {facilities[category] ? <RichText source={t(facilities[category])}/> : category==='rules' ? <>
         <p>{t('เลื่อนวันที่และเปลี่ยนล็อกได้ตามเงื่อนไขของแคมป์ ตรวจจำนวนครั้งและวันล่วงหน้าที่ใช้กับรายการของคุณได้ในหน้าตรวจสอบการจอง')}</p>
         <Link href="/booking" onClick={()=>dialog.current.close()}>{t('ตรวจสอบหรือเลื่อนการจอง')}</Link>
       </> : <p>{t('ยังไม่มีรายละเอียดในหมวดนี้ ติดต่อแคมป์เพื่อสอบถามข้อมูลเพิ่มเติม')}</p>}

@@ -33,7 +33,7 @@ export function checkoutPosition(query) {
 
 export const checkoutCursor = row => row.departure + '|' + row.id
 const checkoutColumns = `b.id,(SELECT reference FROM booking_references WHERE booking=b.id) AS reference,b.arrival,b.departure,b.guest,b.phone,b.total,
-  ci.added_amount AS checkin_amount,ci.checked_in_at,ci.booked_adults,ci.booked_children,ci.booked_seniors,c.guest_amount,c.free_guests,
+  ci.added_amount AS checkin_amount,ci.checked_in_at,ci.booked_adults,ci.booked_children,ci.booked_seniors,c.guest_amount,c.discount_amount,c.free_guests,
   c.version,c.units_milli,c.electricity_rate,c.free_units_per_guest,c.electricity_amount,c.damage_amount,c.other_amount,c.note,c.promptpay,c.completed_at`
 
 // paying_guests: who paid the entry fee in the booking as it was made — its adults, or its seniors when no adult came
@@ -50,6 +50,12 @@ export const checkoutOccupancy = `b.adults + b.children + b.seniors AS guest_cou
 export async function checkoutSettings(connection = database()) {
   const [[settings]] = await connection.query('SELECT electricity_rate,free_units_per_guest,promptpay FROM checkout_settings WHERE id=1')
   return settings || { ...defaultElectricity, promptpay:null }
+}
+
+// How plots are priced now ('person' or 'plot'); guests are billed per lock only in person mode.
+export async function pricingMode() {
+  const [[row]] = await database().query('SELECT mode FROM settings WHERE id=1')
+  return row?.mode
 }
 
 export async function checkoutRows(filters, position = {}) {

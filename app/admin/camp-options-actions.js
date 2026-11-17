@@ -2,6 +2,8 @@
 import {redirect} from 'next/navigation'
 import {isAdmin} from '../../lib/auth'
 import {database,transaction} from '../../lib/db'
+import {saveAdminTranslations} from '../../lib/admin-translations'
+import {campOptions} from '../../lib/camp-options'
 import {revalidatePath} from 'next/cache'
 import {facilityCategories,heroCategory} from '../../lib/camp-options'
 import {guestRateLineMax,guestRateLinesMax,guestTypeKeys,guestTypeTextMax,normalizeGuestRate} from '../../lib/guest-types'
@@ -51,7 +53,11 @@ export async function saveTrunkboxText(data){
 export async function saveFacilities(data){
   await guard();const values=Object.fromEntries(facilityKeys.map(key=>[key,String(data.get(key)||'').trim()]))
   if(Object.values(values).some(v=>v.length>maxFacilityText))redirect('/admin?section=settings&group=facilities&error=invalid')
-  await save('facilities',values);revalidatePath('/');redirect('/admin?section=settings&group=facilities&saved=settings')
+  // Each category's English page is kept against its Thai text; the entry of the text it replaces is dropped.
+  const {facilities:before}=await campOptions()
+  await save('facilities',values)
+  await saveAdminTranslations(facilityKeys.map(key=>[values[key],String(data.get(key+'En')||'').slice(0,maxFacilityText),before[key]||'']))
+  revalidatePath('/');redirect('/admin?section=settings&group=facilities&saved=settings')
 }
 // Uploads one image (already sent in chunks by prepareUploads) for a facilities category; returns its id for the editor.
 export async function addFacilityImage(data){
@@ -93,7 +99,8 @@ export async function saveLocation(data){
   const point=raw?parseCoordinates(raw):null
   const invalid=[...(raw&&!point?['coords']:[]),...(mapUrl.length>500||!validLink(mapUrl)?['mapUrl']:[])]
   if(invalid.length)redirect('/admin?'+new URLSearchParams({section:'settings',group:'contacts',error:'location',fields:invalid.join(',')}))
-  await save('location',{address,coords:point?point.lat+', '+point.lng:'',mapUrl});revalidatePath('/');redirect('/admin?section=settings&group=contacts&saved=settings')
+  await save('location',{address,coords:point?point.lat+', '+point.lng:'',mapUrl})
+  await saveAdminTranslations([[address,String(data.get('addressEn')||'').slice(0,300)]]);revalidatePath('/');redirect('/admin?section=settings&group=contacts&saved=settings')
 }
 export async function addZone(data){
   await guard();const zone=String(data.get('zone')||'').trim().toUpperCase()

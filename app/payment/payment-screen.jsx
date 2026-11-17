@@ -221,8 +221,8 @@ export function PaymentScreen({id}) {
             {!expired && !cancelled && paymentMethod === 'bank' && <section className="notice stack" aria-label={t('โอนผ่านบัญชีธนาคาร')}>
               <strong>{t('โอนผ่านบัญชีธนาคาร')}</strong><div className="payment-amount"><span>{t('ยอดที่ต้องโอน')}</span><strong>{money(booking.total)}</strong></div>
               {booking.bank_name && booking.bank_account ? <>
-                <p>{t('ธนาคาร:')} <strong>{booking.bank_name}</strong></p>
-                <p>{t('ชื่อบัญชี:')} <strong>{booking.recipient}</strong></p>
+                <p>{t('ธนาคาร:')} <strong>{t(booking.bank_name)}</strong></p>
+                <p>{t('ชื่อบัญชี:')} <strong>{t(booking.recipient)}</strong></p>
                 <label>{t('เลขบัญชี')}<input readOnly value={booking.bank_account} aria-label={t('เลขบัญชีธนาคาร')} onFocus={event => event.target.select()} style={{fontSize:'1.25rem',fontWeight:700,letterSpacing:'.06em',width:'100%'}}/></label>
                 <button type="button" className="button secondary" onClick={copyAccount}><CustomerIcon name="copy"/> {t('คัดลอกเลขบัญชี')}</button>
                 <p role="status" className="small">{t(copyMessage)}</p>

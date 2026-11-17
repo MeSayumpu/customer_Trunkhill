@@ -7,6 +7,8 @@ import { MediaUpload } from './media-upload'
 import { AdminIcon } from './admin-icon'
 import Link, { ActionForm, AdminSearchForm } from '../pending-ui'
 import { database } from '../../lib/db'
+import { adminTranslations } from '../../lib/admin-translations'
+import { EnglishField } from './english-field'
 import { money } from '../../lib/pricing'
 import { wholeCampCode, wholeCampName, wholeCampTiers } from '../../lib/whole-camp'
 import { WholeCampRateFields } from './whole-camp-rate-fields'
@@ -62,6 +64,7 @@ function Pagination({ section, filters, page, rowCursor }) {
 }
 
 async function InventoryForm({ row = {}, kind, q, zone, tab, closeUrl, position }) {
+  const english = await adminTranslations()
   const zones={...baseZones,plot:(await campZones()).filter(z=>z!=='BOX')}
   const tent = row.code ? isTent({...row,kind}) : kind === 'gear' && tab === 'tents'
   // Room photos in customer order: main photo first, then the extra photos.
@@ -81,10 +84,12 @@ async function InventoryForm({ row = {}, kind, q, zone, tab, closeUrl, position 
     {position?.value && <input type="hidden" name={position.backwards ? 'before' : 'after'} value={position.value}/>}
     <fieldset className="inventory-edit-group">
       <legend>ข้อมูลรายการ</legend>
-      <label>ชื่อ<input name="name" defaultValue={row.name} required maxLength={120}/></label>
-      <label>รายละเอียด<input name="detail" defaultValue={row.detail} maxLength={240}/></label>
+      <div className="text-pair"><label>ชื่อ<input name="name" defaultValue={row.name} required maxLength={120}/></label>
+        <EnglishField name="nameEn" label="ชื่อ (English)" value={english[row.name]} maxLength={120}/></div>
+      <div className="text-pair"><label>รายละเอียด<input name="detail" defaultValue={row.detail} maxLength={240}/></label>
+        <EnglishField name="detailEn" label="รายละเอียด (English)" value={english[row.detail]} maxLength={240}/></div>
       <label>รหัส<input name="code" defaultValue={row.code} readOnly={!!row.code} maxLength={24} required /></label>
-      <label>{kind === "gear" ? "ประเภท" : "โซน"}{kind === "gear" ? <><input type="hidden" name="zone" value="GEAR"/><select name="rentalType" defaultValue={tent?"tents":"equipment"}><option value="equipment">อุปกรณ์</option><option value="tents">เต็นท์</option></select></> : <select name="zone" defaultValue={row.zone || zone || zones[kind][0]}>{zones[kind].map(value => <option key={value}>{value}</option>)}</select>}</label>
+      <label>{kind === "gear" ? "ประเภท" : "โซน"}{kind === "gear" ? <><input type="hidden" name="zone" value="GEAR"/><select name="rentalType" defaultValue={tent?"tents":"equipment"}><option value="tents">เต็นท์/ทาร์ป</option><option value="equipment">อุปกรณ์</option></select></> : <select name="zone" defaultValue={row.zone || zone || zones[kind][0]}>{zones[kind].map(value => <option key={value}>{value}</option>)}</select>}</label>
     </fieldset>
     <fieldset className="inventory-edit-group">
       <legend>ราคาและการจอง</legend>
@@ -125,10 +130,11 @@ export async function InventoryList({ section, query }) {
   const zone = zones[kind].includes(query.zone) ? query.zone : ''
   let tab = ''
   if (kind === 'gear') {
-    tab = ['equipment','tents'].includes(query.tab) ? query.tab : 'equipment'
+    // Tents/tarps are the first tab, so the page opens on them; an edit link without a tab opens the item's own tab.
+    tab = ['equipment','tents'].includes(query.tab) ? query.tab : 'tents'
     if (!['equipment','tents'].includes(query.tab) && typeof query.edit === 'string' && inventoryCursor.test(query.edit)) {
       const [[item]] = await database().execute('SELECT kind,is_tent FROM inventory WHERE code=?',[query.edit])
-      if (item && isTent(item)) tab = 'tents'
+      if (item) tab = isTent(item) ? 'tents' : 'equipment'
     }
   }
   const position = cursor(query,inventoryCursor)
@@ -161,7 +167,7 @@ export async function InventoryList({ section, query }) {
   const closeUrl = adminUrl(section,current)
   const editing = page.visible.find(row => row.code === query.edit)
   const adding = query.add === '1'
-  const tableLabel = tab === 'tents' ? 'เต็นท์' : adminSections[section]
+  const tableLabel = tab === 'tents' ? 'เต็นท์/ทาร์ป' : adminSections[section]
   const [orderRows] = kind === 'gear' ? await database().execute(
     'SELECT i.code,i.name,i.active,i.price,i.kind,EXISTS(SELECT 1 FROM inventory_photos p WHERE p.code=i.code) AS has_photo FROM inventory i WHERE i.kind=? AND i.is_tent=? ORDER BY i.sort_order,i.code',['gear',tab === 'tents']) : [[]]
   const [zoneRows] = kind === 'plot' ? await database().query("SELECT z.zone,z.active,(SELECT COUNT(*) FROM inventory i WHERE i.zone=z.zone) AS total FROM zone_details z WHERE z.zone NOT IN ('BOX','GEAR') ORDER BY z.zone") : [[]]
@@ -169,7 +175,7 @@ export async function InventoryList({ section, query }) {
     {kind === "plot" && <details className="panel zone-create"><summary>จัดการโซน / เพิ่มโซน / เปิด–ปิดการใช้งาน</summary><p>เพิ่มโซน เช่น E แล้วเลือกโซนนี้ตอนเพิ่มล็อก จากนั้นจัดวางล็อกในหน้าจัดการผังลาน</p><ActionForm action={addZone} className="actions"><label>รหัสโซน<input name="zone" placeholder="E" pattern="[A-Za-z][A-Za-z0-9-]{0,11}" maxLength={12} required/></label><button className="button">เพิ่มโซน</button></ActionForm><ZoneStatusList zones={zoneRows}/></details>}
     {kind === 'room' && <TrunkboxTextSettings/>}
     {tab && <nav className="admin-filter-tabs" aria-label="ประเภทอุปกรณ์ให้เช่า">
-      {[['equipment','อุปกรณ์'],['tents','เต็นท์']].map(([type,label]) =>
+      {[['tents','เต็นท์/ทาร์ป'],['equipment','อุปกรณ์']].map(([type,label]) =>
         <Link key={type} href={adminUrl(section,{q,tab:type})} aria-current={tab === type ? 'page' : undefined}>{label}</Link>)}
     </nav>}
     {tab === 'tents' && <TentDiscountSettings/>}
@@ -191,7 +197,7 @@ export async function InventoryList({ section, query }) {
       <tbody>{page.visible.map(row => <tr key={row.code}>
         <td><Link href={adminUrl(section,{...current,edit:row.code})} scroll={false} className="button secondary">แก้ไข</Link></td>
         <td><code>{row.code}</code></td><td><strong>{row.name}</strong>{row.detail && <><br/><small>{row.detail}</small></>}</td>
-        <td>{kind === "gear" ? (isTent(row) ? "เต็นท์" : "อุปกรณ์") : row.zone}</td><td className="admin-amount">{money(row.price)}</td><td>{row.stock}</td>
+        <td>{kind === "gear" ? (isTent(row) ? "เต็นท์/ทาร์ป" : "อุปกรณ์") : row.zone}</td><td className="admin-amount">{money(row.price)}</td><td>{row.stock}</td>
         <td><span className={'admin-status ' + (row.active ? 'confirmed' : 'cancelled')}>{row.active ? 'เปิดจอง' : 'ปิดจอง'}</span></td>
         {kind !== 'plot' && <td>{row.has_photo > 0 ? <img className="admin-thumb" src={'/admin/inventory-photo/' + row.code}
           alt={'รูป ' + row.name} width="48" height="36" loading="lazy"/> : <span className="muted">—</span>}</td>}
@@ -247,14 +253,17 @@ export async function PricingSettings() {
 
 export async function PaymentSettings() {
   const [[config]] = await database().query('SELECT recipient,bank_name,bank_account FROM payment_config WHERE id=1')
+  const english = await adminTranslations()
   const [[{slip_duplicate_check:slipCheck}]] = await database().query('SELECT slip_duplicate_check FROM settings WHERE id=1')
   return <section className="panel stack admin-content">
     <h2>รับชำระค่าจอง</h2>
     <p>แนบ QR สำหรับรับเงินของแคมป์ และระบุชื่อผู้รับที่ลูกค้าจะเห็นในหน้าชำระเงิน</p>
     {config && <img loading="lazy" decoding="async" src="/api/payment/qr" alt="QR รับเงินปัจจุบัน" width="180" height="180"/>}
     <ActionForm action={savePaymentConfig} className="admin-edit-form">
-      <label>ชื่อผู้รับเงิน<input name="recipient" defaultValue={config?.recipient} maxLength={120} required/></label>
-      <label>ธนาคารสำหรับโอนด้วยเลขบัญชี<input name="bankName" defaultValue={config?.bank_name || ''} maxLength={120} placeholder="เช่น ธนาคารไทยพาณิชย์"/></label>
+      <div className="text-pair"><label>ชื่อผู้รับเงิน<input name="recipient" defaultValue={config?.recipient} maxLength={120} required/></label>
+        <EnglishField name="recipientEn" label="ชื่อผู้รับเงิน (English)" value={english[config?.recipient]} maxLength={120}/></div>
+      <div className="text-pair"><label>ธนาคารสำหรับโอนด้วยเลขบัญชี<input name="bankName" defaultValue={config?.bank_name || ''} maxLength={120} placeholder="เช่น ธนาคารไทยพาณิชย์"/></label>
+        <EnglishField name="bankNameEn" label="ธนาคาร (English)" value={english[config?.bank_name]} maxLength={120}/></div>
       <label>เลขบัญชีธนาคาร<input name="bankAccount" defaultValue={config?.bank_account || ''} inputMode="numeric" maxLength={20}/><small>กรอกคู่กับชื่อธนาคาร ใช้บัญชีชื่อผู้รับเดียวกับด้านบน ข้อมูลนี้จะแสดงให้ลูกค้าโอนเมื่อสแกน QR ไม่ได้ (ไม่ใช่เลขพร้อมเพย์)</small></label>
       <label>รูป QR รับเงิน<input name="qr" type="file" accept="image/jpeg,image/png,image/webp" required={!config}/>
         <small>JPG, PNG หรือ WebP</small></label>
