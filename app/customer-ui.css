@@ -637,6 +637,15 @@
 .customer-ui .tone-danger .confirm-dialog-accept { background:var(--c-danger); }
 .customer-ui .tone-danger .confirm-dialog-accept:hover:not(:disabled) { background:#953531; }
 @media (max-width:420px) { .customer-ui .confirm-dialog-actions { grid-template-columns:1fr; } .customer-ui .confirm-dialog-accept { order:-1; } }
+/* Booking refused: every picked item with whether it is still free; the one button goes back to the picker. */
+.customer-ui .unavailable-list li { justify-content:space-between; align-items:baseline; gap:12px; padding:4px 0; color:var(--c-danger); }
+.customer-ui .unavailable-list li + li { border-top:1px dashed var(--c-line); padding-top:8px; }
+.customer-ui .unavailable-list li::before { content:none; }
+.customer-ui .unavailable-list li span { min-width:0; overflow-wrap:anywhere; }
+.customer-ui .unavailable-list li strong { flex:none; font-size:.82rem; padding:2px 10px; border-radius:999px; background:var(--c-danger-50); white-space:nowrap; }
+.customer-ui .unavailable-list li[data-ok] { color:var(--c-ink); }
+.customer-ui .unavailable-list li[data-ok] strong { background:#e4f1e7; color:#1f5a3a; }
+.customer-ui .confirm-dialog-actions.unavailable-actions { grid-template-columns:1fr; }
 
 /* Date and guest pickers */
 .customer-ui .picker-content { display:grid; gap:14px; }

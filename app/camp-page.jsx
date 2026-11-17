@@ -22,6 +22,7 @@ import { wholeCampCode, wholeCampName, wholeCampTier } from '../lib/whole-camp'
 import { WholeCampOption } from './whole-camp-option'
 import { TrunkboxOption } from './trunkbox-option'
 import { useConfirm } from './confirm-dialog'
+import { UnavailableDialog } from './unavailable-dialog'
 import { useI18n } from './i18n'
 import { ContactList } from './camp-contacts'
 import { locationLinks } from '../lib/camp-contacts'
@@ -85,6 +86,8 @@ export default function CampPage({ review: initialReview = false, amendment = nu
   const [guestWarning,setGuestWarning] = useState(false)
   const [availabilityError,setAvailabilityError] = useState('')
   const [bookingError,setBookingError] = useState('')
+  // Rows of the "choose again" dialog while a booking was refused for items that are not free; null = closed.
+  const [unavailable,setUnavailable] = useState(null)
   const [loading,setLoading] = useState(false)
   const [bookingBusy,setBookingBusy] = useState(false)
   const [receipt,setReceipt] = useState(null)
@@ -324,6 +327,45 @@ export default function CampPage({ review: initialReview = false, amendment = nu
     startNavigation(() => router.push('/review'))
   }
 
+  // A refused booking that names the items it could not reserve opens the "choose again" dialog. It lists everything
+  // that was picked (as it was when the customer pressed confirm) and marks the items that are not free.
+  function showUnavailable(error) {
+    if (!error.unavailable?.length) return
+    const failed = new Map(error.unavailable.map(item => [item.code,item]))
+    const label = row => (row.kind === 'plot' && row.code !== wholeCampCode ? row.code : t(row.name)) + (row.kind === 'gear' ? ' × ' + row.quantity : '')
+    const note = item => !item ? t('ยังว่าง') : item.closed ? t('ปิดรับจอง')
+      : item.left > 0 ? t('เหลือ {left} ต้องการ {wanted}',{left:item.left,wanted:item.wanted}) : t('ไม่ว่างแล้ว')
+    setUnavailable({left:Object.fromEntries(error.unavailable.map(item => [item.code,item.left])),rows:[
+      ...selected.map(row => ({code:row.code,label:label(row),ok:!failed.has(row.code),note:note(failed.get(row.code))})),
+      ...error.unavailable.filter(item => !selected.some(row => row.code === item.code))
+        .map(item => ({code:item.code,label:t(item.name),ok:false,note:note(item)})),
+    ]})
+  }
+
+  // The only way out of that dialog: back to the picker. Items that are still free stay picked; equipment rented with
+  // a plot is cut down to what is left (plots, rooms and loose equipment are trimmed by the availability check).
+  function chooseAgain() {
+    const left = { ...unavailable?.left }
+    const rentals = Object.fromEntries(Object.entries(rentalsByLock).map(([host,items]) => [host,Object.fromEntries(
+      Object.entries(items).map(([code,quantity]) => {
+        if (!(code in left)) return [code,quantity]
+        const kept = Math.min(quantity,left[code])
+        left[code] -= kept
+        return [code,kept]
+      }))]))
+    setUnavailable(null)
+    setBookingError('')
+    setEditQuote(null)
+    setRentalsByLock(rentals)
+    if (amendment) {
+      setEditReview(false)
+      window.scrollTo({top:0,behavior:'smooth'})
+      return
+    }
+    sessionStorage.setItem(draftKey, JSON.stringify({ arrival, departure, guests, counts, zone, rentalsByLock:rentals, wholeCamp, roomGuests }))
+    startNavigation(() => router.push('/'))
+  }
+
   async function book(event) {
     event.preventDefault()
     if (!ready || !selected.length || bookingBusy || tooManyGuests) return
@@ -341,7 +383,7 @@ export default function CampPage({ review: initialReview = false, amendment = nu
       const payload={...totalGuests,arrival,departure,guest:editGuest,id:amendment.booking.id,phone:amendment.phone,
         revision:amendment.booking.reschedule_count,items:selected.map(({code,quantity})=>({code,quantity})),rentalLines}
       try {setEditQuote({payload,...await read('/api/camp',{...payload,action:'quoteAmendment'})})}
-      catch(error){setBookingError(error.message)}finally{setBookingBusy(false)}
+      catch(error){setBookingError(error.message);showUnavailable(error)}finally{setBookingBusy(false)}
       return
     }
     const payload = {
@@ -366,6 +408,7 @@ export default function CampPage({ review: initialReview = false, amendment = nu
       startNavigation(() => router.push('/payment?id=' + booking.id))
     } catch (error) {
       setBookingError(error.message)
+      showUnavailable(error)
       if (error.status === 409) await checkDates(arrival,departure,true)
     } finally {
       setBookingBusy(false)
@@ -376,7 +419,7 @@ export default function CampPage({ review: initialReview = false, amendment = nu
     if(!editQuote||bookingBusy)return
     setBookingBusy(true);setBookingError('')
     try {amendment.onSaved(await read('/api/camp',{...editQuote.payload,action:'amendBooking',expectedTotal:editQuote.total,expectedFreeUnits:editQuote.freeUnits}))}
-    catch(error){setBookingError(error.message);setEditQuote(null)}finally{setBookingBusy(false)}
+    catch(error){setBookingError(error.message);setEditQuote(null);showUnavailable(error)}finally{setBookingBusy(false)}
   }
 
   async function discardAmendment() {
@@ -628,5 +671,6 @@ export default function CampPage({ review: initialReview = false, amendment = nu
       <TentMap {...mapProps} large rows={allRows.filter(row => row.kind === 'plot')}/>
     </MapDialog>}
     {dialogs}
+    <UnavailableDialog rows={unavailable?.rows ?? null} onBack={chooseAgain}/>
   </div>
 }

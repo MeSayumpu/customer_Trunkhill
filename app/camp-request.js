@@ -6,6 +6,8 @@ export async function readCamp(url, data, signal) {
   if (!response.ok) {
     const error = new Error(result.error || 'กรุณาลองใหม่')
     error.status = response.status
+    // Items the server could not reserve (lib/camp.js assertStock), for the "choose again" dialog.
+    if (Array.isArray(result.unavailable)) error.unavailable = result.unavailable
     throw error
   }
   return result
