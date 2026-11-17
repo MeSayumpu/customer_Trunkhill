@@ -587,7 +587,8 @@ export default function CampPage({ review: initialReview = false, amendment = nu
     <footer className="site-footer"><div className="camp-shell site-footer-inner">
       <span className="site-footer-brand"><img src="/camp-logo-transparent.webp" alt="" width="58" height="37"/>Trunkhill Campfield</span>
       <div className="actions"><ContactList contacts={options.contacts} compact/>
-        {locationLinks(options.location) && <a className="site-footer-map" href={locationLinks(options.location).directions} target="_blank" rel="noopener noreferrer"><CustomerIcon name="pin"/>{t('นำทางไปแคมป์')}</a>}</div>
+        {locationLinks(options.location) && <a className="site-footer-map" href={locationLinks(options.location).directions} target="_blank" rel="noopener noreferrer"
+          aria-label={t('นำทางไปแคมป์')} title={t('นำทางไปแคมป์')}><img src="/map-directions.webp" alt="" width="36" height="36"/></a>}</div>
     </div></footer>
 
     <MobileCampMenu page={review ? 'flow' : 'home'} summary={!review && dockSummary} {...menuActions}/>

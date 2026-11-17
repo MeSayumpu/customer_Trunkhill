@@ -522,57 +522,102 @@
 .admin-ui .booking-note-form label { display:grid; gap:6px; font-weight:700; color:#6b4e00; }
 .admin-ui .booking-note-form label small { font-weight:400; color:#8a7a45; }
 .admin-ui .booking-note-form textarea { width:100%; min-height:76px; resize:vertical; font-weight:400; }
-.admin-ui .booking-table .bk-stay { display:none; }
 .admin-ui .booking-expanded-grid { grid-template-columns:1.2fr 1fr 1fr 1fr; }
 @media(max-width:1200px) { .admin-ui .booking-expanded-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 
-@media(max-width:760px) {
-  /* Bookings on a phone: one compact card each — code + status, guest + total, stay, items and note, actions.
-     The labels above each value are dropped; the layout says what each line is. */
-  .admin-ui .booking-table tbody { gap:10px; padding:6px; }
-  .admin-ui .booking-table tbody tr:not(.admin-expanded-row) { grid-template-columns:minmax(0,1fr) auto; align-items:center;
-    grid-template-areas:"code status" "guest total" "stay stay" "items items" "actions actions"; padding:0 0 4px; }
-  .admin-ui .booking-table tbody tr:not(.admin-expanded-row)>td { grid-column:auto; padding:5px 12px; border:0; height:auto; }
+/* Bookings list.
+   Wide list area: a table that scrolls with the page (no box with its own scrollbar), the stay in one column, and the
+   booking/transfer time as a slim one-line tag. Narrower than the table needs: one card per booking — three short lines
+   on a medium width, the compact phone card below that. The labels above each value are dropped in the cards; the layout
+   says what each line is. */
+.admin-ui .booking-list-page { container:bookings / inline-size; grid-template-columns:minmax(0,1fr); }
+.admin-ui .booking-table-shell { overflow:clip; }
+.admin-ui .booking-list-page .booking-table-scroll { max-height:none; min-height:0; overflow:visible; }
+.admin-ui .booking-table { min-width:0; font-size:14px; }
+.admin-ui .booking-table :is(th,td).bk-out,.admin-ui .booking-table .bk-date { display:none; }
+.admin-ui .booking-table tbody td { height:auto; padding:13px 12px; }
+.admin-ui .booking-table thead th { padding:12px; }
+.admin-ui .booking-table .bk-stay { display:block; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.admin-ui .booking-table .bk-nights { display:block; margin-top:2px; }
+.admin-ui .booking-table .admin-booking-id code { font-size:13px; font-weight:700; color:#173b2c; }
+.admin-ui .booking-table .admin-booking-id small { white-space:nowrap; }
+.admin-ui .booking-table .bk-guest>strong { font-size:15px; }
+.admin-ui .booking-table .bk-guest br { display:none; }
+.admin-ui .booking-table .bk-guest .bk-phone { display:block; margin-top:1px; }
+.admin-ui .booking-table .bk-guest .bk-phone:empty { display:none; }
+.admin-ui .booking-table .bk-guest .booking-made-at { display:flex; width:max-content; max-width:100%; align-items:baseline; gap:6px; margin-top:6px; padding:2px 9px;
+  border-width:1px; border-radius:999px; font-size:11px; white-space:nowrap; }
+.admin-ui .booking-table .bk-guest .booking-made-at strong { font-size:12.5px; }
+.admin-ui .booking-table .bk-total { text-align:right; font-size:15px; }
+.admin-ui .booking-table thead th.bk-total { text-align:right; font-size:12px; }
+/* Approve / cancel sit under the details button, so the actions column stays narrow. */
+.admin-ui .booking-table .bk-actions>.admin-row-actions { flex-wrap:wrap; justify-content:flex-start; gap:6px; }
+.admin-ui .booking-table .bk-actions .admin-row-actions>.admin-row-actions { flex-wrap:nowrap; margin-inline-start:0; }
+.admin-ui .booking-table .bk-actions .button { white-space:nowrap; }
+
+@container bookings (max-width:1039px) {
+  .admin-ui .booking-table-shell { border:0; background:none; overflow:visible; }
+  .admin-ui .booking-table { display:block; width:100%; }
+  .admin-ui .booking-table thead { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+  .admin-ui .booking-table tbody { display:grid; gap:10px; padding:0; }
+  .admin-ui .booking-table tbody tr { display:block; border:1px solid #dce5ed; border-radius:12px; overflow:hidden; background:white; }
+  .admin-ui .booking-table tbody td { display:block; height:auto; min-width:0; text-align:left; overflow-wrap:anywhere; white-space:normal; }
+  .admin-ui .booking-table tbody td[colspan] { grid-column:1/-1; padding:12px; }
   .admin-ui .booking-table tbody td[data-label]::before { content:none; }
-  .admin-ui .booking-table tbody tr:not(.admin-expanded-row)>td.bk-code { grid-area:code; padding:6px 4px 6px 4px; }
-  .admin-ui .booking-table tbody tr:not(.admin-expanded-row)>td.bk-status { grid-area:status; justify-self:end; padding-right:12px; }
-  .admin-ui .booking-table .bk-code,.admin-ui .booking-table .bk-status { align-self:stretch; display:flex; align-items:center; background:#f1f6f3; border-bottom:1px solid #e1e9e4; }
-  .admin-ui .booking-table .bk-status { justify-self:stretch; justify-content:flex-end; }
-  .admin-ui .booking-table .admin-booking-id { gap:2px; }
+  .admin-ui .booking-table tbody tr:not(.admin-expanded-row) { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 9rem; align-items:center;
+    grid-template-areas:"code code status" "guest stay total" "items actions actions"; padding:0 0 6px; }
+  .admin-ui .booking-table tbody tr:not(.admin-expanded-row)>td { grid-column:auto; padding:6px 14px; border:0; height:auto; }
+  .admin-ui .booking-table tbody tr:not(.admin-expanded-row)>td.bk-code { grid-area:code; padding:6px 4px; }
+  .admin-ui .booking-table tbody tr:not(.admin-expanded-row)>td.bk-status { grid-area:status; padding-right:14px; }
+  .admin-ui .booking-table tbody tr:not(.admin-expanded-row)>td:is(.bk-code,.bk-status) { align-self:stretch; display:flex; align-items:center;
+    background:#f1f6f3; border-bottom:1px solid #e1e9e4; }
+  .admin-ui .booking-table .bk-status { justify-content:flex-end; }
+  .admin-ui .booking-table .admin-booking-id { min-width:0; gap:2px; }
   .admin-ui .booking-table .admin-booking-id>div { display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 8px; }
-  .admin-ui .booking-table .admin-booking-id code { font-size:15px; font-weight:700; color:#173b2c; }
+  .admin-ui .booking-table .admin-booking-id code { font-size:15px; }
   .admin-ui .booking-table .admin-booking-id small { margin:0; }
   .admin-ui .booking-table .admin-expand-booking { width:36px; min-width:36px; min-height:36px; }
-  .admin-ui .booking-table tbody tr:not(.admin-expanded-row)>td.bk-guest { grid-area:guest; padding-top:9px; }
-  .admin-ui .booking-table .bk-guest br:first-of-type { display:none; }
-  .admin-ui .booking-table .bk-guest .bk-phone { margin-left:8px; }
+  .admin-ui .booking-table tbody tr:not(.admin-expanded-row)>td.bk-guest { grid-area:guest; padding-top:10px; align-self:start; }
   .admin-ui .booking-table .bk-guest>strong { font-size:16px; }
-  .admin-ui .booking-table .bk-guest .booking-made-at { display:inline-flex; gap:5px; align-items:baseline; margin:3px 0 0; padding:1px 8px; font-size:11px; }
-  .admin-ui .booking-table .bk-guest .booking-made-at strong { font-size:12px; }
-  .admin-ui .booking-table tbody tr:not(.admin-expanded-row)>td.bk-total { grid-area:total; justify-self:end; align-self:start; padding-top:9px; font-size:16px; white-space:nowrap; }
-  .admin-ui .booking-table tbody tr:not(.admin-expanded-row)>td.bk-in { grid-area:stay; font-size:14px; color:#31465b; white-space:normal; }
-  .admin-ui .booking-table .bk-in .bk-date,.admin-ui .booking-table .bk-out { display:none; }
-  .admin-ui .booking-table .bk-in .bk-stay { display:inline; }
+  .admin-ui .booking-table .bk-guest .bk-phone { display:inline; margin-left:8px; }
+  .admin-ui .booking-table .bk-guest .booking-made-at { display:flex; width:max-content; max-width:100%; margin-top:4px; }
+  .admin-ui .booking-table tbody tr:not(.admin-expanded-row)>td.bk-in { grid-area:stay; padding-top:10px; align-self:start; font-size:14px; color:#31465b; }
+  .admin-ui .booking-table tbody tr:not(.admin-expanded-row)>td.bk-total { grid-area:total; padding-top:10px; align-self:start; text-align:right; font-size:16px; white-space:nowrap; }
   .admin-ui .booking-table tbody tr:not(.admin-expanded-row)>td.bk-items { grid-area:items; }
   .admin-ui .booking-table .booking-note-line { max-width:none; font-size:13px; }
-  .admin-ui .booking-table tbody tr:not(.admin-expanded-row)>td.bk-actions { grid-area:actions; padding-top:6px; padding-bottom:8px; }
-  .admin-ui .booking-table .bk-actions .admin-row-actions { flex-wrap:nowrap; gap:8px; }
+  .admin-ui .booking-table tbody tr:not(.admin-expanded-row)>td.bk-actions { grid-area:actions; align-self:end; padding-bottom:8px; }
+  .admin-ui .booking-table .bk-actions .admin-row-actions { gap:8px; justify-content:flex-end; }
+  .admin-ui .booking-table .bk-actions .button { min-height:36px; }
+  .admin-ui .booking-expanded-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@container bookings (max-width:619px) {
+  /* Phone card: code + status, guest + total, stay, items and note, actions. */
+  .admin-ui .booking-table tbody tr:not(.admin-expanded-row) { grid-template-columns:minmax(0,1fr) auto;
+    grid-template-areas:"code status" "guest total" "stay stay" "items items" "actions actions"; padding:0 0 4px; }
+  .admin-ui .booking-table tbody tr:not(.admin-expanded-row)>td { padding:5px 12px; }
+  .admin-ui .booking-table tbody tr:not(.admin-expanded-row)>td.bk-code { padding:6px 4px; }
+  .admin-ui .booking-table tbody tr:not(.admin-expanded-row)>td:is(.bk-guest,.bk-total) { padding-top:9px; }
+  .admin-ui .booking-table tbody tr:not(.admin-expanded-row)>td.bk-in { padding-top:5px; }
+  .admin-ui .booking-table .bk-stay { white-space:normal; }
+  .admin-ui .booking-table .bk-nights { display:inline; margin:0; font-size:inherit; color:inherit; }
+  .admin-ui .booking-table .bk-nights::before { content:" · "; }
+  .admin-ui .booking-table tbody tr:not(.admin-expanded-row)>td.bk-actions { padding-top:6px; padding-bottom:8px; }
+  .admin-ui .booking-table .bk-actions .admin-row-actions { justify-content:space-between; }
   .admin-ui .booking-table .bk-actions .admin-row-actions>.button:first-child { flex:1; }
   .admin-ui .booking-table .bk-actions .button { min-height:40px; }
-  /* Detail dialog: two short facts per row instead of one tall box each. */
-  .admin-ui .admin-booking-detail { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
-  .admin-ui .admin-booking-detail>div { padding:8px 10px; }
-  .admin-ui .admin-booking-detail>div:nth-child(4) { grid-column:1/-1; }
   .admin-ui .booking-expanded-grid { grid-template-columns:minmax(0,1fr); }
 }
 @media(max-width:760px) {
+  /* Detail dialog on a phone: two short facts per row instead of one tall box each. */
+  .admin-ui .admin-booking-detail { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+  .admin-ui .admin-booking-detail>div { padding:8px 10px; }
+  .admin-ui .admin-booking-detail>div:nth-child(4) { grid-column:1/-1; }
   /* Summary tiles on a phone: four small tiles in two rows, no icons, so the bookings start higher up. */
   .admin-ui .booking-list-page .booking-stat-grid { gap:8px; }
   .admin-ui .booking-list-page .booking-stat { padding:8px 12px; min-height:0; }
   .admin-ui .booking-list-page .booking-stat .booking-stat-icon { display:none; }
   .admin-ui .booking-list-page .booking-stat span { font-size:12px; }
   .admin-ui .booking-list-page .booking-stat strong { font-size:1.05rem; }
-  .admin-ui .booking-table tbody tr:not(.admin-expanded-row)>td:is(.bk-code,.bk-status) { background:#f1f6f3; }
 }
 /* Result of a save: a floating message at the top of the screen, wherever the page is scrolled. */
 .admin-ui .admin-toast { position:fixed; inset:auto; top:max(14px,env(safe-area-inset-top)); left:50%; transform:translateX(-50%); z-index:200;
@@ -586,6 +631,53 @@
   background:#ffffff26; color:inherit; cursor:pointer; }
 @keyframes admin-toast-in { from { opacity:0; transform:translate(-50%,-12px); } to { opacity:1; transform:translate(-50%,0); } }
 @media(prefers-reduced-motion:reduce) { .admin-ui .admin-toast { animation:none; } }
+/* Booking detail dialog: the facts in three short columns, then titled sections (items and total, payment and slip,
+   admin note), and the approve / cancel buttons kept in view at the bottom. */
+.admin-ui .admin-dialog .admin-booking-detail:not(.checkout-guest) { grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+.admin-ui .admin-dialog .admin-booking-detail:not(.checkout-guest)>div { grid-column:auto; }
+.admin-ui .booking-detail-section { display:grid; gap:10px; margin:0 16px 16px; }
+.admin-ui .booking-detail-section h3 { margin:0; font-size:15px; color:#173b2c; }
+.admin-ui .booking-detail-head { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.admin-ui .booking-detail-bill { border:1px solid #dfe7ee; border-radius:12px; overflow:hidden; background:#fff; }
+.admin-ui .booking-detail-bill .admin-items-table thead th { background:#f1f6f3; font-size:12px; color:#4f6475; }
+.admin-ui .booking-detail-bill .admin-items-table :is(th,td) { padding:10px 14px; }
+.admin-ui .booking-detail-bill .admin-items-table tbody tr+tr :is(th,td) { border-top:1px solid #eef2f5; }
+.admin-ui .booking-detail-line { display:flex; justify-content:space-between; gap:12px; padding:10px 14px; border-top:1px solid #eef2f5; font-size:.85rem; }
+.admin-ui .booking-detail-line.discount strong { color:#1f6b45; white-space:nowrap; }
+.admin-ui .booking-detail-bill .admin-detail-total { padding:12px 14px; border-radius:0; border-top:1px solid #cfe5d8; background:#ecf7f0; font-size:15px; }
+.admin-ui .booking-detail-bill .admin-detail-total strong { font-size:18px; color:#173b2c; }
+.admin-ui .booking-detail-section .booking-time-field { margin:0; }
+.admin-ui .booking-detail-section .admin-slip-preview { width:min(100%,380px); margin:0 auto; border:1px solid #dfe7ee; border-radius:10px; }
+.admin-ui .admin-dialog>.booking-note-form { margin:0 16px 16px; }
+.admin-ui .admin-dialog>section.panel { margin:0 16px 16px; }
+.admin-ui .admin-detail-actions { position:sticky; bottom:0; z-index:1; display:flex; justify-content:flex-end; padding:12px 16px;
+  border-top:1px solid #dfe7ee; background:#fff; }
+.admin-ui .admin-detail-actions:not(:has(button)) { display:none; }
+.admin-ui .admin-detail-actions .button { min-height:40px; padding-inline:18px; font-size:14px; }
+@media(max-width:640px) {
+  .admin-ui .admin-dialog .admin-booking-detail:not(.checkout-guest) { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .admin-ui .booking-detail-section,.admin-ui .admin-dialog>.booking-note-form { margin-inline:12px; }
+  .admin-ui .admin-detail-actions .admin-row-actions { width:100%; }
+  .admin-ui .admin-detail-actions .button { flex:1; justify-content:center; }
+}
+/* Check-in: the equipment picker (name and price on the left, − n + on the right), the "checked in" banner with the way
+   on to check-out, and the small tag on a card saying the guests are due today or are late. */
+.admin-ui .checkin-gear { display:grid; gap:6px; margin:0; padding:0; list-style:none; }
+.admin-ui .checkin-gear li { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 10px; border:1px solid #e3eaf0; border-radius:10px; background:#fff; }
+.admin-ui .checkin-gear li[data-picked] { border-color:#1f6a47; background:#f1f8f4; }
+.admin-ui .checkin-gear li>div:first-child { display:grid; min-width:0; }
+.admin-ui .checkin-gear small { color:#62788b; }
+.admin-ui .checkin-stepper { display:flex; align-items:center; gap:6px; flex:none; }
+.admin-ui .checkin-stepper .button { width:38px; min-width:38px; min-height:38px; padding:0; font-size:18px; line-height:1; justify-content:center; }
+.admin-ui .checkin-stepper output { min-width:26px; text-align:center; font-weight:700; font-variant-numeric:tabular-nums; }
+.admin-ui .checkout-inputs.checkin-guests { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.admin-ui .checkin-done { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px 12px; }
+.admin-ui .checkin-due { display:inline-block; margin-left:6px; padding:2px 9px; border-radius:999px; background:#e7f0ff; color:#1d4f91; font-size:12px; font-weight:600; white-space:nowrap; }
+.admin-ui .checkin-due.late { background:#ffe7e3; color:#a3261a; }
+/* Guests the booking was made for, shown above the actual counts at check-out so a difference is easy to spot. */
+.admin-ui .checkout-booked-note { display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; margin:0; padding:8px 12px; border:1px solid #b9d2f5;
+  border-radius:10px; background:#eaf2ff; color:#17437e; font-size:14px; font-weight:600; }
+.admin-ui .checkout-booked-note strong { font-weight:700; color:#0f3160; }
 /* Check-out dialog: the two steps as a bar — the current one filled, a finished one ticked and clickable to go back. */
 .admin-ui .checkout-steps { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:0; padding:0; list-style:none; scroll-margin-top:84px; }
 .admin-ui .checkout-steps li { display:flex; min-width:0; border:1.5px solid #dce5ed; border-radius:10px; background:#f6f8fa; color:#62788b; font-weight:600; }

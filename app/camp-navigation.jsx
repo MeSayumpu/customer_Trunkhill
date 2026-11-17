@@ -20,9 +20,9 @@ function CampInfoDialog({dialog}) {
   const [category,setCategory] = useState(null)
   const categories = [
     ['rules','กติกา','rules'],['bathroom','ห้องน้ำ','bathroom'],
-    ['wash','จุดล้างจาน','wash'],['waste','จุดทิ้งขยะ','remove'],
+    ['wash','จุดล้างจาน','wash'],['waste','จุดทิ้งขยะ','remove'],['cart','รถขนของ','cart'],
     ['common','อาคารส่วนกลาง + Café','cafe'],['activities','กิจกรรม','stay'],
-    ['food','ร้านอาหาร','food'],
+    ['food','ร้านอาหาร','food'],['firstAid','สถานพยาบาล','firstAid'],
   ]
   const active = categories.find(([id])=>id===category)
   return <dialog ref={dialog} className="dialog sheet-dialog camp-info-dialog" aria-labelledby="camp-info-title">

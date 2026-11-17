@@ -12,13 +12,13 @@ import { zoneFeatureGroups, zoneFeatureIcon, zoneFeatureIcons, zoneFeatureLimit 
 // Ready-made types so a new zone is quick to fill; types used in other zones are added to this list.
 const presets = {
   highlights:[
-    ['area','พื้นที่ล็อกกว้าง','ประมาณ 6 × 8 ม.','Spacious plots','About 6 × 8 m'],['shade','ร่มไม้ตลอดวัน','','Shade all day',''],
-    ['view','วิวภูเขา','','Mountain views',''],['plug','มีปลั๊กไฟทุกล็อก','','Power at every plot',''],
+    ['area','พื้นที่ล็อกกว้าง','ประมาณ 6 × 8 ม.','Spacious sites','About 6 × 8 m'],['shade','ร่มไม้ตลอดวัน','','Shade all day',''],
+    ['view','วิวภูเขา','','Mountain views',''],['plug','มีปลั๊กไฟทุกล็อก','','Power at every site',''],
     ['car','รถจอดข้างเต็นท์ได้','','Park next to your tent',''],['quiet','โซนเงียบสงบ','','Quiet zone',''],
     ['kids','เหมาะกับครอบครัว','','Family friendly',''],
   ],
   facilities:[
-    ['restroom','ห้องน้ำ','ใกล้โซน','Restrooms','Close by'],['shower','ห้องอาบน้ำ','','Showers',''],['sink','จุดล้างจาน','','Dishwashing',''],
+    ['restroom','ห้องน้ำ','ใกล้โซน','Restrooms','Close by'],['shower','ห้องอาบน้ำ','','Showers',''],['sink','จุดล้างจาน','','Camp wagon',''],
     ['parking','ที่จอดรถ','','Parking',''],['store','ร้านค้า','','Shop',''],['coffee','คาเฟ่ / กาแฟ','','Café',''],
     ['trash','จุดทิ้งขยะ','','Waste point',''],['wifi','Wi-Fi','','Wi-Fi',''],
   ],

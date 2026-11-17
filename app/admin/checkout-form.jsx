@@ -4,7 +4,7 @@ import { AdminIcon } from './admin-icon'
 
 import Link, { ActionForm } from '../pending-ui'
 import { useActionState, useEffect, useRef, useState } from 'react'
-import { checkoutChargeField, checkoutChargeFields, checkoutChargeTotals, decimalUnits, electricityCharge, electricityFormulaKey, hasUnallocatedCheckoutCharges, maxUnitsMilli, savedCheckoutCharges } from '../../lib/checkout-pricing'
+import { checkinUnpaid, checkoutChargeField, checkoutChargeFields, checkoutChargeTotals, decimalUnits, electricityCharge, electricityFormulaKey, hasUnallocatedCheckoutCharges, maxExtraSatang, maxUnitsMilli, savedCheckoutCharges } from '../../lib/checkout-pricing'
 import { money } from '../../lib/pricing'
 import { adminUrl } from './navigation'
 import { saveCheckoutSettings } from './checkout-actions'
@@ -17,6 +17,7 @@ const chargeInputs = [
   {field:'other', label:'ค่าใช้จ่ายอื่น ๆ (บาท)', max:'999999.99', step:'0.01', scale:100},
 ]
 const lodgingLabel = ({code,name}) => name === code ? code : code + ' · ' + name
+const guestFields = [['adults','ผู้ใหญ่'],['children','เด็ก'],['seniors','ผู้สูงอายุ']]
 
 function ElectricityBreakdown({formula, usage}) {
   return <div className="small muted">
@@ -27,15 +28,19 @@ function ElectricityBreakdown({formula, usage}) {
   </div>
 }
 
-function CheckoutTotals({total, electricity, damage, other}) {
-  const extra = electricity + damage + other
+// total (baht) already holds the equipment added at check-in; added (satang) is that part, shown on its own line
+// because it is paid now together with the check-out charges.
+function CheckoutTotals({total, added = 0, guest = 0, electricity, damage, other}) {
+  const extra = electricity + damage + other + guest
   return <dl className="checkout-totals">
-    <div><dt>ยอดจองเดิม</dt><dd>{money(total)}</dd></div>
+    <div><dt>ยอดจองเดิม</dt><dd>{baht(total * 100 - added)}</dd></div>
+    {added > 0 && <div><dt>อุปกรณ์ที่เพิ่มตอน Check-in</dt><dd>{baht(added)}</dd></div>}
     <div><dt>ค่าไฟ</dt><dd>{baht(electricity)}</dd></div>
     <div><dt>ค่าของชำรุด</dt><dd>{baht(damage)}</dd></div>
     <div><dt>ค่าใช้จ่ายอื่น ๆ</dt><dd>{baht(other)}</dd></div>
+    {guest > 0 && <div><dt>ค่าผู้เข้าพักเพิ่ม</dt><dd>{baht(guest)}</dd></div>}
     <div><dt>ยอดรวมทั้งหมด</dt><dd>{baht(total * 100 + extra)}</dd></div>
-    <div className="checkout-balance"><dt>ยอดที่ต้องชำระเพิ่ม</dt><dd>{baht(extra)}</dd></div>
+    <div className="checkout-balance"><dt>ยอดที่ต้องชำระเพิ่ม</dt><dd>{baht(extra + added)}</dd></div>
   </dl>
 }
 
@@ -50,19 +55,32 @@ export function CheckoutForm({action, booking, lodging, savedFormula, currentFor
   const [entries, setEntries] = useState(() => original.map(line => Object.fromEntries(
     chargeInputs.map(({field,scale}) => [field,String(line[field] / scale)]))))
   const [note, setNote] = useState(booking.note ?? '')
+  // Guests who actually stayed and the charge for the extra ones, which the admin types in (it is not worked out).
+  const [guests, setGuests] = useState(() => Object.fromEntries(guestFields.map(([key]) => [key,String(booking[key])])))
+  const [guestAmount, setGuestAmount] = useState(String((booking.guest_amount ?? 0) / 100))
+  const guestNumbers = guestFields.map(([key]) => /^\d{1,3}$/.test(guests[key].trim()) ? Number(guests[key]) : null)
+  const guestCount = guestNumbers.includes(null) ? null : guestNumbers.reduce((sum,count) => sum + count,0)
+  const guestSatang = booking.completed_at ? booking.guest_amount ?? 0 : decimalUnits(guestAmount.trim() || '0',2,maxExtraSatang)
+  const guestsValid = guestCount > 0 && guestSatang !== null
+  const guestsChanged = guestFields.some(([key],index) => guestNumbers[index] !== booking[key]) || guestSatang !== (booking.guest_amount ?? 0)
+  // Free electricity follows the guest count being entered (a whole-camp stay has its own fixed allowance).
+  const withGuests = base => !booking.completed_at && guestCount > 0 && base.fixedFreeUnits == null ? { ...base, guests:guestCount } : base
   const [useCurrentFormula, setUseCurrentFormula] = useState(false)
   const [allocate, setAllocate] = useState(false)
   const unallocated = hasUnallocatedCheckoutCharges(booking,lodging.length)
   const keep = unallocated && !allocate
   const formulaChanged = electricityFormulaKey(savedFormula) !== electricityFormulaKey(currentFormula)
   const useCurrent = !keep && formulaChanged && useCurrentFormula
-  const formula = useCurrent ? currentFormula : savedFormula
-  const charges = keep || booking.completed_at ? savedCharges : checkoutChargeTotals(entries,formula)
+  const formula = withGuests(useCurrent ? currentFormula : savedFormula)
+  const charges = booking.completed_at ? savedCharges : !guestsValid ? null : keep ? savedCharges : checkoutChargeTotals(entries,formula)
   const saved = Boolean(booking.version)
-  const dirty = useCurrent || (unallocated && allocate) || !charges || note.trim() !== (booking.note ?? '') ||
+  const dirty = useCurrent || (unallocated && allocate) || !charges || guestsChanged || note.trim() !== (booking.note ?? '') ||
     charges.lines?.some((line,index) => checkoutChargeFields.some(field => line[field] !== original[index][field]))
-  const extra = charges ? charges.electricity + charges.damage + charges.other : 0
-  const totals = charges && <CheckoutTotals total={booking.total} {...charges}/>
+  const added = checkinUnpaid(booking)
+  // Everything to collect at check-out: its own charges plus equipment added at check-in.
+  const extra = (charges ? charges.electricity + charges.damage + charges.other + guestSatang : 0) + added
+  const totals = charges && <CheckoutTotals total={booking.total} added={added} guest={guestSatang} {...charges}/>
+  const bookedGuests = booking.booked_adults != null && `จองไว้ ผู้ใหญ่ ${booking.booked_adults} · เด็ก ${booking.booked_children} · ผู้สูงอายุ ${booking.booked_seniors}`
   // Two steps: 1 enter and save the charges, 2 take the extra payment and confirm. Step 2 needs the saved amounts,
   // so it opens only while nothing on step 1 is unsaved; the admin can go back to step 1 at any time before confirming.
   const [wanted, setWanted] = useState(review && saved ? 2 : 1)
@@ -89,6 +107,7 @@ export function CheckoutForm({action, booking, lodging, savedFormula, currentFor
       <p>ใช้ไฟ {unitFormat.format(savedCharges.units / 1000)} หน่วย</p>
       <ElectricityBreakdown formula={formula} usage={electricityCharge(savedCharges.units,formula)}/>
     </>}
+    <p>ผู้เข้าพักจริง ผู้ใหญ่ {booking.adults} · เด็ก {booking.children} · ผู้สูงอายุ {booking.seniors}{bookedGuests && <small className="muted"> ({bookedGuests})</small>}</p>
     {booking.note && <p className="checkout-note">หมายเหตุ {booking.note}</p>}
     {totals}
   </section>
@@ -119,6 +138,19 @@ export function CheckoutForm({action, booking, lodging, savedFormula, currentFor
         <label className="checkbox"><input type="checkbox" name="useCurrentFormula" checked={useCurrent}
           onChange={event => setUseCurrentFormula(event.target.checked)}/>ใช้สูตรค่าไฟจากการตั้งค่าปัจจุบัน</label>
       </div>}
+      <fieldset className="checkout-item checkout-charge-group stack">
+        <legend>ผู้เข้าพัก</legend>
+        {bookedGuests && <p className="checkout-booked-note"><AdminIcon name="bookings"/>{bookedGuests} <strong>(รวม {booking.booked_adults + booking.booked_children + booking.booked_seniors} คน)</strong></p>}
+        <div className="checkout-inputs checkin-guests">
+          {guestFields.map(([key,label]) => <label key={key}>{label}
+            <input name={key} type="number" min="0" max="500" step="1" inputMode="numeric" required value={guests[key]}
+              onChange={event => setGuests(previous => ({ ...previous, [key]:event.target.value }))}/></label>)}
+        </div>
+        <label>ค่าผู้เข้าพักเพิ่ม (บาท)
+          <input name="guestAmount" type="number" min="0" max="999999.99" step="0.01" inputMode="decimal" value={guestAmount}
+            onChange={event => setGuestAmount(event.target.value)}/></label>
+        <p className="small muted">จำนวนคนใช้คิดหน่วยไฟฟรี · ค่าผู้เข้าพักเพิ่มกรอกเองตามที่ตกลงกับลูกค้า ระบบไม่คำนวณให้</p>
+      </fieldset>
       {!keep && sites.map((site,index) => {
         const units = decimalUnits(entries[index].units || '0',3,maxUnitsMilli)
         const usage = units === null ? null : electricityCharge(units,formula)

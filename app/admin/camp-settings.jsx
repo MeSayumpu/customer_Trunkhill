@@ -9,6 +9,7 @@ import { PricePriority } from './price-priority'
 import { AdminIcon } from './admin-icon'
 import { WelcomeSettings } from './welcome-settings'
 import { HeroMediaSettings } from './hero-media-settings'
+import { StaffSettings } from './staff-settings'
 
 const groups = [
   ['facilities','ข้อมูลทั่วไปและสิ่งอำนวยความสะดวก','ข้อความจัดรูปแบบ · แนบรูป · พรีวิว'],
@@ -17,6 +18,7 @@ const groups = [
   ['rates','ราคาและปฏิทิน','ราคาลาน · วันเปิด–ปิด · ฤดูกาล'],
   ['payment','การรับเงินและค่าไฟ','QR ค่าจอง · บัญชีธนาคาร · Check-out'],
   ['policy','การเลื่อนการจอง','จำนวนครั้ง · จำนวนวันล่วงหน้า'],
+  ['staff','ผู้ใช้งานระบบ','รหัสผ่านของ Manager'],
 ]
 
 export function CampSettings({query}) {
@@ -50,6 +52,7 @@ export function CampSettings({query}) {
       <div className="settings-payment-grid"><PaymentSettings/><CheckoutSettings/></div>
     </>}
     {group === 'policy' && <BookingPolicy/>}
+    {group === 'staff' && <StaffSettings/>}
     {group === 'facilities' && <FacilitiesSettings/>}
     {group === 'contacts' && <ContactsSettings query={query}/>}
     {group === 'welcome' && <><HeroMediaSettings/><WelcomeSettings/></>}

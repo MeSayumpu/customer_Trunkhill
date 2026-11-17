@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { AdminPendingRegion } from '../pending-ui'
 import { AdminIcon } from './admin-icon'
 
-export function AdminWorkspace({ sidebar, title, section, children, topActions }) {
+export function AdminWorkspace({ sidebar, title, section, children, topActions, roleLabel = 'ผู้ดูแลระบบ' }) {
   const [menuOpen, setMenuOpen] = useState(true)
   const content = useRef(null)
   useEffect(() => {
@@ -28,7 +28,7 @@ export function AdminWorkspace({ sidebar, title, section, children, topActions }
           </button>
           <h1>{title}</h1>
         </div>
-        <div className="admin-top-actions">{topActions}<span className="admin-status confirmed">ผู้ดูแลระบบ</span></div>
+        <div className="admin-top-actions">{topActions}<span className="admin-status confirmed">{roleLabel}</span></div>
       </header>
       {children}
     </div>

@@ -41,6 +41,17 @@ async function initBase() {
   await ensureColumns([['settings','slip_duplicate_check','BOOLEAN NOT NULL DEFAULT TRUE']])
   // Free-text note the admin keeps on a booking (deposits taken, requests…); customers never see it.
   await ensureColumns([['bookings','admin_note','VARCHAR(1000) NULL']])
+  // Manager sign-in (hashed password, changed by the admin in Settings).
+  await connection.query(await readFile(new URL('../db/staff.sql',import.meta.url),'utf8'))
+  // Check-in step between a confirmed booking and its check-out.
+  await connection.query(await readFile(new URL('../db/checkin.sql',import.meta.url),'utf8'))
+  // New tables take the database's default collation, which on an upgraded site differs from the older bookings table;
+  // they are joined on the booking id, so they are given the same character set and collation as bookings.id.
+  const [[bookingId]] = await connection.execute(
+    "SELECT character_set_name AS charset,collation_name AS collation FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='bookings' AND column_name='id'")
+  if (/^\w+$/.test(bookingId?.charset || '') && /^\w+$/.test(bookingId?.collation || ''))
+    for (const table of ['booking_checkins','booking_checkin_items'])
+      await connection.query(`ALTER TABLE ${table} CONVERT TO CHARACTER SET ${bookingId.charset} COLLATE ${bookingId.collation}`)
   await ensureColumns([['payment_config','bank_name','VARCHAR(120) NULL'],['payment_config','bank_account','VARCHAR(20) NULL']])
   const [[galleryCaption]] = await connection.execute(
     "SELECT 1 FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='zone_details' AND column_name='gallery_caption'",
@@ -78,6 +89,8 @@ async function initCheckout() {
     ['checkout_settings','free_units_per_guest','INT UNSIGNED NOT NULL DEFAULT 1000'],
     ['booking_checkouts','free_units_per_guest','INT UNSIGNED NOT NULL DEFAULT 0'],
     ['booking_checkouts','lodging_charges','TEXT NULL'],
+    // Charge the admin types in for guests who came on top of the booking (satang).
+    ['booking_checkouts','guest_amount','INT UNSIGNED NOT NULL DEFAULT 0'],
   ])
   const indexes = [['bookings', 'bookings_status_departure', 'status, departure, id']]
   if (!checkoutOnly) indexes.push(

@@ -1021,7 +1021,10 @@
   .customer-ui .contact-action-hint { display:none; }
   .customer-ui .camp-location-map { aspect-ratio:4 / 3; }
 }
-.customer-ui .site-footer-map { display:inline-flex; align-items:center; gap:6px; color:inherit; font-weight:600; }
+/* Directions to the camp: the map symbol alone, a little larger than the contact icons beside it so its drawing reads. */
+.customer-ui .site-footer-map { display:inline-flex; border-radius:50%; transition:transform .15s ease; }
+.customer-ui .site-footer-map img { display:block; width:36px; height:36px; border-radius:50%; }
+.customer-ui .site-footer-map:hover { transform:translateY(-2px); }
 
 /* Phones: the view switch, zoom, rotate and full-screen share one bar above the map instead of covering it,
    and the panel is packed tighter so the map needs less scrolling to reach. */

@@ -1,4 +1,4 @@
-import { isAdmin } from '../../../lib/auth'
+import { isStaff } from '../../../lib/auth'
 import { bookingFilters, bookingRows, bookingStats } from '../booking-list-data'
 import { statuses } from '../../../lib/pricing'
 function csv(values) {
@@ -19,7 +19,7 @@ async function* rows(filters,total,signal) {
   }
 }
 export async function GET(request) {
-  if(!(await isAdmin())) return new Response(null,{status:403})
+  if(!(await isStaff())) return new Response(null,{status:403})
   const filters=bookingFilters(Object.fromEntries(request.nextUrl.searchParams))
   const stats=await bookingStats(filters)
   return new Response(ReadableStream.from(rows(filters,Number(stats.total),request.signal)),{headers:{

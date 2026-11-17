@@ -33,6 +33,7 @@ export function checkoutPosition(query) {
 
 export const checkoutCursor = row => row.departure + '|' + row.id
 const checkoutColumns = `b.id,(SELECT reference FROM booking_references WHERE booking=b.id) AS reference,b.arrival,b.departure,b.guest,b.phone,b.total,
+  ci.added_amount AS checkin_amount,ci.checked_in_at,ci.booked_adults,ci.booked_children,ci.booked_seniors,c.guest_amount,
   c.version,c.units_milli,c.electricity_rate,c.free_units_per_guest,c.electricity_amount,c.damage_amount,c.other_amount,c.note,c.promptpay,c.completed_at`
 
 export const checkoutOccupancy = `b.adults + b.children + b.seniors AS guest_count,
@@ -47,7 +48,8 @@ export async function checkoutSettings(connection = database()) {
 }
 
 export async function checkoutRows(filters, position = {}) {
-  const clauses = ["b.status='confirmed'"]
+  // Only stays that have checked in (older check-outs finished before check-in existed stay listed).
+  const clauses = ["b.status='confirmed'",'(ci.booking IS NOT NULL OR c.completed_at IS NOT NULL)']
   const params = []
   if (filters.status !== 'all') clauses.push(filters.status === 'done' ? 'c.completed_at IS NOT NULL' : 'c.completed_at IS NULL')
   if (filters.from) {
@@ -75,7 +77,7 @@ export async function checkoutRows(filters, position = {}) {
   }
   const [rows] = await database().execute(
     `SELECT ${checkoutColumns}
-     FROM bookings b LEFT JOIN booking_checkouts c ON c.booking=b.id
+     FROM bookings b LEFT JOIN booking_checkouts c ON c.booking=b.id LEFT JOIN booking_checkins ci ON ci.booking=b.id
      WHERE ${clauses.join(' AND ')} ORDER BY b.departure ${direction}, b.id ${direction} LIMIT ?`,[...params,checkoutPageSize+1])
   return rows
 }
@@ -84,8 +86,8 @@ export async function checkoutDetail(id) {
   if (typeof id !== 'string' || !/^[A-F0-9]{20}$/.test(id)) return null
   const [[row]] = await database().execute(
     `SELECT ${checkoutColumns},c.lodging_charges,b.adults,b.children,b.seniors,b.tent_discount,${checkoutOccupancy}
-     FROM bookings b LEFT JOIN booking_checkouts c ON c.booking=b.id
-     WHERE b.id=? AND b.status='confirmed'`,[id])
+     FROM bookings b LEFT JOIN booking_checkouts c ON c.booking=b.id LEFT JOIN booking_checkins ci ON ci.booking=b.id
+     WHERE b.id=? AND b.status='confirmed' AND (ci.booking IS NOT NULL OR c.completed_at IS NOT NULL)`,[id])
   return row
 }
 

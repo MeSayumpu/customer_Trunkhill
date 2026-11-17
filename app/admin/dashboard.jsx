@@ -3,6 +3,7 @@ import { today } from '../../lib/camp'
 import { shiftDate, stayNights } from '../../lib/booking-dates'
 import { money, statuses } from '../../lib/pricing'
 import { adminUrl } from './navigation'
+import { managerSections } from '../../lib/auth'
 import { AdminIcon } from './admin-icon'
 import { dashboardData, dashboardFilters } from './dashboard-data'
 import { DashboardCalendar, DashboardReports } from './dashboard-calendar'
@@ -41,7 +42,7 @@ function Trend({data}) {
   </section>
 }
 
-export async function Dashboard({query={}}) {
+export async function Dashboard({query={},manager=false}) {
   const current=today(),filters=dashboardFilters(query,current)
   const filterForm=<form action="/admin" className="dashboard-range"><input type="hidden" name="section" value="dashboard"/>
     <label>ตั้งแต่วันที่<input type="date" name="from" defaultValue={filters.from}/></label><label>ถึงวันที่<input type="date" name="to" defaultValue={filters.to}/></label><button className="button"><AdminIcon name="filter"/>แสดงข้อมูล</button><Link className="button secondary" href={adminUrl('dashboard')}>ทั้งหมด</Link>
@@ -67,7 +68,7 @@ export async function Dashboard({query={}}) {
         <div className="admin-table-scroll"><table className="admin-table"><thead><tr><th>วันเช็กอิน</th><th>ผู้จอง</th><th>โซน / รายการ</th><th>คืน</th><th>ยอดค่าจอง</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody>{data.recent.map(row=><tr key={row.id}><td>{row.arrival}</td><td>{row.guest}</td><td>{row.lodging||'อุปกรณ์เช่า'}</td><td>{stayNights(row.arrival,row.departure)}</td><td>{money(row.total)}</td><td><span className={'admin-status '+row.status}>{statuses[row.status]}</span></td><td><Link className="button secondary" href={adminUrl('bookings',{q:row.id,view:row.id})}>ดูรายการ</Link></td></tr>)}{!data.recent.length&&<tr><td colSpan={7}>ไม่มีรายการจองในช่วงวันที่เลือก</td></tr>}</tbody></table></div>
       </section>
     </div><aside className="stack dashboard-secondary">
-      <section className="panel stack"><h2>เมนูด่วน</h2><div className="dashboard-quick-actions">{[['bookings','bookings','จัดการการจอง'],['checkout','checkout','Check-out'],['settings','rates','จัดการราคา'],['plots','plots','จัดการพื้นที่']].map(([section,icon,label])=><Link key={section} href={adminUrl(section,section==='settings'?{group:'rates'}:{})}><AdminIcon name={icon}/><span>{label}</span></Link>)}</div><Link className="text-button" href="#booking-calendar">ตรวจสอบพื้นที่ว่างในปฏิทิน →</Link></section>
+      <section className="panel stack"><h2>เมนูด่วน</h2><div className="dashboard-quick-actions">{[['bookings','bookings','จัดการการจอง'],['checkin','checkin','Check-in'],['checkout','checkout','Check-out'],['settings','rates','จัดการราคา'],['plots','plots','จัดการพื้นที่']].filter(([section])=>!manager||managerSections.includes(section)).map(([section,icon,label])=><Link key={section} href={adminUrl(section,section==='settings'?{group:'rates'}:{})}><AdminIcon name={icon}/><span>{label}</span></Link>)}</div><Link className="text-button" href="#booking-calendar">ตรวจสอบพื้นที่ว่างในปฏิทิน →</Link></section>
       <Trend data={data}/>
       <section className="panel stack"><h2><AdminIcon name="plotMap"/> ภาพรวมพื้นที่</h2><p className="small muted">สัดส่วนคืนที่ถูกจองในช่วงที่เลือก</p><div className="dashboard-site">{zones.map(zone=>{
         const capacity=data.inventory.filter(i=>i.zone===zone&&i.active).reduce((n,i)=>n+Number(i.stock),0)*data.openNights

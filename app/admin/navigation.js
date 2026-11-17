@@ -1,6 +1,7 @@
 export const adminSections = {
   dashboard: 'Dashboard',
   bookings: 'รายการจอง',
+  checkin: 'Check-in',
   checkout: 'Check-out',
   blockedPhones: 'เบอร์ที่ถูกบล็อก',
   plots: 'ลานกางเต็นท์',
@@ -13,7 +14,7 @@ export const adminSections = {
 }
 
 export const adminMenuGroups = [
-  { id:'operations', label:'การจองและ Check-out', sections:['bookings','checkout','blockedPhones'] },
+  { id:'operations', label:'การจอง Check-in และ Check-out', sections:['bookings','checkin','checkout','blockedPhones'] },
   { id:'inventory', label:'ลานและอุปกรณ์', sections:['plots','rooms','gear','plotMap','zoneMedia'] },
   { id:'configuration', label:'การตั้งค่า', sections:['settings','storage'] },
 ]

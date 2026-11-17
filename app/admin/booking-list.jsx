@@ -56,7 +56,7 @@ export async function BookingList({query}) {
     </div>
     <div className="booking-table-shell">
       <div className="admin-table-scroll booking-table-scroll" tabIndex={0} aria-label="ตารางรายการจอง"><table className="admin-table booking-table">
-        <thead><tr>{['รหัสจอง','ผู้จอง','เช็กอิน','เช็กเอาต์','สรุปรายการจอง','ยอดรวม','สถานะ','จัดการ'].map(label=><th scope="col" key={label}>{label}</th>)}</tr></thead>
+        <thead><tr>{[['รหัสจอง','bk-code'],['ผู้จอง','bk-guest'],['วันเข้าพัก','bk-in'],['เช็กเอาต์','bk-out'],['สรุปรายการจอง','bk-items'],['ยอดรวม','bk-total'],['สถานะ','bk-status'],['จัดการ','bk-actions']].map(([label,name])=><th scope="col" key={name} className={name}>{label}</th>)}</tr></thead>
         <tbody>{rows.map(row=>{
           const open=expanded.some(item=>item.id===row.id)
           const info=expansions.get(row.id)
@@ -65,7 +65,7 @@ export async function BookingList({query}) {
             <td data-label="รหัสจอง" className="bk-code"><div className="admin-booking-id"><Link className="admin-expand-booking" href={adminUrl('bookings',{...current,expand:open?'':row.id})} scroll={false}
               aria-expanded={open} aria-label={(open?'ย่อ ':'ขยาย ')+row.id}>{open?'⌄':'›'}</Link><div><code>{row.reference||row.id}</code><small className={row.reschedule_count?'booking-moved':''}>เลื่อน {row.reschedule_count}/{policy.reschedule_limit} ครั้ง</small></div></div></td>
             <td data-label="ผู้จอง" className="bk-guest"><strong>{row.guest}</strong><br/><small className="bk-phone">{row.phone==='-'?'':row.phone}</small><br/><span className="booking-made-at">จอง/โอนเงิน<strong>{thaiDateTime(row.created_at)}</strong></span></td>
-            <td data-label="เช็กอิน" className="admin-booking-date bk-in"><span className="bk-date">{row.arrival}</span><span className="bk-stay">{shortDate(row.arrival)} – {shortDate(row.departure)} · {nights} คืน</span></td><td data-label="เช็กเอาต์" className="admin-booking-date bk-out">{row.departure}</td>
+            <td data-label="เช็กอิน" className="admin-booking-date bk-in"><span className="bk-date">{row.arrival}</span><span className="bk-stay">{shortDate(row.arrival)} – {shortDate(row.departure)}<small className="bk-nights">{nights} คืน</small></span></td><td data-label="เช็กเอาต์" className="admin-booking-date bk-out">{row.departure}</td>
             <td data-label="รายการ" className="bk-items"><div className="admin-item-badges">{Number(row.lodging_count)>0&&<span className="lodging">ลาน / ห้อง ({row.lodging_count})</span>}{row.item_count-row.lodging_count>0&&<span className="rental">อุปกรณ์ ({row.item_count-row.lodging_count})</span>}</div>{row.admin_note&&<p className="booking-note-line" title={row.admin_note}><AdminIcon name="note"/>{row.admin_note}</p>}</td>
             <td data-label="ยอดรวม" className="admin-amount bk-total"><strong>{money(row.total)}</strong></td><td data-label="สถานะ" className="bk-status"><Status row={row}/></td>
             <td data-label="จัดการ" className="bk-actions"><div className="actions admin-row-actions"><Link className="button secondary" href={adminUrl('bookings',{...current,expand:query.expand,view:row.id})} scroll={false}>ดูรายละเอียด</Link><StatusActions row={row} filters={filters} page={page}/></div></td>
@@ -94,6 +94,26 @@ export async function BookingList({query}) {
     </div>
     {detail&&<AdminDialog title="รายละเอียดการจอง" closeUrl={adminUrl('bookings',{...current,expand:query.expand})}>
       <dl className="admin-booking-detail"><div><dt>รหัสจอง</dt><dd><code>{detail.reference||detail.id}</code></dd></div><div><dt>ผู้จอง</dt><dd>{detail.guest}</dd></div><div><dt>เบอร์โทร</dt><dd>{detail.phone}</dd></div><div><dt>วันเข้าพัก – วันออก</dt><dd>{detail.arrival} → {detail.departure}</dd></div><div><dt>สถานะ</dt><dd><Status row={detail}/></dd></div><div><dt>จำนวนครั้งที่เลื่อน</dt><dd>{detail.reschedule_count}/{policy.reschedule_limit} ครั้ง</dd></div></dl>
+      {/* What was booked and the amount to match against the slip, then the payment proof right under it. */}
+      <section className="booking-detail-section">
+        <h3>รายการที่จอง</h3>
+        <div className="booking-detail-bill">
+          <BookingItemsTable items={items} label="รายการที่จองทั้งหมด"/>
+          {detail.tent_discount>0&&<div className="booking-detail-line discount"><span>ส่วนลดค่าเช่าเต็นท์</span><strong>−{money(detail.tent_discount)}</strong></div>}
+          <div className="admin-detail-total"><span>ยอดรวมสุทธิ</span><strong>{money(detail.total)}</strong></div>
+        </div>
+      </section>
+      <section className="booking-detail-section">
+        <div className="booking-detail-head"><h3>การชำระเงิน</h3>{!!detail.has_slip&&<SlipDialog id={detail.id} mime={detail.slip_mime}/>}</div>
+        {/* Right above the slip, so the admin can compare it with the time printed on the slip. */}
+        <p className="booking-time-field"><span>วันที่จอง (วันที่โอนเงิน)</span><strong>{thaiDateTime(detail.created_at)}</strong></p>
+        {/* Slip sent but its image was removed after a backup (storage page, step 2). */}
+        {detail.slip_mime===slipArchivedMime&&<p className="notice">รูปสลิปของรายการนี้ถูกลบออกจากระบบหลังสำรองข้อมูลแล้ว เปิดดูได้จากไฟล์สำรองในโฟลเดอร์ slips ชื่อไฟล์ {detail.reference||detail.id}</p>}
+        {detail.slip_mime?.startsWith('image/')&&<img loading="lazy" decoding="async" className="admin-slip-preview" src={'/admin/slip/'+detail.id} alt="สลิปการโอนของรายการนี้"/>}
+        {!detail.submitted_at&&detail.slip_mime!==slipArchivedMime&&<p className="muted">{detail.payment_required?'ยังไม่ได้ส่งสลิป':'ไม่มีรายการชำระผ่านสลิปในระบบ'}</p>}
+        {rejection&&<p className="notice error">ปฏิเสธการจองเนื่องจากใช้ไฟล์สลิปซ้ำ</p>}
+      </section>
+      <RescheduleHistory history={expansions.get(detail.id).history}/>
       {/* Admin-only note: plain text, saved on its own so nothing else on the booking changes. */}
       <ActionForm action={saveBookingNote} className="booking-note-form" id="booking-note">
         <input type="hidden" name="id" value={detail.id}/><input type="hidden" name="q" value={filters.q}/><input type="hidden" name="filterStatus" value={filters.status}/>
@@ -102,17 +122,7 @@ export async function BookingList({query}) {
           <textarea name="note" rows={3} maxLength={1000} defaultValue={detail.admin_note||''} placeholder="เช่น รับมัดจำแล้ว 750 บาท · ลูกค้าพาสุนัขมา 2 ตัว"/></label>
         <div className="actions"><button className="button"><AdminIcon name="save"/>บันทึกหมายเหตุ</button></div>
       </ActionForm>
-      <RescheduleHistory history={expansions.get(detail.id).history}/>
-      {!!detail.has_slip&&<SlipDialog id={detail.id} mime={detail.slip_mime}/>}
-      {/* Slip sent but its image was removed after a backup (storage page, step 2). */}
-      {detail.slip_mime===slipArchivedMime&&<p className="notice">รูปสลิปของรายการนี้ถูกลบออกจากระบบหลังสำรองข้อมูลแล้ว เปิดดูได้จากไฟล์สำรองในโฟลเดอร์ slips ชื่อไฟล์ {detail.reference||detail.id}</p>}
-      {/* Right above the slip, so the admin can compare it with the time printed on the slip. */}
-      <p className="booking-time-field"><span>วันที่จอง (วันที่โอนเงิน)</span><strong>{thaiDateTime(detail.created_at)}</strong></p>
-      {detail.slip_mime?.startsWith('image/')&&<img loading="lazy" decoding="async" className="admin-slip-preview" src={'/admin/slip/'+detail.id} alt="สลิปการโอนของรายการนี้"/>}
-      {rejection&&<p className="notice error">ปฏิเสธการจองเนื่องจากใช้ไฟล์สลิปซ้ำ</p>}
-      <BookingItemsTable items={items} label="รายการที่จองทั้งหมด"/>
-      {detail.tent_discount>0&&<p>ส่วนลดค่าเช่าเต็นท์ −{money(detail.tent_discount)}</p>}
-      <div className="admin-detail-total"><span>ยอดรวมสุทธิ</span><strong>{money(detail.total)}</strong></div>
+      {/* Approve / cancel stay in view at the bottom while the admin scrolls through the slip. */}
       <div className="admin-detail-actions"><StatusActions row={detail} filters={filters} page={page}/></div>
     </AdminDialog>}
   </div>

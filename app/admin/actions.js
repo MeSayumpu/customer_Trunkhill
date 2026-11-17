@@ -2,7 +2,7 @@
 
 import {campZones} from '../../lib/camp-options'
 import { redirect } from 'next/navigation'
-import { authenticate, clearSession, isAdmin } from '../../lib/auth'
+import { authenticate, clearSession, isAdmin, isStaff, setManagerPassword } from '../../lib/auth'
 import { database, transaction } from '../../lib/db'
 import {claimUpload,lockStorage,ensureStorage,storageId,StorageError} from '../../lib/storage'
 import { codePattern, integer } from '../../lib/camp'
@@ -18,6 +18,11 @@ async function requireAdmin() {
   if (!(await isAdmin())) redirect('/admin')
 }
 
+// Bookings and blocked phones are open to the manager as well.
+async function requireStaff() {
+  if (!(await isStaff())) redirect('/admin')
+}
+
 export async function saveWelcome(data) {
   await requireAdmin()
   const title=String(data.get('title')||'').trim(),subtitle=String(data.get('subtitle')||'').trim()
@@ -28,8 +33,16 @@ export async function saveWelcome(data) {
   redirect(adminUrl('settings',{group:'welcome',saved:'settings'}))
 }
 
+// The admin sets the manager's password; the manager has no way to change it.
+export async function saveManagerPassword(data) {
+  await requireAdmin()
+  const password = data.get('password')
+  const saved = password === data.get('confirm') && await setManagerPassword(password)
+  redirect(adminUrl('settings',{group:'staff',...(saved ? {saved:'managerPassword'} : {error:'managerPassword'})}))
+}
+
 export async function login(data) {
-  redirect((await authenticate(data.get('password'))) ? '/admin' : '/admin?error=login')
+  redirect((await authenticate(data.get('account'),data.get('password'))) ? '/admin' : '/admin?error=login')
 }
 
 export async function logout() {
@@ -38,7 +51,7 @@ export async function logout() {
 }
 
 export async function changeStatus(data) {
-  await requireAdmin()
+  await requireStaff()
   const id = data.get('id')
   const status = data.get('status')
   if (typeof id !== 'string' || !/^[A-F0-9]{20}$/.test(id) || !['confirmed','cancelled'].includes(status)) redirect('/admin?error=invalid')
@@ -65,7 +78,7 @@ export async function changeStatus(data) {
 
 // Free-text note on a booking, for the admin only (deposits taken, special requests, old-system remarks).
 export async function saveBookingNote(data) {
-  await requireAdmin()
+  await requireStaff()
   const id = data.get('id')
   const note = String(data.get('note') || '').replace(/\r\n?/g,'\n').trim()
   if (typeof id !== 'string' || !/^[A-F0-9]{20}$/.test(id) || note.length > 1000) redirect('/admin?section=bookings&error=invalid')
@@ -75,7 +88,7 @@ export async function saveBookingNote(data) {
 }
 
 export async function unlockPhone(data) {
-  await requireAdmin()
+  await requireStaff()
   const phone=String(data.get('phone')||'')
   const blockedAt=String(data.get('blockedAt')||'')
   if (!/^\+?\d{8,15}$/.test(phone) || !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(blockedAt)) redirect(adminUrl('blockedPhones',{error:'invalid'}))

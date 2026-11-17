@@ -2,7 +2,7 @@
 import { AdminIcon } from './admin-icon'
 import Link, { AdminSearchForm } from '../pending-ui'
 import { today } from '../../lib/camp'
-import { electricityFormula, extraCharge } from '../../lib/checkout-pricing'
+import { checkoutDue, electricityFormula, extraCharge } from '../../lib/checkout-pricing'
 import { money } from '../../lib/pricing'
 import { checkoutQr } from '../../lib/promptpay'
 import { AdminDialog } from './admin-dialog'
@@ -51,7 +51,7 @@ async function CheckoutDialog({booking, query, review}) {
   const [items, settings] = await Promise.all([bookingItems(booking.id),checkoutSettings()])
   const formula = electricityFormula(booking,settings)
   const currentFormula = electricityFormula(booking,settings,true)
-  const extra = extraCharge(booking)
+  const extra = checkoutDue(booking)
   // The number saved with the charges, or the one in the settings when it was set after they were saved.
   const recipient = booking.promptpay || settings.promptpay
   const qr = !booking.completed_at && extra > 0 && recipient ? await checkoutQr(recipient,extra) : null
@@ -63,7 +63,8 @@ async function CheckoutDialog({booking, query, review}) {
       <div><dt>เบอร์โทร</dt><dd>{booking.phone}</dd></div>
       <div><dt>วันเข้าพัก – วันออก</dt><dd>{booking.arrival} → {booking.departure}</dd></div>
       <div><dt>รหัสจอง</dt><dd><code>{booking.reference||booking.id}</code></dd></div>
-      <div className="checkout-guest-count"><dt>จำนวนผู้เข้าพัก</dt><dd><strong>{booking.guest_count} คน</strong><br/>
+      <div className="checkout-guest-count"><dt>จำนวนผู้เข้าพัก</dt><dd><strong>{booking.guest_count} คน</strong>
+        {booking.booked_adults != null && <span className="checkout-booked-guests"> · จองไว้ {booking.booked_adults + booking.booked_children + booking.booked_seniors} คน</span>}<br/>
         <small>ผู้ใหญ่ {booking.adults} · เด็ก {booking.children} · ผู้สูงอายุ {booking.seniors}</small>
       </dd></div>
     </dl>
@@ -107,7 +108,7 @@ export async function CheckoutList({query}) {
           <th key={label} scope="col">{label}</th>)}</tr></thead>
         <tbody>{page.map(row => {
           const { lodging, rentals } = summaries.get(row.id)
-          const extra = extraCharge(row)
+          const extra = extraCharge(row), due = checkoutDue(row)
           const nights = (Date.parse(row.departure) - Date.parse(row.arrival)) / 86400000
           // The co-* classes place each cell in the phone card; on a wide screen the table is unchanged.
           return <tr key={row.id}>
@@ -124,9 +125,9 @@ export async function CheckoutList({query}) {
               {row.reference && <small className="co-ref">{row.reference}</small>}</td>
             <td data-label="สถานะ" className="co-status"><span className={'admin-status ' + (row.completed_at ? 'confirmed' : 'pending')}>
               {row.completed_at ? checkoutStatuses.done : checkoutStatuses.open}</span>
-              {extra > 0 && <><br/><small>{row.completed_at ? 'รับยอดเพิ่มแล้ว' : 'รอรับยอดเพิ่ม'}</small></>}</td>
+              {due > 0 && <><br/><small>{row.completed_at ? 'รับยอดเพิ่มแล้ว' : 'รอรับยอดเพิ่ม'}</small></>}</td>
             <td data-label="จำนวนเงิน" className="admin-amount co-amount"><strong>{money(row.total + extra / 100)}</strong>
-              {extra > 0 && <><br/><small>ยอดเพิ่ม {money(extra / 100)}</small></>}</td>
+              {due > 0 && <><br/><small>ยอดเพิ่ม {money(due / 100)}</small></>}</td>
           </tr>
         })}
         {!page.length && <tr><td colSpan={7} className="admin-empty-cell">ไม่พบรายการ Check-out</td></tr>}
