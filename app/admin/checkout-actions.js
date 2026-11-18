@@ -55,6 +55,8 @@ export async function saveCheckout(id, query, _state, form) {
       if (!checkout) return 'บันทึกยอดค่าใช้จ่ายก่อนยืนยัน Check-out'
       if (checkoutDue({ ...checkout,checkin_amount:checkin.added_amount }) > 0 && form.get('received') !== 'on') return 'ยืนยันว่าได้รับยอดชำระเพิ่มเติมแล้ว'
       await connection.execute('UPDATE booking_checkouts SET completed_at=UTC_TIMESTAMP() WHERE booking=?',[id])
+      // Lets the list of open stays skip this one without reading its check-out.
+      await connection.execute('UPDATE booking_checkins SET checked_out=TRUE WHERE booking=?',[id])
       return null
     }
 

@@ -3,7 +3,13 @@ import {useEffect,useState} from 'react'
 const format=bytes=>bytes>=1e9?(bytes/1e9).toFixed(2)+' GB':bytes>=1e6?(bytes/1e6).toFixed(1)+' MB':Math.ceil(bytes/1024)+' KB'
 export function StoragePanel({compact=false}){
  const [usage,setUsage]=useState(null),[error,setError]=useState('')
- useEffect(()=>{const abort=new AbortController();async function load(){try{const response=await fetch('/admin/storage',{signal:abort.signal,cache:'no-store'});if(!response.ok)throw Error();setUsage(await response.json());setError('')}catch{if(!abort.signal.aborted)setError('โหลดข้อมูลพื้นที่ไม่สำเร็จ กรุณารีเฟรชหน้า')}}load();const timer=setInterval(load,30000);return()=>{abort.abort();clearInterval(timer)}},[])
+ useEffect(()=>{const abort=new AbortController();async function load(){try{const response=await fetch('/admin/storage',{signal:abort.signal,cache:'no-store'});if(!response.ok)throw Error();setUsage(await response.json());setError('')}catch{if(!abort.signal.aborted)setError('โหลดข้อมูลพื้นที่ไม่สำเร็จ กรุณารีเฟรชหน้า')}}
+  // Checked only while the page is being looked at. A tab left open in the background used to ask every minute, all day,
+  // which kept waking the server after the host had put it to sleep.
+  let timer=null
+  const watch=()=>{clearInterval(timer);timer=null;if(document.visibilityState==='visible'){load();timer=setInterval(load,30000)}}
+  watch();document.addEventListener('visibilitychange',watch)
+  return()=>{abort.abort();clearInterval(timer);document.removeEventListener('visibilitychange',watch)}},[])
  if(!usage)return compact?null:<section className="panel"><p role="status">{error||'กำลังตรวจสอบพื้นที่จัดเก็บ…'}</p></section>
  const percent=Math.min(100,usage.used/usage.limit*100),full=usage.free===0
  if(compact)return percent<90?null:<p className="notice error" role="alert">{full?'พื้นที่จัดเก็บครบ 10 GB แล้ว ไม่สามารถอัปโหลดไฟล์เพิ่มได้':'พื้นที่จัดเก็บใกล้เต็มแล้ว'} · ใช้ {format(usage.used)} / 10 GB <a href="/admin?section=storage">จัดการพื้นที่</a></p>

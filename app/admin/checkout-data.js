@@ -58,11 +58,13 @@ export async function pricingMode() {
   return row?.mode
 }
 
-export async function checkoutRows(filters, position = {}) {
+export async function checkoutRows(filters, position = {}, limit = checkoutPageSize) {
   // Only stays that have checked in (older check-outs finished before check-in existed stay listed).
   const clauses = ["b.status='confirmed'",'(ci.booking IS NOT NULL OR c.completed_at IS NOT NULL)']
   const params = []
-  if (filters.status !== 'all') clauses.push(filters.status === 'done' ? 'c.completed_at IS NOT NULL' : 'c.completed_at IS NULL')
+  // An open stay has a check-in that is not marked checked out; the mark is indexed, so years of finished stays are
+  // never read. c.completed_at stays the rule that decides: a stay is open only while its check-out is unfinished.
+  if (filters.status !== 'all') clauses.push(filters.status === 'done' ? 'c.completed_at IS NOT NULL' : 'ci.checked_out=FALSE AND c.completed_at IS NULL')
   if (filters.from) {
     clauses.push('b.arrival >= ?')
     params.push(filters.from)
@@ -89,7 +91,7 @@ export async function checkoutRows(filters, position = {}) {
   const [rows] = await database().execute(
     `SELECT ${checkoutColumns}
      FROM bookings b LEFT JOIN booking_checkouts c ON c.booking=b.id LEFT JOIN booking_checkins ci ON ci.booking=b.id
-     WHERE ${clauses.join(' AND ')} ORDER BY b.departure ${direction}, b.id ${direction} LIMIT ?`,[...params,checkoutPageSize+1])
+     WHERE ${clauses.join(' AND ')} ORDER BY b.departure ${direction}, b.id ${direction} LIMIT ?`,[...params,limit+1])
   return rows
 }
 

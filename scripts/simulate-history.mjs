@@ -51,7 +51,7 @@ async function fill(years, perDay) {
     await db.query('INSERT INTO booking_lines (booking,code,name,quantity,amount,room_adults,room_seniors,room_children) VALUES ?',[batch.lines])
     if (batch.allocations.length) await db.query('INSERT INTO allocations (code,night,booking,quantity) VALUES ?',[batch.allocations])
     await db.query('INSERT INTO booking_payments (booking,token_hash,expires_at,submitted_at,mime) VALUES ?',[batch.payments])
-    if (batch.checkins.length) await db.query('INSERT INTO booking_checkins (booking,booked_adults,booked_children,booked_seniors,note,added_amount,checked_in_at) VALUES ?',[batch.checkins])
+    if (batch.checkins.length) await db.query('INSERT INTO booking_checkins (booking,booked_adults,booked_children,booked_seniors,note,added_amount,checked_in_at,checked_out) VALUES ?',[batch.checkins])
     if (batch.checkouts.length) await db.query('INSERT INTO booking_checkouts (booking,units_milli,electricity_rate,free_units_per_guest,electricity_amount,damage_amount,other_amount,lodging_charges,note,version,completed_at,free_guests) VALUES ?',[batch.checkouts])
     await db.commit()
     for (const list of Object.values(batch)) list.length = 0
@@ -86,7 +86,7 @@ async function fill(years, perDay) {
           if (line[1] === extra?.code) gearHeld.set(night + '|' + extra.code,(gearHeld.get(night + '|' + extra.code) || 0) + 1)
           else { if (!taken.has(night)) taken.set(night,new Set()); taken.get(night).add(line[1]) }
         }
-        batch.checkins.push([id,adults + (room ? 2 : 0),children,0,'',0,arrival + ' 07:00:00'])
+        batch.checkins.push([id,adults + (room ? 2 : 0),children,0,'',0,arrival + ' 07:00:00',1])
         const units = 2000 + Math.floor(Math.random() * 8) * 1000, charge = Math.max(0,units - adults * 1000)
         batch.checkouts.push([id,units,1000,1000,charge,0,0,null,'',1,day(arrival,nights) + ' 04:00:00',adults])
       }

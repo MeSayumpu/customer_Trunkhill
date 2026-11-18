@@ -164,6 +164,18 @@ try {
   if (!checkoutOnly && !pricingOnly) await connection.query(await readFile(new URL('../db/booking-reschedule-history.sql',import.meta.url),'utf8'))
   if (!rescheduleOnly && !pricingOnly) await initCheckout()
   if (!checkoutOnly && !rescheduleOnly && !pricingOnly) await customerExperienceSchema(connection)
+  if (!checkoutOnly && !rescheduleOnly && !pricingOnly) {
+    // TRUE once the stay's check-out is finished: the list of stays still to check out reads only the open ones
+    // instead of every stay ever made. Set together with booking_checkouts.completed_at, never on its own.
+    await ensureColumns([['booking_checkins','checked_out','BOOLEAN NOT NULL DEFAULT FALSE']])
+    await connection.query(`UPDATE booking_checkins ci JOIN booking_checkouts c ON c.booking=ci.booking
+      SET ci.checked_out=TRUE WHERE c.completed_at IS NOT NULL AND ci.checked_out=FALSE`)
+    await ensureIndexes([
+      ['booking_checkins', 'booking_checkins_open', 'checked_out, booking'],
+      // Dashboard totals and the booking list count confirmed bookings by arrival date from this index alone.
+      ['bookings', 'bookings_status_arrival', 'status, arrival, total, tent_discount'],
+    ])
+  }
   await connection.query(await readFile(new URL('../db/admin-feedback.sql',import.meta.url),'utf8'))
   await connection.query(await readFile(new URL('../db/facility-media.sql',import.meta.url),'utf8'))
   await ensureColumns([['zone_details','features','LONGTEXT NULL']])
